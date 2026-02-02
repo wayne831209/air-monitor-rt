@@ -12,14 +12,17 @@ namespace DeviceBox
 {
     public partial class MainForm : Form
     {
-        // 工業風格配色常數
-        private static readonly Color StatusRunning = Color.FromArgb(0, 200, 0);      // 綠色 - 運轉/啟動
-        private static readonly Color StatusStopped = Color.FromArgb(128, 128, 128);  // 灰色 - 停止/關機
-        private static readonly Color StatusAlarm = Color.FromArgb(255, 140, 0);      // 橘色 - 警報
-        private static readonly Color StatusFault = Color.FromArgb(220, 50, 50);      // 紅色 - 故障
-        private static readonly Color StatusReady = Color.FromArgb(0, 180, 255);      // 藍色 - 備妥
-        private static readonly Color StatusNotReady = Color.FromArgb(100, 100, 100); // 深灰 - 未備妥
-        private static readonly Color StatusDisabled = Color.FromArgb(60, 60, 60);    // 深灰 - 未啟用
+        // Color Constants
+        private static readonly Color StatusRunning = Color.FromArgb(0, 200, 0);      // Green - Running
+        private static readonly Color StatusStopped = Color.FromArgb(128, 128, 128);  // Gray - Stopped
+        private static readonly Color StatusAlarm = Color.FromArgb(255, 140, 0);      // Orange - Alarm
+        private static readonly Color StatusFault = Color.FromArgb(220, 50, 50);      // Red - Fault
+        private static readonly Color StatusReady = Color.FromArgb(0, 180, 255);      // Blue - Ready
+        private static readonly Color StatusNotReady = Color.FromArgb(100, 100, 100); // Dark Gray - Not Ready
+        private static readonly Color StatusDisabled = Color.FromArgb(60, 60, 60);    // Dark Gray - Disabled
+        private static readonly Color TextNormal = Color.White;                        // Normal Text
+        private static readonly Color ScheduleActive = Color.FromArgb(0, 150, 0);     // Green - Schedule Active
+        private static readonly Color ScheduleInactive = Color.FromArgb(150, 0, 0);   // Red - No Schedule
 
         private Timer updateTimer;
         private List<ModBus_List> modbusList;
@@ -32,6 +35,7 @@ namespace DeviceBox
             InitializeModbus();
             InitializeTimer();
             InitializeFactoryHeaders();
+            InitializeCompressorNames();
         }
 
         /// <summary>
@@ -47,7 +51,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 初始化 Modbus 連線
+        /// Initialize Modbus Connections
         /// </summary>
         private void InitializeModbus()
         {
@@ -55,7 +59,6 @@ namespace DeviceBox
 
             try
             {
-                // 從設備配置檔建立 Modbus 連線
                 foreach (var factory in config.Factories)
                 {
                     modbusList.Add(new ModBus_List(factory.ModbusIp, factory.ModbusPort, factory.Name));
@@ -63,17 +66,16 @@ namespace DeviceBox
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Modbus初始化失敗: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Modbus init failed: " + ex.Message);
             }
         }
 
         /// <summary>
-        /// 初始化場域標題
+        /// Initialize Factory Headers
         /// </summary>
         private void InitializeFactoryHeaders()
         {
-            // 場域標題 Labels
-            Label[] factoryHeaders = { label6, label7, label8, label9, label10 };
+            Label[] factoryHeaders = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
 
             for (int i = 0; i < factoryHeaders.Length; i++)
             {
@@ -88,10 +90,63 @@ namespace DeviceBox
             }
         }
 
+        /// <summary>
+        /// Initialize Compressor Names (Row1)
+        /// </summary>
+        private void InitializeCompressorNames()
+        {
+            // Row1: Device Names
+            Label[] deviceNameLabels = { device_col1, device_col2, device_col3, device_col4, device_col5 };
+            // Row2: Schedule
+            Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
+
+            for (int i = 0; i < Math.Min(config.Factories.Count, 5); i++)
+            {
+                var factory = config.Factories[i];
+                var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+
+                if (compressors.Count > 0)
+                {
+                    // Build device name string
+                    string deviceNames = BuildCompressorNameString(factory, compressors);
+                    UpdateLabel(deviceNameLabels[i], deviceNames, TextNormal);
+
+                    // Update Schedule (Row2)
+                    UpdateScheduleLabel(scheduleLabels[i], compressors);
+                }
+                else
+                {
+                    UpdateLabel(deviceNameLabels[i], "--", StatusDisabled);
+                    UpdateLabelWithBackground(scheduleLabels[i], "No Schedule", TextNormal, ScheduleInactive);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Build Compressor Name String
+        /// Format: "FactoryName:CO-38" or "CO-38\nCO-37" for multiple
+        /// </summary>
+        private string BuildCompressorNameString(FactoryConfig factory, List<DeviceConfig> compressors)
+        {
+            if (compressors.Count == 1)
+            {
+                // Single compressor: just show name
+                return compressors[0].Name;
+            }
+            else
+            {
+                // Multiple compressors: show factory:name format
+                var names = compressors
+                    .OrderBy(c => c.MachineNo)
+                    .Select(c => factory.Name + ":" + c.Name);
+                return string.Join("\n", names);
+            }
+        }
+
         private void InitializeTimer()
         {
             updateTimer = new Timer();
-            updateTimer.Interval = 1000; // 每秒更新一次
+            updateTimer.Interval = 1000;
             updateTimer.Tick += UpdateTimer_Tick;
             updateTimer.Start();
         }
@@ -103,7 +158,6 @@ namespace DeviceBox
 
             try
             {
-                // 更新各廠區狀態
                 for (int factoryIndex = 0; factoryIndex < Math.Min(modbusList.Count, 5); factoryIndex++)
                 {
                     var modbus = modbusList[factoryIndex];
@@ -112,52 +166,70 @@ namespace DeviceBox
 
                     var factoryConfig = config.Factories[factoryIndex];
 
-                    // 根據配置解析設備狀態
-                    var compressor1Status = GetCompressorStatusByConfig(modbus, factoryConfig, 1);
-                    var compressor2Status = GetCompressorStatusByConfig(modbus, factoryConfig, 2);
-                    var compressor3Status = GetCompressorStatusByConfig(modbus, factoryConfig, 3);
+                    // Get compressor statuses
+                    var compressorStatuses = GetCompressorStatuses(modbus, factoryConfig);
                     var precoolerStatus = GetDeviceStatusByConfig(modbus, factoryConfig, DeviceType.Precooler);
                     var dryerStatus = GetDeviceStatusByConfig(modbus, factoryConfig, DeviceType.Dryer);
                     var fanStatus = GetDeviceStatusByConfig(modbus, factoryConfig, DeviceType.Fan);
                     var pressure = GetPressureValue(modbus);
+                    var temp = GetTempValue(modbus);
 
-                    // 更新對應的Label
-                    UpdateFactoryLabels(factoryIndex, compressor1Status, compressor2Status, compressor3Status,
-                        precoolerStatus, dryerStatus, fanStatus, pressure);
+                    // Update Labels
+                    UpdateFactoryLabels(factoryIndex, factoryConfig, compressorStatuses,
+                        precoolerStatus, dryerStatus, fanStatus, pressure,temp);
+
+                    // Update Schedule Labels (Row2)
+                    Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
+                    var compressors = factoryConfig.GetDevicesByType(DeviceType.Compressor);
+                    if (factoryIndex < scheduleLabels.Length)
+                    {
+                        UpdateScheduleLabel(scheduleLabels[factoryIndex], compressors);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("更新狀態失敗: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Update failed: " + ex.Message);
             }
         }
 
         /// <summary>
-        /// 根據配置取得空壓機狀態
+        /// Get all compressor statuses for a factory
         /// </summary>
-        private DeviceStatus GetCompressorStatusByConfig(ModBus_List modbus, FactoryConfig factory, int machineNo)
+        private List<CompressorStatus> GetCompressorStatuses(ModBus_List modbus, FactoryConfig factory)
         {
-            var device = factory.GetDevice(DeviceType.Compressor, machineNo);
-            
-            if (device == null || !device.Enabled)
+            var statuses = new List<CompressorStatus>();
+            var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+
+            foreach (var compressor in compressors.OrderBy(c => c.MachineNo))
             {
-                return new DeviceStatus($"{machineNo}號機 --", StatusDisabled);
+                bool isRunning = GetDIValue(modbus, compressor.IO.RunDI);
+                bool isAlarm = GetDIValue(modbus, compressor.IO.AlarmDI);
+                bool isFault = GetDIValue(modbus, compressor.IO.FaultDI);
+
+                DeviceStatus status;
+                if (isFault)
+                    status = new DeviceStatus("故障", StatusFault);
+                else if (isAlarm)
+                    status = new DeviceStatus("警報", StatusAlarm);
+                else if (isRunning)
+                    status = new DeviceStatus("運轉", StatusRunning);
+                else
+                    status = new DeviceStatus("停止", StatusStopped);
+
+                statuses.Add(new CompressorStatus
+                {
+                    Name = compressor.Name,
+                    MachineNo = compressor.MachineNo,
+                    Status = status
+                });
             }
 
-            bool isRunning = GetDIValue(modbus, device.IO.RunDI);
-            bool isAlarm = GetDIValue(modbus, device.IO.AlarmDI);
-            bool isFault = GetDIValue(modbus, device.IO.FaultDI);
-
-            string machineName = $"{machineNo}號機";
-
-            if (isFault) return new DeviceStatus($"{machineName} 故障", StatusFault);
-            if (isAlarm) return new DeviceStatus($"{machineName} 警報", StatusAlarm);
-            if (isRunning) return new DeviceStatus($"{machineName} 運轉", StatusRunning);
-            return new DeviceStatus($"{machineName} 停止", StatusStopped);
+            return statuses;
         }
 
         /// <summary>
-        /// 根據配置取得一般設備狀態 (預冷散熱器、冷凍式乾燥機、機房風扇)
+        /// Get device status by config
         /// </summary>
         private DeviceStatus GetDeviceStatusByConfig(ModBus_List modbus, FactoryConfig factory, DeviceType deviceType)
         {
@@ -172,15 +244,15 @@ namespace DeviceBox
             bool isOff = GetDIValue(modbus, device.IO.OffDI);
             bool isFault = GetDIValue(modbus, device.IO.FaultDI);
 
-            // 故障判斷: OFF + Fault DI 同時為1
             if (isOff && isFault) return new DeviceStatus("故障", StatusFault);
             if (isOn) return new DeviceStatus("啟動", StatusRunning);
-            if (isOff) return new DeviceStatus("停止", StatusStopped);
+            if (isOff) return new DeviceStatus("停止" +
+                "", StatusStopped);
             return new DeviceStatus("--", StatusStopped);
         }
 
         /// <summary>
-        /// 根據 DI 編號取得對應的值
+        /// Get DI Value by number
         /// </summary>
         private bool GetDIValue(ModBus_List modbus, int diNumber)
         {
@@ -209,7 +281,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 取得空壓壓力值
+        /// Get Pressure Value
         /// </summary>
         private string GetPressureValue(ModBus_List modbus)
         {
@@ -218,49 +290,109 @@ namespace DeviceBox
                 double pressureValue = Convert.ToDouble(modbus.address_val.Address_Air_Sensor_Pressure_Value);
                 double decimalPlaces = Convert.ToDouble(modbus.address_val.Address_Air_Sensor_Decimal);
                 double pressure = pressureValue / Math.Pow(10, decimalPlaces);
-                return pressure.ToString("F2") + " kgf/cm²";
+                return pressure.ToString("F2");
             }
             catch
             {
-                return "-- kgf/cm²";
+                return "--";
             }
         }
 
         /// <summary>
-        /// 更新對應廠區的Label顯示
+        /// Get Temp Value
         /// </summary>
-        private void UpdateFactoryLabels(int factoryIndex, DeviceStatus compressor1, DeviceStatus compressor2, 
-            DeviceStatus compressor3, DeviceStatus precooler, DeviceStatus dryer, DeviceStatus fan, string pressure)
+        private string GetTempValue(ModBus_List modbus)
         {
-            // 1號機狀態 (第一行)
-            Label[] compressor1Labels = { label20, label19, label18, label17, label16 };
-            // 2號機狀態 (第二行)
-            Label[] compressor2Labels = { label25, label24, label23, label22, label21 };
-            // 3號機狀態 (第三行)
-            Label[] compressor3Labels = { label30, label29, label28, label27, label26 };
-            // 預冷散熱器
-            Label[] precoolerLabels = { label35, label34, label33, label32, label31 };
-            // 冷凍式乾燥機
-            Label[] dryerLabels = { label40, label39, label38, label37, label36 };
-            // 機房風扇
-            Label[] fanLabels = { label45, label44, label43, label42, label41 };
-            // 空壓壓力
-            Label[] pressureLabels = { label50, label49, label48, label47, label46 };
-
-            if (factoryIndex < compressor1Labels.Length)
+            try
             {
-                UpdateLabel(compressor1Labels[factoryIndex], compressor1.Text, compressor1.Color);
-                UpdateLabel(compressor2Labels[factoryIndex], compressor2.Text, compressor2.Color);
-                UpdateLabel(compressor3Labels[factoryIndex], compressor3.Text, compressor3.Color);
+                double tempValue = Convert.ToDouble(modbus.address_val.Address_E5CC_1_PV);
+                double temperature = tempValue;
+                if (temperature == 0)
+                    return "--";
+                return temperature.ToString("F2");
+            }
+            catch
+            {
+                return "--";
+            }
+        }
+
+        /// <summary>
+        /// Update Factory Labels
+        /// </summary>
+        private void UpdateFactoryLabels(int factoryIndex, FactoryConfig factory, 
+            List<CompressorStatus> compressorStatuses, DeviceStatus precooler, 
+            DeviceStatus dryer, DeviceStatus fan, string pressure,string temp)
+        {
+            // Row3: Status Labels
+            Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
+            // Precooler
+            Label[] precoolerLabels = { precooler_col1, precooler_col2, precooler_col3, precooler_col4, precooler_col5 };
+            // Dryer
+            Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
+            // Fan
+            Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
+            // Pressure
+            Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
+            //Temp
+            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+
+            if (factoryIndex < statusLabels.Length)
+            {
+                // Build status string for Row3
+                if (compressorStatuses.Count > 0)
+                {
+                    string statusText = BuildCompressorStatusString(factory, compressorStatuses);
+                    Color statusColor = GetOverallStatusColor(compressorStatuses);
+                    UpdateLabel(statusLabels[factoryIndex], statusText, statusColor);
+                }
+                else
+                {
+                    UpdateLabel(statusLabels[factoryIndex], "--", StatusDisabled);
+                }
+
+                // Other devices
                 UpdateLabel(precoolerLabels[factoryIndex], precooler.Text, precooler.Color);
                 UpdateLabel(dryerLabels[factoryIndex], dryer.Text, dryer.Color);
                 UpdateLabel(fanLabels[factoryIndex], fan.Text, fan.Color);
                 UpdateLabel(pressureLabels[factoryIndex], pressure, StatusRunning);
+                UpdateLabel(tempLabels[factoryIndex], temp, StatusRunning);
             }
         }
 
         /// <summary>
-        /// 更新Label的文字和顏色
+        /// Build Compressor Status String for Row3
+        /// </summary>
+        private string BuildCompressorStatusString(FactoryConfig factory, List<CompressorStatus> statuses)
+        {
+            if (statuses.Count == 1)
+            {
+                return statuses[0].Status.Text;
+            }
+            else
+            {
+                // Multiple compressors: show each status
+                var statusStrings = statuses.Select(s => s.Name + ":" + s.Status.Text);
+                return string.Join("\n", statusStrings);
+            }
+        }
+
+        /// <summary>
+        /// Get Overall Status Color (priority: Fault > Alarm > Running > Stopped)
+        /// </summary>
+        private Color GetOverallStatusColor(List<CompressorStatus> statuses)
+        {
+            if (statuses.Any(s => s.Status.Color == StatusFault))
+                return StatusFault;
+            if (statuses.Any(s => s.Status.Color == StatusAlarm))
+                return StatusAlarm;
+            if (statuses.Any(s => s.Status.Color == StatusRunning))
+                return StatusRunning;
+            return StatusStopped;
+        }
+
+        /// <summary>
+        /// Update Label
         /// </summary>
         private void UpdateLabel(Label label, string text, Color foreColor)
         {
@@ -279,16 +411,80 @@ namespace DeviceBox
             }
         }
 
+        /// <summary>
+        /// Update Schedule Label with background color
+        /// </summary>
+        private void UpdateScheduleLabel(Label label, List<DeviceConfig> compressors)
+        {
+            bool hasActiveSchedule = compressors.Any(c => c.Schedule.Enabled && c.Schedule.IsInSchedule());
+            bool hasAnySchedule = compressors.Any(c => c.Schedule.Enabled);
+
+            if (hasAnySchedule)
+            {
+                var scheduleTexts = compressors
+                    .Where(c => c.Schedule.Enabled)
+                    .Select(c => c.Schedule.GetDisplayText());
+                string scheduleText = string.Join("\n", scheduleTexts.Distinct());
+
+                if (hasActiveSchedule)
+                {
+                    UpdateLabelWithBackground(label, "時間排程", TextNormal, ScheduleActive);
+                }
+                else
+                {
+                    UpdateLabelWithBackground(label, "時間排程", TextNormal, ScheduleInactive);
+                }
+            }
+            else
+            {
+                UpdateLabelWithBackground(label, "時間排程", TextNormal, ScheduleInactive);
+            }
+        }
+
+        /// <summary>
+        /// Update Label with text, foreground and background color
+        /// </summary>
+        private void UpdateLabelWithBackground(Label label, string text, Color foreColor, Color backColor)
+        {
+            if (label.InvokeRequired)
+            {
+                label.Invoke(new Action(() =>
+                {
+                    label.Text = text;
+                    label.ForeColor = foreColor;
+                    label.BackColor = backColor;
+                }));
+            }
+            else
+            {
+                label.Text = text;
+                label.ForeColor = foreColor;
+                label.BackColor = backColor;
+            }
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             updateTimer?.Stop();
             updateTimer?.Dispose();
             base.OnFormClosing(e);
         }
+
+        private void Factory_Click(object sender, EventArgs e)
+        {
+            if(Factory.Text == "其它廠域_空壓系統即時狀態")
+            {
+                Factory.Text = "鑄造廠域_空壓系統即時狀態";
+            }
+            else
+            {
+                Factory.Text = "其它廠域_空壓系統即時狀態";
+            }
+        }
     }
 
     /// <summary>
-    /// 設備狀態結構
+    /// Device Status Structure
     /// </summary>
     public struct DeviceStatus
     {
@@ -300,5 +496,15 @@ namespace DeviceBox
             Text = text;
             Color = color;
         }
+    }
+
+    /// <summary>
+    /// Compressor Status Structure
+    /// </summary>
+    public struct CompressorStatus
+    {
+        public string Name { get; set; }
+        public int MachineNo { get; set; }
+        public DeviceStatus Status { get; set; }
     }
 }

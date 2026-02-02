@@ -26,6 +26,48 @@ namespace DeviceBox
     }
 
     /// <summary>
+    /// Schedule Configuration
+    /// </summary>
+    public class ScheduleConfig
+    {
+        public bool Enabled { get; set; } = false;
+        public TimeSpan StartTime { get; set; } = TimeSpan.Zero;
+        public TimeSpan EndTime { get; set; } = TimeSpan.Zero;
+        public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek>();
+
+        /// <summary>
+        /// Check if current time is within schedule
+        /// </summary>
+        public bool IsInSchedule()
+        {
+            if (!Enabled) return false;
+
+            var now = DateTime.Now;
+            var currentTime = now.TimeOfDay;
+            var currentDay = now.DayOfWeek;
+
+            // Check if today is a scheduled day
+            if (Days.Count > 0 && !Days.Contains(currentDay))
+                return false;
+
+            // Check time range
+            if (StartTime <= EndTime)
+                return currentTime >= StartTime && currentTime <= EndTime;
+            else
+                return currentTime >= StartTime || currentTime <= EndTime;
+        }
+
+        /// <summary>
+        /// Get schedule display text
+        /// </summary>
+        public string GetDisplayText()
+        {
+            if (!Enabled) return "No Schedule";
+            return StartTime.ToString(@"hh\:mm") + "-" + EndTime.ToString(@"hh\:mm");
+        }
+    }
+
+    /// <summary>
     /// I/O Configuration
     /// </summary>
     public class IOConfig
@@ -49,10 +91,12 @@ namespace DeviceBox
         public string Name { get; set; }
         public bool Enabled { get; set; }
         public IOConfig IO { get; set; }
+        public ScheduleConfig Schedule { get; set; }
 
         public DeviceConfig()
         {
             IO = new IOConfig();
+            Schedule = new ScheduleConfig();
         }
     }
 
@@ -267,6 +311,12 @@ namespace DeviceBox
                 device.IO = ParseIO(ioElement);
             }
 
+            var scheduleElement = element.Element("Schedule");
+            if (scheduleElement != null)
+            {
+                device.Schedule = ParseSchedule(scheduleElement);
+            }
+
             return device;
         }
 
@@ -293,6 +343,23 @@ namespace DeviceBox
                 io.Adam = element.Attribute("adam").Value;
 
             return io;
+        }
+
+        /// <summary>
+        /// Parse Schedule Element
+        /// </summary>
+        private ScheduleConfig ParseSchedule(XElement element)
+        {
+            var schedule = new ScheduleConfig();
+
+            if (element.Attribute("enabled") != null)
+                schedule.Enabled = bool.Parse(element.Attribute("enabled").Value);
+            if (element.Attribute("start") != null)
+                schedule.StartTime = TimeSpan.Parse(element.Attribute("start").Value);
+            if (element.Attribute("end") != null)
+                schedule.EndTime = TimeSpan.Parse(element.Attribute("end").Value);
+
+            return schedule;
         }
 
         /// <summary>
