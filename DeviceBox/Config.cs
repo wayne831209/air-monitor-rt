@@ -275,9 +275,12 @@ namespace DeviceBox
                     if (device != null)
                     {
                         factory.Devices.Add(device);
+                        System.Diagnostics.Debug.WriteLine($"[Config] Factory={factory.Name}, Device={device.Name}, Type={device.Type}, MachineNo={device.MachineNo}, Enabled={device.Enabled}");
                     }
                 }
             }
+
+            System.Diagnostics.Debug.WriteLine($"[Config] Factory={factory.Name} loaded {factory.Devices.Count} devices, Compressors={factory.Devices.Count(d => d.Type == DeviceType.Compressor)}");
 
             return factory;
         }

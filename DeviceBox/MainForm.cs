@@ -24,6 +24,12 @@ namespace DeviceBox
         private static readonly Color ScheduleActive = Color.FromArgb(0, 150, 0);     // Green - Schedule Active
         private static readonly Color ScheduleInactive = Color.FromArgb(150, 0, 0);   // Red - No Schedule
 
+        // View Mode
+        private enum ViewMode { OtherFactories, CastingFactory }
+        private ViewMode currentViewMode = ViewMode.OtherFactories;
+        private int[] currentDisplayIndices = { 0, 1, 2, 3, 4 };  // Factory indices to display
+        private const int CASTING_FACTORY_ID = 6;  // Casting Factory ID in config
+
         private Timer updateTimer;
         private List<ModBus_List> modbusList;
         private Config config;
@@ -75,19 +81,17 @@ namespace DeviceBox
         /// </summary>
         private void InitializeFactoryHeaders()
         {
-            Label[] factoryHeaders = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
-
-            for (int i = 0; i < factoryHeaders.Length; i++)
+            // Set initial display indices (first 5 factories excluding casting factory)
+            var otherFactories = config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).Take(5).ToList();
+            for (int i = 0; i < 5; i++)
             {
-                if (i < config.Factories.Count)
-                {
-                    factoryHeaders[i].Text = config.Factories[i].Name;
-                }
+                if (i < otherFactories.Count)
+                    currentDisplayIndices[i] = config.Factories.IndexOf(otherFactories[i]);
                 else
-                {
-                    factoryHeaders[i].Text = "--";
-                }
+                    currentDisplayIndices[i] = -1;
             }
+            
+            RefreshFactoryDisplay();
         }
 
         /// <summary>
@@ -158,38 +162,124 @@ namespace DeviceBox
 
             try
             {
-                for (int factoryIndex = 0; factoryIndex < Math.Min(modbusList.Count, 5); factoryIndex++)
-                {
-                    var modbus = modbusList[factoryIndex];
-                    if (modbus.address_val == null)
-                        continue;
-
-                    var factoryConfig = config.Factories[factoryIndex];
-
-                    // Get compressor statuses
-                    var compressorStatuses = GetCompressorStatuses(modbus, factoryConfig);
-                    var precoolerStatus = GetDeviceStatusByConfig(modbus, factoryConfig, DeviceType.Precooler);
-                    var dryerStatus = GetDeviceStatusByConfig(modbus, factoryConfig, DeviceType.Dryer);
-                    var fanStatus = GetDeviceStatusByConfig(modbus, factoryConfig, DeviceType.Fan);
-                    var pressure = GetPressureValue(modbus);
-                    var temp = GetTempValue(modbus);
-
-                    // Update Labels
-                    UpdateFactoryLabels(factoryIndex, factoryConfig, compressorStatuses,
-                        precoolerStatus, dryerStatus, fanStatus, pressure,temp);
-
-                    // Update Schedule Labels (Row2)
-                    Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
-                    var compressors = factoryConfig.GetDevicesByType(DeviceType.Compressor);
-                    if (factoryIndex < scheduleLabels.Length)
-                    {
-                        UpdateScheduleLabel(scheduleLabels[factoryIndex], compressors);
-                    }
-                }
+                UpdateAllFactories();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Update failed: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Update all factories based on current view mode
+        /// </summary>
+        private void UpdateAllFactories()
+        {
+            Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
+            Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
+            Label[] precoolerLabels = { precooler_col1, precooler_col2, precooler_col3, precooler_col4, precooler_col5 };
+            Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
+            Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
+            Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
+            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+
+            if (currentViewMode == ViewMode.CastingFactory)
+            {
+                // Casting Factory Mode - Each compressor in separate column
+                var castingFactory = config.Factories.FirstOrDefault(f => f.Id == CASTING_FACTORY_ID);
+                if (castingFactory == null) return;
+
+                int modbusIndex = config.Factories.IndexOf(castingFactory);
+                if (modbusIndex >= modbusList.Count) return;
+
+                var modbus = modbusList[modbusIndex];
+                if (modbus.address_val == null) return;
+
+                var compressors = castingFactory.GetDevicesByType(DeviceType.Compressor).OrderBy(c => c.MachineNo).ToList();
+                
+                // Common devices (shared across all columns)
+                var precoolerStatus = GetDeviceStatusByConfig(modbus, castingFactory, DeviceType.Precooler);
+                var dryerStatus = GetDeviceStatusByConfig(modbus, castingFactory, DeviceType.Dryer);
+                var fanStatus = GetDeviceStatusByConfig(modbus, castingFactory, DeviceType.Fan);
+                var pressure = GetPressureValue(modbus);
+                var temp = GetTempValue(modbus);
+
+                // Update each compressor in separate column
+                for (int colIndex = 0; colIndex < Math.Min(compressors.Count, 5); colIndex++)
+                {
+                    var compressor = compressors[colIndex];
+                    
+                    // Get individual compressor status
+                    bool isRunning = GetDIValue(modbus, compressor.IO.RunDI);
+                    bool isAlarm = GetDIValue(modbus, compressor.IO.AlarmDI);
+                    bool isFault = GetDIValue(modbus, compressor.IO.FaultDI);
+
+                    DeviceStatus status;
+                    if (isFault)
+                        status = new DeviceStatus("故障", StatusFault);
+                    else if (isAlarm)
+                        status = new DeviceStatus("警報", StatusAlarm);
+                    else if (isRunning)
+                        status = new DeviceStatus("運轉", StatusRunning);
+                    else
+                        status = new DeviceStatus("停止", StatusStopped);
+
+                    UpdateLabel(statusLabels[colIndex], status.Text, status.Color);
+                    UpdateScheduleLabel(scheduleLabels[colIndex], new List<DeviceConfig> { compressor });
+
+                    // Common devices - show same values in all compressor columns
+                    UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
+                    UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
+                    UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
+                    UpdateLabel(pressureLabels[colIndex], pressure, StatusRunning);
+                    UpdateLabel(tempLabels[colIndex], temp, StatusRunning);
+                }
+            }
+            else
+            {
+                // Other Factories Mode
+                var otherFactories = config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).Take(5).ToList();
+
+                for (int colIndex = 0; colIndex < 5; colIndex++)
+                {
+                    if (colIndex < otherFactories.Count)
+                    {
+                        var factory = otherFactories[colIndex];
+                        int modbusIndex = config.Factories.IndexOf(factory);
+
+                        if (modbusIndex >= modbusList.Count) continue;
+
+                        var modbus = modbusList[modbusIndex];
+                        if (modbus.address_val == null) continue;
+
+                        var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+                        var compressorStatuses = GetCompressorStatuses(modbus, factory);
+                        var precoolerStatus = GetDeviceStatusByConfig(modbus, factory, DeviceType.Precooler);
+                        var dryerStatus = GetDeviceStatusByConfig(modbus, factory, DeviceType.Dryer);
+                        var fanStatus = GetDeviceStatusByConfig(modbus, factory, DeviceType.Fan);
+                        var pressure = GetPressureValue(modbus);
+                        var temp = GetTempValue(modbus);
+
+                        // Update compressor status
+                        if (compressorStatuses.Count > 0)
+                        {
+                            string statusText = BuildCompressorStatusString(factory, compressorStatuses);
+                            Color statusColor = GetOverallStatusColor(compressorStatuses);
+                            UpdateLabel(statusLabels[colIndex], statusText, statusColor);
+                        }
+                        else
+                        {
+                            UpdateLabel(statusLabels[colIndex], "--", StatusDisabled);
+                        }
+
+                        UpdateScheduleLabel(scheduleLabels[colIndex], compressors);
+                        UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
+                        UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
+                        UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
+                        UpdateLabel(pressureLabels[colIndex], pressure, StatusRunning);
+                        UpdateLabel(tempLabels[colIndex], temp, StatusRunning);
+                    }
+                }
             }
         }
 
@@ -201,11 +291,15 @@ namespace DeviceBox
             var statuses = new List<CompressorStatus>();
             var compressors = factory.GetDevicesByType(DeviceType.Compressor);
 
+            System.Diagnostics.Debug.WriteLine($"[{factory.Name}] Found {compressors.Count} compressors");
+
             foreach (var compressor in compressors.OrderBy(c => c.MachineNo))
             {
                 bool isRunning = GetDIValue(modbus, compressor.IO.RunDI);
                 bool isAlarm = GetDIValue(modbus, compressor.IO.AlarmDI);
                 bool isFault = GetDIValue(modbus, compressor.IO.FaultDI);
+
+                System.Diagnostics.Debug.WriteLine($"  [{compressor.Name}] MachineNo={compressor.MachineNo}, RunDI={compressor.IO.RunDI}, isRunning={isRunning}");
 
                 DeviceStatus status;
                 if (isFault)
@@ -472,13 +566,136 @@ namespace DeviceBox
 
         private void Factory_Click(object sender, EventArgs e)
         {
-            if(Factory.Text == "其它廠域_空壓系統即時狀態")
+            if (currentViewMode == ViewMode.OtherFactories)
             {
+                // Switch to Casting Factory view
+                currentViewMode = ViewMode.CastingFactory;
                 Factory.Text = "鑄造廠域_空壓系統即時狀態";
+                
+                // Find casting factory index
+                var castingFactory = config.Factories.FirstOrDefault(f => f.Id == CASTING_FACTORY_ID);
+                if (castingFactory != null)
+                {
+                    int castingIndex = config.Factories.IndexOf(castingFactory);
+                    // Display casting factory in all 5 columns (for 3 compressors)
+                    currentDisplayIndices = new int[] { castingIndex, -1, -1, -1, -1 };
+                }
             }
             else
             {
+                // Switch to Other Factories view
+                currentViewMode = ViewMode.OtherFactories;
                 Factory.Text = "其它廠域_空壓系統即時狀態";
+                
+                // Display first 5 factories (excluding casting factory)
+                var otherFactories = config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).Take(5).ToList();
+                currentDisplayIndices = new int[5];
+                for (int i = 0; i < 5; i++)
+                {
+                    if (i < otherFactories.Count)
+                        currentDisplayIndices[i] = config.Factories.IndexOf(otherFactories[i]);
+                    else
+                        currentDisplayIndices[i] = -1;
+                }
+            }
+            
+            // Refresh display
+            RefreshFactoryDisplay();
+        }
+
+        /// <summary>
+        /// Refresh all factory displays based on current view mode
+        /// </summary>
+        private void RefreshFactoryDisplay()
+        {
+            Label[] factoryHeaders = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
+            Label[] deviceNameLabels = { device_col1, device_col2, device_col3, device_col4, device_col5 };
+            Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
+            Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
+            Label[] precoolerLabels = { precooler_col1, precooler_col2, precooler_col3, precooler_col4, precooler_col5 };
+            Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
+            Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
+            Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
+            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+
+            if (currentViewMode == ViewMode.CastingFactory)
+            {
+                // Casting Factory Mode - Each compressor in separate column
+                var castingFactory = config.Factories.FirstOrDefault(f => f.Id == CASTING_FACTORY_ID);
+                if (castingFactory != null)
+                {
+                    var compressors = castingFactory.GetDevicesByType(DeviceType.Compressor).OrderBy(c => c.MachineNo).ToList();
+                    
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (i < compressors.Count)
+                        {
+                            var compressor = compressors[i];
+                            // Header: Factory name
+                            UpdateLabel(factoryHeaders[i], castingFactory.Name, TextNormal);
+                            // Device name: Compressor name
+                            UpdateLabel(deviceNameLabels[i], compressor.Name, TextNormal);
+                            // Schedule
+                            UpdateScheduleLabel(scheduleLabels[i], new List<DeviceConfig> { compressor });
+                            // Status will be updated in timer
+                            UpdateLabel(statusLabels[i], "--", StatusDisabled);
+                            // Common devices will be updated in timer (show in all columns)
+                        }
+                        else
+                        {
+                            // Hide unused columns
+                            UpdateLabel(factoryHeaders[i], "--", StatusDisabled);
+                            UpdateLabel(deviceNameLabels[i], "--", StatusDisabled);
+                            UpdateLabelWithBackground(scheduleLabels[i], "--", TextNormal, StatusDisabled);
+                            UpdateLabel(statusLabels[i], "--", StatusDisabled);
+                            UpdateLabel(precoolerLabels[i], "--", StatusDisabled);
+                            UpdateLabel(dryerLabels[i], "--", StatusDisabled);
+                            UpdateLabel(fanLabels[i], "--", StatusDisabled);
+                            UpdateLabel(pressureLabels[i], "--", StatusDisabled);
+                            UpdateLabel(tempLabels[i], "--", StatusDisabled);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Other Factories Mode
+                var otherFactories = config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).Take(5).ToList();
+                
+                for (int i = 0; i < 5; i++)
+                {
+                    if (i < otherFactories.Count)
+                    {
+                        var factory = otherFactories[i];
+                        var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+                        
+                        UpdateLabel(factoryHeaders[i], factory.Name, TextNormal);
+                        
+                        if (compressors.Count > 0)
+                        {
+                            string deviceNames = BuildCompressorNameString(factory, compressors);
+                            UpdateLabel(deviceNameLabels[i], deviceNames, TextNormal);
+                            UpdateScheduleLabel(scheduleLabels[i], compressors);
+                        }
+                        else
+                        {
+                            UpdateLabel(deviceNameLabels[i], "--", StatusDisabled);
+                            UpdateLabelWithBackground(scheduleLabels[i], "No Schedule", TextNormal, ScheduleInactive);
+                        }
+                    }
+                    else
+                    {
+                        UpdateLabel(factoryHeaders[i], "--", StatusDisabled);
+                        UpdateLabel(deviceNameLabels[i], "--", StatusDisabled);
+                        UpdateLabelWithBackground(scheduleLabels[i], "--", TextNormal, StatusDisabled);
+                        UpdateLabel(statusLabels[i], "--", StatusDisabled);
+                        UpdateLabel(precoolerLabels[i], "--", StatusDisabled);
+                        UpdateLabel(dryerLabels[i], "--", StatusDisabled);
+                        UpdateLabel(fanLabels[i], "--", StatusDisabled);
+                        UpdateLabel(pressureLabels[i], "--", StatusDisabled);
+                        UpdateLabel(tempLabels[i], "--", StatusDisabled);
+                    }
+                }
             }
         }
     }
