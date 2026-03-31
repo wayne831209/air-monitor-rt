@@ -59,6 +59,25 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="ScheduleEditForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ScheduleEditForm.Designer.cs">
+      <DependentUpon>ScheduleEditForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ScheduleGanttChart.Designer.cs" />
+    <Compile Include="ScheduleSettingForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ScheduleSettingForm.Designer.cs">
+      <DependentUpon>ScheduleSettingForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="TrendChart.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TrendChart.Designer.cs">
+      <DependentUpon>TrendChart.cs</DependentUpon>
+    </Compile>
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -70,6 +89,15 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ScheduleEditForm.resx">
+      <DependentUpon>ScheduleEditForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ScheduleSettingForm.resx">
+      <DependentUpon>ScheduleSettingForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TrendChart.resx">
+      <DependentUpon>TrendChart.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
@@ -98,9 +126,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="config.xml"><CopyToOutputDirectory>Always</CopyToOutputDirectory></Content>
-    <Content Include="config_new.xml" />
-    <Content Include="DeviceConfig.xml" />
+    <Content Include="config.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

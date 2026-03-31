@@ -698,6 +698,29 @@ namespace DeviceBox
                 }
             }
         }
+
+        private void label3_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void label2_Click(object sender, EventArgs e)
+        {
+            ScheduleSettingForm scheduleForm = new ScheduleSettingForm();
+            scheduleForm.ShowDialog();
+            
+            // 重新載入設定
+            if (scheduleForm.DialogResult == DialogResult.OK)
+            {
+                config.LoadConfig();
+                RefreshFactoryDisplay();
+            }
+        }
+
+        private void label4_Click(object sender, EventArgs e)
+        {
+            TrendChart trendChart = new TrendChart();
+            trendChart.Show();
+        }
     }
 
     /// <summary>

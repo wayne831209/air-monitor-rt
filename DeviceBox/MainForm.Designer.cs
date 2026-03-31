@@ -1029,6 +1029,7 @@
             this.label2.TabIndex = 0;
             this.label2.Text = "排程模式";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.label2.Click += new System.EventHandler(this.label2_Click);
             // 
             // panel4
             // 
@@ -1054,6 +1055,7 @@
             this.label4.TabIndex = 0;
             this.label4.Text = "高負荷";
             this.label4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.label4.Click += new System.EventHandler(this.label4_Click);
             // 
             // label3
             // 
@@ -1068,6 +1070,7 @@
             this.label3.TabIndex = 0;
             this.label3.Text = "模式一";
             this.label3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.label3.Click += new System.EventHandler(this.label3_Click);
             // 
             // panel3
             // 

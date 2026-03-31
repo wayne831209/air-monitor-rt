@@ -26,35 +26,125 @@ namespace DeviceBox
     }
 
     /// <summary>
+    /// Schedule Time Range - 單一時間段
+    /// </summary>
+    public class ScheduleTimeRange
+    {
+        public TimeSpan StartTime { get; set; } = TimeSpan.Zero;
+        public TimeSpan EndTime { get; set; } = TimeSpan.Zero;
+        public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek>();
+
+        public ScheduleTimeRange() { }
+
+        public ScheduleTimeRange(TimeSpan start, TimeSpan end)
+        {
+            StartTime = start;
+            EndTime = end;
+        }
+
+        public ScheduleTimeRange(TimeSpan start, TimeSpan end, List<DayOfWeek> days)
+        {
+            StartTime = start;
+            EndTime = end;
+            Days = days != null ? new List<DayOfWeek>(days) : new List<DayOfWeek>();
+        }
+
+        /// <summary>
+        /// Check if specified time and day is within this range
+        /// </summary>
+        public bool IsInRange(TimeSpan time, DayOfWeek day)
+        {
+            // 檢查星期
+            if (Days.Count > 0 && !Days.Contains(day))
+                return false;
+
+            // 檢查時間
+            if (StartTime <= EndTime)
+                return time >= StartTime && time <= EndTime;
+            else
+                return time >= StartTime || time <= EndTime;
+        }
+
+        /// <summary>
+        /// Check if specified time is within this range (ignore day)
+        /// </summary>
+        public bool IsInRange(TimeSpan time)
+        {
+            if (StartTime <= EndTime)
+                return time >= StartTime && time <= EndTime;
+            else
+                return time >= StartTime || time <= EndTime;
+        }
+
+        /// <summary>
+        /// Get display text for this time range
+        /// </summary>
+        public string GetDisplayText()
+        {
+            return StartTime.ToString(@"hh\:mm") + "-" + EndTime.ToString(@"hh\:mm");
+        }
+
+        /// <summary>
+        /// Clone this time range
+        /// </summary>
+        public ScheduleTimeRange Clone()
+        {
+            return new ScheduleTimeRange(StartTime, EndTime, Days);
+        }
+    }
+
+    /// <summary>
     /// Schedule Configuration
     /// </summary>
     public class ScheduleConfig
     {
         public bool Enabled { get; set; } = false;
-        public TimeSpan StartTime { get; set; } = TimeSpan.Zero;
-        public TimeSpan EndTime { get; set; } = TimeSpan.Zero;
+        public List<ScheduleTimeRange> TimeRanges { get; set; } = new List<ScheduleTimeRange>();
         public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek>();
 
+        // 舊屬性 - 為了向後相容，取得第一組時間
+        public TimeSpan StartTime
+        {
+            get => TimeRanges.Count > 0 ? TimeRanges[0].StartTime : TimeSpan.Zero;
+            set
+            {
+                if (TimeRanges.Count == 0)
+                    TimeRanges.Add(new ScheduleTimeRange());
+                TimeRanges[0].StartTime = value;
+            }
+        }
+
+        public TimeSpan EndTime
+        {
+            get => TimeRanges.Count > 0 ? TimeRanges[0].EndTime : TimeSpan.Zero;
+            set
+            {
+                if (TimeRanges.Count == 0)
+                    TimeRanges.Add(new ScheduleTimeRange());
+                TimeRanges[0].EndTime = value;
+            }
+        }
+
         /// <summary>
-        /// Check if current time is within schedule
+        /// Check if current time is within any schedule time range
         /// </summary>
         public bool IsInSchedule()
         {
             if (!Enabled) return false;
+            if (TimeRanges.Count == 0) return false;
 
             var now = DateTime.Now;
             var currentTime = now.TimeOfDay;
             var currentDay = now.DayOfWeek;
 
-            // Check if today is a scheduled day
-            if (Days.Count > 0 && !Days.Contains(currentDay))
-                return false;
+            // Check if current time is in any time range
+            foreach (var range in TimeRanges)
+            {
+                if (range.IsInRange(currentTime, currentDay))
+                    return true;
+            }
 
-            // Check time range
-            if (StartTime <= EndTime)
-                return currentTime >= StartTime && currentTime <= EndTime;
-            else
-                return currentTime >= StartTime || currentTime <= EndTime;
+            return false;
         }
 
         /// <summary>
@@ -63,7 +153,10 @@ namespace DeviceBox
         public string GetDisplayText()
         {
             if (!Enabled) return "No Schedule";
-            return StartTime.ToString(@"hh\:mm") + "-" + EndTime.ToString(@"hh\:mm");
+            if (TimeRanges.Count == 0) return "No Time Range";
+
+            var texts = TimeRanges.Select(r => r.GetDisplayText());
+            return string.Join(", ", texts);
         }
     }
 
@@ -129,7 +222,7 @@ namespace DeviceBox
 
     #endregion
 
-    class Config
+    public class Config
     {
         // Database Settings
         public string IP;
@@ -357,10 +450,70 @@ namespace DeviceBox
 
             if (element.Attribute("enabled") != null)
                 schedule.Enabled = bool.Parse(element.Attribute("enabled").Value);
-            if (element.Attribute("start") != null)
-                schedule.StartTime = TimeSpan.Parse(element.Attribute("start").Value);
-            if (element.Attribute("end") != null)
-                schedule.EndTime = TimeSpan.Parse(element.Attribute("end").Value);
+
+            // 檢查是否有 TimeRange 子元素（新格式）
+            var timeRangeElements = element.Elements("TimeRange").ToList();
+            if (timeRangeElements.Count > 0)
+            {
+                foreach (var rangeElement in timeRangeElements)
+                {
+                    var range = new ScheduleTimeRange();
+                    if (rangeElement.Attribute("start") != null)
+                        range.StartTime = TimeSpan.Parse(rangeElement.Attribute("start").Value);
+                    if (rangeElement.Attribute("end") != null)
+                        range.EndTime = TimeSpan.Parse(rangeElement.Attribute("end").Value);
+
+                    // 解析每個 TimeRange 的 days 屬性
+                    if (rangeElement.Attribute("days") != null)
+                    {
+                        string daysStr = rangeElement.Attribute("days").Value;
+                        if (!string.IsNullOrEmpty(daysStr))
+                        {
+                            var dayNums = daysStr.Split(',');
+                            foreach (var dayNum in dayNums)
+                            {
+                                if (int.TryParse(dayNum.Trim(), out int d))
+                                {
+                                    range.Days.Add((DayOfWeek)d);
+                                }
+                            }
+                        }
+                    }
+
+                    schedule.TimeRanges.Add(range);
+                }
+            }
+            else
+            {
+                // 舊格式相容：直接從 Schedule 元素讀取單一時間
+                if (element.Attribute("start") != null && element.Attribute("end") != null)
+                {
+                    var range = new ScheduleTimeRange
+                    {
+                        StartTime = TimeSpan.Parse(element.Attribute("start").Value),
+                        EndTime = TimeSpan.Parse(element.Attribute("end").Value)
+                    };
+
+                    // 解析舊格式的 days 屬性
+                    if (element.Attribute("days") != null)
+                    {
+                        string daysStr = element.Attribute("days").Value;
+                        if (!string.IsNullOrEmpty(daysStr))
+                        {
+                            var dayNums = daysStr.Split(',');
+                            foreach (var dayNum in dayNums)
+                            {
+                                if (int.TryParse(dayNum.Trim(), out int d))
+                                {
+                                    range.Days.Add((DayOfWeek)d);
+                                }
+                            }
+                        }
+                    }
+
+                    schedule.TimeRanges.Add(range);
+                }
+            }
 
             return schedule;
         }
