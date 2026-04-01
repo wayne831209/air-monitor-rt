@@ -33,6 +33,7 @@ namespace DeviceBox
         private Timer updateTimer;
         private List<ModBus_List> modbusList;
         private Config config;
+        private ScheduleMode currentMode;  // 當前選擇的模式
 
         public MainForm()
         {
@@ -701,7 +702,11 @@ namespace DeviceBox
 
         private void label3_Click(object sender, EventArgs e)
         {
-            ScheduleSettingForm scheduleForm = new ScheduleSettingForm();
+            // 取得當前模式名稱，傳入排程設定表單
+            string modeName = currentMode != null ? currentMode.Name : label3.Text;
+            int modeId = currentMode != null ? currentMode.Id : 0;
+            
+            ScheduleSettingForm scheduleForm = new ScheduleSettingForm(modeId, modeName);
             scheduleForm.ShowDialog();
 
             // 重新載入設定
@@ -714,6 +719,29 @@ namespace DeviceBox
 
         private void label2_Click(object sender, EventArgs e)
         {
+            using (var modeSelectForm = new ModeSelectForm())
+            {
+                if (modeSelectForm.ShowDialog() == DialogResult.OK && modeSelectForm.SelectedMode != null)
+                {
+                    var selectedMode = modeSelectForm.SelectedMode;
+                    
+                    // 儲存當前選擇的模式
+                    currentMode = selectedMode;
+                    
+                    // 更新 label3 顯示模式名稱
+                    label3.Text = selectedMode.Name;
+                    
+                    // 更新 label4 顯示模式描述（如果有的話）
+                    if (!string.IsNullOrEmpty(selectedMode.Description))
+                    {
+                        label4.Text = selectedMode.Description;
+                    }
+                    
+                    // 重新載入設定（因為模式切換時已套用排程到設備）
+                    config.LoadConfig();
+                    RefreshFactoryDisplay();
+                }
+            }
         }
 
         private void label4_Click(object sender, EventArgs e)

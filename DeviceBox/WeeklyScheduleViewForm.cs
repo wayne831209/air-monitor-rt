@@ -1,0 +1,354 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace DeviceBox
+{
+    /// <summary>
+    /// 週排程檢視表單 - 顯示週一到週日的排程狀態
+    /// </summary>
+    public class WeeklyScheduleViewForm : Form
+    {
+        private List<ScheduleItem> _scheduleItems;
+        private string _modeName;
+        private Panel panelContent;
+        private Panel panelLegend;
+
+        // 顏色定義
+        private readonly Color BackgroundColor = Color.FromArgb(30, 30, 30);
+        private readonly Color HeaderColor = Color.FromArgb(0, 122, 204);
+        private readonly Color CardBackgroundColor = Color.FromArgb(45, 45, 48);
+        private readonly Color TextPrimaryColor = Color.White;
+        private readonly Color TextSecondaryColor = Color.FromArgb(180, 180, 180);
+        private readonly Color ScheduleActiveColor = Color.FromArgb(52, 199, 89);
+        private readonly Color ScheduleInactiveColor = Color.FromArgb(80, 80, 80);
+        private readonly Color TimeSlotColor = Color.FromArgb(0, 150, 136);
+        private readonly Color GridLineColor = Color.FromArgb(60, 60, 60);
+
+        // 時間軸設定
+        private const int START_HOUR = 0;
+        private const int END_HOUR = 24;
+        private const int HOUR_WIDTH = 35;
+        private const int ROW_HEIGHT = 50;
+        private const int DEVICE_LABEL_WIDTH = 120;
+        private const int DAY_LABEL_WIDTH = 50;
+
+        public WeeklyScheduleViewForm(List<ScheduleItem> scheduleItems, string modeName)
+        {
+            _scheduleItems = scheduleItems;
+            _modeName = modeName;
+            InitializeComponent();
+            SetupUI();
+        }
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            this.BackColor = BackgroundColor;
+            this.ClientSize = new Size(1100, 700);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.Text = $"週排程檢視 - {_modeName}";
+            this.ResumeLayout(false);
+        }
+
+        private void SetupUI()
+        {
+            // 標題
+            Panel panelTitle = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 60,
+                BackColor = HeaderColor
+            };
+            Label labelTitle = new Label
+            {
+                Text = $"週排程檢視 - {_modeName}",
+                Dock = DockStyle.Fill,
+                Font = new Font("微軟正黑體", 18F, FontStyle.Bold),
+                ForeColor = Color.White,
+                TextAlign = ContentAlignment.MiddleCenter
+            };
+            panelTitle.Controls.Add(labelTitle);
+            this.Controls.Add(panelTitle);
+
+            // 圖例面板
+            panelLegend = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 40,
+                BackColor = BackgroundColor,
+                Padding = new Padding(20, 5, 20, 5)
+            };
+            CreateLegend();
+            this.Controls.Add(panelLegend);
+            panelLegend.BringToFront();
+
+            // 內容面板
+            panelContent = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = BackgroundColor,
+                AutoScroll = true,
+                Padding = new Padding(10)
+            };
+            this.Controls.Add(panelContent);
+            panelContent.BringToFront();
+
+            // 底部按鈕
+            Panel panelBottom = new Panel
+            {
+                Dock = DockStyle.Bottom,
+                Height = 60,
+                BackColor = BackgroundColor,
+                Padding = new Padding(15, 10, 15, 10)
+            };
+            Button buttonClose = new Button
+            {
+                Text = "關閉",
+                Dock = DockStyle.Right,
+                Width = 100,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(80, 80, 80),
+                ForeColor = Color.White,
+                Font = new Font("微軟正黑體", 11F, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+            buttonClose.FlatAppearance.BorderSize = 0;
+            buttonClose.Click += (s, e) => this.Close();
+            panelBottom.Controls.Add(buttonClose);
+            this.Controls.Add(panelBottom);
+
+            // 繪製週排程
+            DrawWeeklySchedule();
+        }
+
+        private void CreateLegend()
+        {
+            FlowLayoutPanel flowPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false
+            };
+
+            // 圖例項目
+            AddLegendItem(flowPanel, ScheduleActiveColor, "排程時段");
+            AddLegendItem(flowPanel, ScheduleInactiveColor, "非排程時段");
+
+            panelLegend.Controls.Add(flowPanel);
+        }
+
+        private void AddLegendItem(FlowLayoutPanel panel, Color color, string text)
+        {
+            Panel colorBox = new Panel
+            {
+                Size = new Size(20, 20),
+                BackColor = color,
+                Margin = new Padding(10, 5, 5, 5)
+            };
+            Label label = new Label
+            {
+                Text = text,
+                AutoSize = true,
+                ForeColor = TextPrimaryColor,
+                Font = new Font("微軟正黑體", 10F),
+                Margin = new Padding(0, 7, 20, 5)
+            };
+            panel.Controls.Add(colorBox);
+            panel.Controls.Add(label);
+        }
+
+        private void DrawWeeklySchedule()
+        {
+            panelContent.Controls.Clear();
+
+            // 取得所有設備
+            var devices = _scheduleItems
+                .GroupBy(s => new { s.FactoryName, s.DeviceName })
+                .Select(g => new { g.Key.FactoryName, g.Key.DeviceName, Schedules = g.ToList() })
+                .ToList();
+
+            if (devices.Count == 0)
+            {
+                Label noDataLabel = new Label
+                {
+                    Text = "尚無排程資料",
+                    ForeColor = TextSecondaryColor,
+                    Font = new Font("微軟正黑體", 14F),
+                    AutoSize = true,
+                    Location = new Point(panelContent.Width / 2 - 60, panelContent.Height / 2 - 20)
+                };
+                panelContent.Controls.Add(noDataLabel);
+                return;
+            }
+
+            int yOffset = 10;
+
+            foreach (var device in devices)
+            {
+                // 設備標題
+                Label deviceLabel = new Label
+                {
+                    Text = $"{device.FactoryName} - {device.DeviceName}",
+                    Location = new Point(10, yOffset),
+                    Size = new Size(panelContent.Width - 40, 30),
+                    Font = new Font("微軟正黑體", 12F, FontStyle.Bold),
+                    ForeColor = TextPrimaryColor
+                };
+                panelContent.Controls.Add(deviceLabel);
+                yOffset += 35;
+
+                // 建立週排程表格
+                Panel schedulePanel = CreateDeviceSchedulePanel(device.Schedules);
+                schedulePanel.Location = new Point(10, yOffset);
+                panelContent.Controls.Add(schedulePanel);
+                yOffset += schedulePanel.Height + 20;
+            }
+        }
+
+        private Panel CreateDeviceSchedulePanel(List<ScheduleItem> deviceSchedules)
+        {
+            int totalWidth = DAY_LABEL_WIDTH + (END_HOUR - START_HOUR) * HOUR_WIDTH + 20;
+            int totalHeight = 30 + 7 * ROW_HEIGHT + 10; // 標題行 + 7天
+
+            Panel panel = new Panel
+            {
+                Size = new Size(totalWidth, totalHeight),
+                BackColor = CardBackgroundColor
+            };
+
+            // 繪製時間軸標題
+            for (int hour = START_HOUR; hour <= END_HOUR; hour += 2)
+            {
+                Label hourLabel = new Label
+                {
+                    Text = $"{hour:00}",
+                    Location = new Point(DAY_LABEL_WIDTH + (hour - START_HOUR) * HOUR_WIDTH - 10, 5),
+                    Size = new Size(30, 20),
+                    Font = new Font("微軟正黑體", 9F),
+                    ForeColor = TextSecondaryColor,
+                    TextAlign = ContentAlignment.MiddleCenter
+                };
+                panel.Controls.Add(hourLabel);
+            }
+
+            // 繪製每一天
+            string[] dayNames = { "週日", "週一", "週二", "週三", "週四", "週五", "週六" };
+            
+            // 調整順序：週一到週日
+            int[] dayOrder = { 1, 2, 3, 4, 5, 6, 0 }; // 週一=1, 週二=2, ..., 週六=6, 週日=0
+
+            for (int i = 0; i < 7; i++)
+            {
+                int dayIndex = dayOrder[i];
+                DayOfWeek day = (DayOfWeek)dayIndex;
+                int rowY = 30 + i * ROW_HEIGHT;
+
+                // 星期標籤
+                Label dayLabel = new Label
+                {
+                    Text = dayNames[dayIndex],
+                    Location = new Point(5, rowY + 15),
+                    Size = new Size(DAY_LABEL_WIDTH - 10, 20),
+                    Font = new Font("微軟正黑體", 10F),
+                    ForeColor = TextPrimaryColor,
+                    TextAlign = ContentAlignment.MiddleLeft
+                };
+                panel.Controls.Add(dayLabel);
+
+                // 時間軸背景
+                Panel timelinePanel = new Panel
+                {
+                    Location = new Point(DAY_LABEL_WIDTH, rowY),
+                    Size = new Size((END_HOUR - START_HOUR) * HOUR_WIDTH, ROW_HEIGHT - 5),
+                    BackColor = ScheduleInactiveColor
+                };
+
+                // 繪製格線
+                timelinePanel.Paint += (s, e) =>
+                {
+                    using (Pen pen = new Pen(GridLineColor, 1))
+                    {
+                        for (int hour = START_HOUR; hour <= END_HOUR; hour++)
+                        {
+                            int x = (hour - START_HOUR) * HOUR_WIDTH;
+                            e.Graphics.DrawLine(pen, x, 0, x, timelinePanel.Height);
+                        }
+                    }
+                };
+
+                // 繪製排程時段
+                foreach (var schedule in deviceSchedules.Where(s => s.Enabled))
+                {
+                    // 檢查這個排程是否在這一天執行
+                    bool isActiveOnDay = schedule.Days.Count == 0 || // 每天
+                                         schedule.Days.Count == 7 || // 每天
+                                         schedule.Days.Contains(day);
+
+                    if (isActiveOnDay)
+                    {
+                        int startX = (int)((schedule.StartTime.TotalHours - START_HOUR) * HOUR_WIDTH);
+                        int endX = (int)((schedule.EndTime.TotalHours - START_HOUR) * HOUR_WIDTH);
+                        
+                        // 處理跨午夜的情況
+                        if (schedule.EndTime < schedule.StartTime)
+                        {
+                            // 第一段：開始到午夜
+                            Panel slot1 = new Panel
+                            {
+                                Location = new Point(startX, 5),
+                                Size = new Size((END_HOUR - START_HOUR) * HOUR_WIDTH - startX, ROW_HEIGHT - 15),
+                                BackColor = ScheduleActiveColor
+                            };
+                            AddTimeSlotTooltip(slot1, schedule);
+                            timelinePanel.Controls.Add(slot1);
+
+                            // 第二段：午夜到結束
+                            Panel slot2 = new Panel
+                            {
+                                Location = new Point(0, 5),
+                                Size = new Size(endX, ROW_HEIGHT - 15),
+                                BackColor = ScheduleActiveColor
+                            };
+                            AddTimeSlotTooltip(slot2, schedule);
+                            timelinePanel.Controls.Add(slot2);
+                        }
+                        else
+                        {
+                            int width = Math.Max(endX - startX, 5);
+                            Panel timeSlot = new Panel
+                            {
+                                Location = new Point(startX, 5),
+                                Size = new Size(width, ROW_HEIGHT - 15),
+                                BackColor = ScheduleActiveColor
+                            };
+                            AddTimeSlotTooltip(timeSlot, schedule);
+                            timelinePanel.Controls.Add(timeSlot);
+                        }
+                    }
+                }
+
+                panel.Controls.Add(timelinePanel);
+            }
+
+            return panel;
+        }
+
+        private void AddTimeSlotTooltip(Panel panel, ScheduleItem schedule)
+        {
+            ToolTip tooltip = new ToolTip();
+            string timeText = $"{schedule.StartTime:hh\\:mm} - {schedule.EndTime:hh\\:mm}";
+            tooltip.SetToolTip(panel, timeText);
+            
+            // 添加滑鼠懸停效果
+            panel.MouseEnter += (s, e) => panel.BackColor = Color.FromArgb(100, 220, 120);
+            panel.MouseLeave += (s, e) => panel.BackColor = ScheduleActiveColor;
+        }
+    }
+}

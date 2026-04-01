@@ -14,6 +14,8 @@ namespace DeviceBox
         private Config _config;
         private List<ScheduleItem> _scheduleItems = new List<ScheduleItem>();
         private static readonly string ConfigFileName = "config.xml";
+        private int _modeId;
+        private string _modeName;
 
         // 顏色定義
         private readonly Color BackgroundColor = Color.FromArgb(30, 30, 30);
@@ -26,8 +28,14 @@ namespace DeviceBox
         private readonly Color TextSecondaryColor = Color.FromArgb(180, 180, 180);
         private readonly Color DangerColor = Color.FromArgb(255, 59, 48);
 
-        public ScheduleSettingForm()
+        public ScheduleSettingForm() : this(0, "")
         {
+        }
+
+        public ScheduleSettingForm(int modeId, string modeName)
+        {
+            _modeId = modeId;
+            _modeName = modeName;
             InitializeComponent();
             LoadConfiguration();
             SetupUI();
@@ -44,62 +52,65 @@ namespace DeviceBox
         {
             _scheduleItems.Clear();
 
-            foreach (var factory in _config.Factories)
+            // 如果有指定模式ID，從模式中載入排程
+            if (_modeId > 0)
             {
-                var compressors = factory.GetDevicesByType(DeviceType.Compressor);
-                foreach (var compressor in compressors)
+                var mode = ModeSelectForm.GetModeById(_modeId);
+                if (mode != null && mode.Schedules.Count > 0)
                 {
-                    // 將每組時間段展開成獨立的排程項目
-                    if (compressor.Schedule?.TimeRanges != null && compressor.Schedule.TimeRanges.Count > 0)
+                    foreach (var schedule in mode.Schedules)
                     {
-                        foreach (var range in compressor.Schedule.TimeRanges)
-                        {
-                            _scheduleItems.Add(new ScheduleItem
-                            {
-                                FactoryId = factory.Id,
-                                FactoryName = factory.Name,
-                                DeviceName = compressor.Name,
-                                DeviceType = compressor.Type,
-                                MachineNo = compressor.MachineNo,
-                                Enabled = compressor.Schedule?.Enabled ?? false,
-                                StartTime = range.StartTime,
-                                EndTime = range.EndTime,
-                                Days = range.Days != null
-                                    ? new List<DayOfWeek>(range.Days)
-                                    : new List<DayOfWeek>()
-                            });
-                        }
-                    }
-                    else
-                    {
-                        // 沒有排程時，新增一個預設項目
                         _scheduleItems.Add(new ScheduleItem
                         {
-                            FactoryId = factory.Id,
-                            FactoryName = factory.Name,
-                            DeviceName = compressor.Name,
-                            DeviceType = compressor.Type,
-                            MachineNo = compressor.MachineNo,
-                            Enabled = false,
-                            StartTime = TimeSpan.FromHours(8),
-                            EndTime = TimeSpan.FromHours(17),
-                            Days = new List<DayOfWeek>()
+                            FactoryId = schedule.FactoryId,
+                            FactoryName = schedule.FactoryName,
+                            DeviceName = schedule.DeviceName,
+                            DeviceType = DeviceType.Compressor,
+                            MachineNo = schedule.MachineNo,
+                            Enabled = schedule.Enabled,
+                            StartTime = schedule.StartTime,
+                            EndTime = schedule.EndTime,
+                            Days = new List<DayOfWeek>(schedule.Days)
                         });
                     }
+                    return;
                 }
             }
+
+            // 沒有模式排程時，顯示空列表（讓使用者新增）
+            // 不再從設備載入預設排程
         }
 
         private void SetupUI()
         {
-            // 設定標題
-            labelTitle.Text = "排程設定";
+            // 設定標題（包含模式名稱）
+            if (!string.IsNullOrEmpty(_modeName))
+            {
+                labelTitle.Text = $"排程設定 - {_modeName}";
+                this.Text = $"排程設定 - {_modeName}";
+            }
+            else
+            {
+                labelTitle.Text = "排程設定";
+            }
 
             // 設定按鈕事件
             buttonAdd.Click += AddButton_Click;
             buttonSave.Click += SaveButton_Click;
+            buttonViewWeekly.Click += ViewWeeklyButton_Click;
 
             RefreshScheduleList();
+        }
+
+        /// <summary>
+        /// 週排程檢視按鈕點擊事件
+        /// </summary>
+        private void ViewWeeklyButton_Click(object sender, EventArgs e)
+        {
+            using (var weeklyView = new WeeklyScheduleViewForm(_scheduleItems, _modeName))
+            {
+                weeklyView.ShowDialog();
+            }
         }
 
         private void RefreshScheduleList()
@@ -353,7 +364,7 @@ namespace DeviceBox
         {
             try
             {
-                SaveToConfig();
+                SaveToMode();
                 MessageBox.Show("排程設定已儲存！", "成功", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 this.DialogResult = DialogResult.OK;
                 this.Close();
@@ -362,6 +373,115 @@ namespace DeviceBox
             {
                 MessageBox.Show($"儲存失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        /// <summary>
+        /// 儲存排程到模式
+        /// </summary>
+        private void SaveToMode()
+        {
+            if (_modeId <= 0)
+            {
+                MessageBox.Show("未指定模式，無法儲存", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var mode = ModeSelectForm.GetModeById(_modeId);
+            if (mode == null)
+            {
+                MessageBox.Show("找不到指定的模式", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // 清除舊的排程，加入新的
+            mode.Schedules.Clear();
+            foreach (var item in _scheduleItems)
+            {
+                mode.Schedules.Add(new ModeScheduleItem
+                {
+                    FactoryId = item.FactoryId,
+                    FactoryName = item.FactoryName,
+                    DeviceName = item.DeviceName,
+                    MachineNo = item.MachineNo,
+                    Enabled = item.Enabled,
+                    StartTime = item.StartTime,
+                    EndTime = item.EndTime,
+                    Days = new List<DayOfWeek>(item.Days)
+                });
+            }
+
+            // 儲存模式排程
+            ModeSelectForm.SaveModeSchedules(mode);
+
+            // 同時套用到設備設定
+            ApplySchedulesToDevices();
+        }
+
+        /// <summary>
+        /// 將排程套用到設備設定
+        /// </summary>
+        private void ApplySchedulesToDevices()
+        {
+            string configPath = Path.Combine(Application.StartupPath, ConfigFileName);
+            XDocument doc = XDocument.Load(configPath);
+
+            // 先清除所有設備的排程
+            foreach (var deviceElement in doc.Descendants("Device"))
+            {
+                var scheduleElement = deviceElement.Element("Schedule");
+                if (scheduleElement != null)
+                {
+                    scheduleElement.SetAttributeValue("enabled", "false");
+                    scheduleElement.Elements("TimeRange").Remove();
+                }
+            }
+
+            // 依設備分組套用排程
+            var groupedItems = _scheduleItems.Where(i => i.Enabled)
+                .GroupBy(i => new { i.FactoryId, i.DeviceName, i.MachineNo });
+
+            foreach (var group in groupedItems)
+            {
+                var factoryElement = doc.Descendants("Factory")
+                    .FirstOrDefault(f => int.Parse(f.Attribute("id")?.Value ?? "0") == group.Key.FactoryId);
+
+                if (factoryElement != null)
+                {
+                    var deviceElement = factoryElement.Descendants("Device")
+                        .FirstOrDefault(d =>
+                            d.Attribute("name")?.Value == group.Key.DeviceName &&
+                            int.Parse(d.Attribute("machineNo")?.Value ?? "0") == group.Key.MachineNo);
+
+                    if (deviceElement != null)
+                    {
+                        var scheduleElement = deviceElement.Element("Schedule");
+                        if (scheduleElement == null)
+                        {
+                            scheduleElement = new XElement("Schedule");
+                            deviceElement.Add(scheduleElement);
+                        }
+
+                        scheduleElement.SetAttributeValue("enabled", "true");
+
+                        foreach (var item in group)
+                        {
+                            var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("start", item.StartTime.ToString(@"hh\:mm"));
+                            rangeElement.SetAttributeValue("end", item.EndTime.ToString(@"hh\:mm"));
+
+                            if (item.Days != null && item.Days.Count > 0 && item.Days.Count < 7)
+                            {
+                                string daysStr = string.Join(",", item.Days.Select(d => (int)d));
+                                rangeElement.SetAttributeValue("days", daysStr);
+                            }
+
+                            scheduleElement.Add(rangeElement);
+                        }
+                    }
+                }
+            }
+
+            doc.Save(configPath);
         }
 
         private void SaveToConfig()

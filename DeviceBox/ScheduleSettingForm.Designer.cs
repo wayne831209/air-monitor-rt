@@ -31,6 +31,7 @@ namespace DeviceBox
             this.panelTitle = new System.Windows.Forms.Panel();
             this.labelTitle = new System.Windows.Forms.Label();
             this.panelAddButton = new System.Windows.Forms.Panel();
+            this.buttonViewWeekly = new System.Windows.Forms.Button();
             this.buttonAdd = new System.Windows.Forms.Button();
             this.panelScheduleList = new System.Windows.Forms.Panel();
             this.panelBottom = new System.Windows.Forms.Panel();
@@ -65,6 +66,7 @@ namespace DeviceBox
             // panelAddButton
             // 
             this.panelAddButton.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
+            this.panelAddButton.Controls.Add(this.buttonViewWeekly);
             this.panelAddButton.Controls.Add(this.buttonAdd);
             this.panelAddButton.Dock = System.Windows.Forms.DockStyle.Top;
             this.panelAddButton.Location = new System.Drawing.Point(0, 60);
@@ -73,18 +75,34 @@ namespace DeviceBox
             this.panelAddButton.Size = new System.Drawing.Size(500, 50);
             this.panelAddButton.TabIndex = 1;
             // 
+            // buttonViewWeekly
+            // 
+            this.buttonViewWeekly.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(140)))), ((int)(((byte)(0)))));
+            this.buttonViewWeekly.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.buttonViewWeekly.Dock = System.Windows.Forms.DockStyle.Right;
+            this.buttonViewWeekly.FlatAppearance.BorderSize = 0;
+            this.buttonViewWeekly.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.buttonViewWeekly.Font = new System.Drawing.Font("微軟正黑體", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.buttonViewWeekly.ForeColor = System.Drawing.Color.White;
+            this.buttonViewWeekly.Location = new System.Drawing.Point(355, 10);
+            this.buttonViewWeekly.Name = "buttonViewWeekly";
+            this.buttonViewWeekly.Size = new System.Drawing.Size(130, 35);
+            this.buttonViewWeekly.TabIndex = 1;
+            this.buttonViewWeekly.Text = "排程檢視";
+            this.buttonViewWeekly.UseVisualStyleBackColor = false;
+            // 
             // buttonAdd
             // 
             this.buttonAdd.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
             this.buttonAdd.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.buttonAdd.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.buttonAdd.Dock = System.Windows.Forms.DockStyle.Left;
             this.buttonAdd.FlatAppearance.BorderSize = 0;
             this.buttonAdd.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonAdd.Font = new System.Drawing.Font("微軟正黑體", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.buttonAdd.ForeColor = System.Drawing.Color.White;
             this.buttonAdd.Location = new System.Drawing.Point(15, 10);
             this.buttonAdd.Name = "buttonAdd";
-            this.buttonAdd.Size = new System.Drawing.Size(470, 35);
+            this.buttonAdd.Size = new System.Drawing.Size(120, 35);
             this.buttonAdd.TabIndex = 0;
             this.buttonAdd.Text = "+ 新增排程";
             this.buttonAdd.UseVisualStyleBackColor = false;
@@ -155,6 +173,7 @@ namespace DeviceBox
         private System.Windows.Forms.Label labelTitle;
         private System.Windows.Forms.Panel panelAddButton;
         private System.Windows.Forms.Button buttonAdd;
+        private System.Windows.Forms.Button buttonViewWeekly;
         private System.Windows.Forms.Panel panelScheduleList;
         private System.Windows.Forms.Panel panelBottom;
         private System.Windows.Forms.Button buttonSave;
