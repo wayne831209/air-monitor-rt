@@ -3,7 +3,7 @@
     <version>1.0.0</version>
     <url>https://github.com/wayne831209/air-monitor-rt/releases/download/v1.0.0/Setup1.msi</url>    
     <changelog>https://github.com/wayne831209/air-monitor-rt/releases/tag/v1.0.0</changelog>    
-    <args>/passive</args>
+    <mandatory>false</mandatory>
 </item>
 
 
