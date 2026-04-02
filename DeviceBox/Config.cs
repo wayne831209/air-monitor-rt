@@ -231,6 +231,8 @@ namespace DeviceBox
         public string Password;
         public string mysql_on;
         public string machinery_factory_demand_table1;
+        public string machinery_factory_devicebox_table1;
+
 
 
         // Modbus Settings (Legacy)
@@ -306,6 +308,7 @@ namespace DeviceBox
             USER = dbElement.Element("USER")?.Value ?? "";
             Password = dbElement.Element("Password")?.Value ?? "";
             machinery_factory_demand_table1 = dbElement.Element("machinery_factory_demand_table1")?.Value ?? "";
+            machinery_factory_devicebox_table1 = dbElement.Element("machinery_factory_devicebox_table1")?.Value ?? "";
         }
 
         /// <summary>
@@ -550,6 +553,7 @@ namespace DeviceBox
                                 USER = GetNodeValue(item, "USER");
                                 Password = GetNodeValue(item, "Password");
                                 machinery_factory_demand_table1 = GetNodeValue(item, "machinery_factory_demand_table1");
+                                machinery_factory_devicebox_table1 = GetNodeValue(item, "machinery_factory_devicebox_table1");
                             }
                         }
                     }

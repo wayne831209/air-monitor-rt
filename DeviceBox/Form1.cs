@@ -129,7 +129,7 @@ namespace DeviceBox
                 }
                 if (!string.IsNullOrEmpty(cmd))
                 {
-                    mysql.insertdata("INSERT INTO " + config.machinery_factory_demand_table1 +
+                    mysql.insertdata("INSERT INTO " + config.machinery_factory_devicebox_table1 +
                                          "(`Name`,`Time`,`CompressedAir`,`AmbientTempPV`,`AmbientTempSV`)" +
                                          "VALUES" + cmd + "");
                 }
