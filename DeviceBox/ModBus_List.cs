@@ -26,6 +26,7 @@ namespace DeviceBox
         int meter_select, contract, mode;
 
         public bool ConnectState = false;
+        public volatile bool DataReady = false;
         public string[] Address_Val = new string[36];
         public string[] Address_Str = new string[36];
         public string name,ip,port;
@@ -89,8 +90,8 @@ namespace DeviceBox
 
             this.backgroundWorker_ECU = new System.ComponentModel.BackgroundWorker();
             this.backgroundWorker_ECU.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker_DoWork_ECU);
-            backgroundWorker_ECU.RunWorkerAsync();
             TCP_Connect(IP);
+            backgroundWorker_ECU.RunWorkerAsync();
         }
 
         private async void backgroundWorker_DoWork_ECU(object sender, DoWorkEventArgs e)
@@ -181,11 +182,13 @@ namespace DeviceBox
                         Address_Val[34] = address_val.Address_E5CC_1_PV;
                         Address_Val[35] = address_val.Address_E5CC_1_SV;
 
+                        DataReady = true;
                         ConnectState = true;
                     }
                     else
                     {
                         ConnectState = false;
+                        DataReady = false;
                         for (int i = 0; i < Address_Val.Count(); i++)
                         {
                             Address_Val[i] = "0";
@@ -196,6 +199,7 @@ namespace DeviceBox
                 catch
                 {
                     ConnectState = false;
+                    DataReady = false;
                     for (int i = 0; i < Address_Val.Count(); i++)
                     {
                         Address_Val[i] = "0";
