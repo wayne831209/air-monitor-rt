@@ -96,19 +96,19 @@
             this.label17 = new System.Windows.Forms.Label();
             this.txtDI4050_0 = new System.Windows.Forms.TextBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.button1 = new System.Windows.Forms.Button();
+            this.label20 = new System.Windows.Forms.Label();
             this.label30 = new System.Windows.Forms.Label();
+            this.TimerSet = new System.Windows.Forms.TextBox();
             this.TempSV = new System.Windows.Forms.TextBox();
             this.label31 = new System.Windows.Forms.Label();
             this.TempPV = new System.Windows.Forms.TextBox();
+            this.label21 = new System.Windows.Forms.Label();
+            this.label19 = new System.Windows.Forms.Label();
+            this.label18 = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
             this.label32 = new System.Windows.Forms.Label();
             this.AirPresure = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
-            this.label18 = new System.Windows.Forms.Label();
-            this.label19 = new System.Windows.Forms.Label();
-            this.label20 = new System.Windows.Forms.Label();
-            this.TimerSet = new System.Windows.Forms.TextBox();
-            this.label21 = new System.Windows.Forms.Label();
-            this.button1 = new System.Windows.Forms.Button();
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.comboBox1 = new System.Windows.Forms.ComboBox();
@@ -801,6 +801,25 @@
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "溫度與空壓監控";
             // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(316, 117);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(95, 31);
+            this.button1.TabIndex = 6;
+            this.button1.Text = "圖表";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // label20
+            // 
+            this.label20.AutoSize = true;
+            this.label20.Location = new System.Drawing.Point(10, 122);
+            this.label20.Name = "label20";
+            this.label20.Size = new System.Drawing.Size(77, 20);
+            this.label20.TabIndex = 4;
+            this.label20.Text = "取樣時間:";
+            // 
             // label30
             // 
             this.label30.AutoSize = true;
@@ -809,6 +828,15 @@
             this.label30.Size = new System.Drawing.Size(65, 20);
             this.label30.TabIndex = 4;
             this.label30.Text = "溫度SV:";
+            // 
+            // TimerSet
+            // 
+            this.TimerSet.Location = new System.Drawing.Point(93, 119);
+            this.TimerSet.Name = "TimerSet";
+            this.TimerSet.ReadOnly = true;
+            this.TimerSet.Size = new System.Drawing.Size(135, 29);
+            this.TimerSet.TabIndex = 5;
+            this.TimerSet.Text = "15";
             // 
             // TempSV
             // 
@@ -837,6 +865,42 @@
             this.TempPV.TabIndex = 3;
             this.TempPV.Text = "0";
             // 
+            // label21
+            // 
+            this.label21.AutoSize = true;
+            this.label21.Location = new System.Drawing.Point(234, 122);
+            this.label21.Name = "label21";
+            this.label21.Size = new System.Drawing.Size(41, 20);
+            this.label21.TabIndex = 0;
+            this.label21.Text = "分鐘";
+            // 
+            // label19
+            // 
+            this.label19.AutoSize = true;
+            this.label19.Location = new System.Drawing.Point(234, 94);
+            this.label19.Name = "label19";
+            this.label19.Size = new System.Drawing.Size(27, 20);
+            this.label19.TabIndex = 0;
+            this.label19.Text = "°C";
+            // 
+            // label18
+            // 
+            this.label18.AutoSize = true;
+            this.label18.Location = new System.Drawing.Point(234, 62);
+            this.label18.Name = "label18";
+            this.label18.Size = new System.Drawing.Size(27, 20);
+            this.label18.TabIndex = 0;
+            this.label18.Text = "°C";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(234, 30);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(72, 20);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "kgf/cm2";
+            // 
             // label32
             // 
             this.label32.AutoSize = true;
@@ -854,70 +918,6 @@
             this.AirPresure.Size = new System.Drawing.Size(135, 29);
             this.AirPresure.TabIndex = 1;
             this.AirPresure.Text = "0";
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(234, 30);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(72, 20);
-            this.label1.TabIndex = 0;
-            this.label1.Text = "kgf/cm2";
-            // 
-            // label18
-            // 
-            this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(234, 62);
-            this.label18.Name = "label18";
-            this.label18.Size = new System.Drawing.Size(27, 20);
-            this.label18.TabIndex = 0;
-            this.label18.Text = "°C";
-            // 
-            // label19
-            // 
-            this.label19.AutoSize = true;
-            this.label19.Location = new System.Drawing.Point(234, 94);
-            this.label19.Name = "label19";
-            this.label19.Size = new System.Drawing.Size(27, 20);
-            this.label19.TabIndex = 0;
-            this.label19.Text = "°C";
-            // 
-            // label20
-            // 
-            this.label20.AutoSize = true;
-            this.label20.Location = new System.Drawing.Point(10, 122);
-            this.label20.Name = "label20";
-            this.label20.Size = new System.Drawing.Size(77, 20);
-            this.label20.TabIndex = 4;
-            this.label20.Text = "取樣時間:";
-            // 
-            // TimerSet
-            // 
-            this.TimerSet.Location = new System.Drawing.Point(93, 119);
-            this.TimerSet.Name = "TimerSet";
-            this.TimerSet.ReadOnly = true;
-            this.TimerSet.Size = new System.Drawing.Size(135, 29);
-            this.TimerSet.TabIndex = 5;
-            this.TimerSet.Text = "0";
-            // 
-            // label21
-            // 
-            this.label21.AutoSize = true;
-            this.label21.Location = new System.Drawing.Point(234, 122);
-            this.label21.Name = "label21";
-            this.label21.Size = new System.Drawing.Size(41, 20);
-            this.label21.TabIndex = 0;
-            this.label21.Text = "分鐘";
-            // 
-            // button1
-            // 
-            this.button1.Location = new System.Drawing.Point(316, 117);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(95, 31);
-            this.button1.TabIndex = 6;
-            this.button1.Text = "圖表";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // backgroundWorker1
             // 

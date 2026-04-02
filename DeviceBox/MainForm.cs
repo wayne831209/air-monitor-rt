@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -43,6 +44,7 @@ namespace DeviceBox
             InitializeTimer();
             InitializeFactoryHeaders();
             InitializeCompressorNames();
+            InitializeDefaultMode();
         }
 
         /// <summary>
@@ -154,6 +156,38 @@ namespace DeviceBox
             updateTimer.Interval = 1000;
             updateTimer.Tick += UpdateTimer_Tick;
             updateTimer.Start();
+        }
+
+        /// <summary>
+        /// Initialize Default Mode - 啟動時載入預設模式並自動套用排程
+        /// </summary>
+        private void InitializeDefaultMode()
+        {
+            try
+            {
+                // 從 config 載入預設模式（IsDefault=true）
+                var defaultMode = ModeSelectForm.GetDefaultMode();
+                if (defaultMode != null)
+                {
+                    currentMode = defaultMode;
+                    label3.Text = defaultMode.Name;
+                    if (!string.IsNullOrEmpty(defaultMode.Description))
+                    {
+                        label4.Text = defaultMode.Description;
+                    }
+
+                    // 自動套用預設模式的排程到設備
+                    ModeSelectForm.ApplyModeSchedulesToConfig(defaultMode);
+
+                    // 重新載入設定以反映套用的排程
+                    config.LoadConfig();
+                    RefreshFactoryDisplay();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Load default mode failed: " + ex.Message);
+            }
         }
 
         private void UpdateTimer_Tick(object sender, EventArgs e)
@@ -412,48 +446,6 @@ namespace DeviceBox
             }
         }
 
-        /// <summary>
-        /// Update Factory Labels
-        /// </summary>
-        private void UpdateFactoryLabels(int factoryIndex, FactoryConfig factory, 
-            List<CompressorStatus> compressorStatuses, DeviceStatus precooler, 
-            DeviceStatus dryer, DeviceStatus fan, string pressure,string temp)
-        {
-            // Row3: Status Labels
-            Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
-            // Precooler
-            Label[] precoolerLabels = { precooler_col1, precooler_col2, precooler_col3, precooler_col4, precooler_col5 };
-            // Dryer
-            Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
-            // Fan
-            Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
-            // Pressure
-            Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
-            //Temp
-            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
-
-            if (factoryIndex < statusLabels.Length)
-            {
-                // Build status string for Row3
-                if (compressorStatuses.Count > 0)
-                {
-                    string statusText = BuildCompressorStatusString(factory, compressorStatuses);
-                    Color statusColor = GetOverallStatusColor(compressorStatuses);
-                    UpdateLabel(statusLabels[factoryIndex], statusText, statusColor);
-                }
-                else
-                {
-                    UpdateLabel(statusLabels[factoryIndex], "--", StatusDisabled);
-                }
-
-                // Other devices
-                UpdateLabel(precoolerLabels[factoryIndex], precooler.Text, precooler.Color);
-                UpdateLabel(dryerLabels[factoryIndex], dryer.Text, dryer.Color);
-                UpdateLabel(fanLabels[factoryIndex], fan.Text, fan.Color);
-                UpdateLabel(pressureLabels[factoryIndex], pressure, StatusRunning);
-                UpdateLabel(tempLabels[factoryIndex], temp, StatusRunning);
-            }
-        }
 
         /// <summary>
         /// Build Compressor Status String for Row3
@@ -749,6 +741,12 @@ namespace DeviceBox
             TrendChart trendChart = new TrendChart();
             trendChart.Show();
         }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+
+        }
+
     }
 
     /// <summary>

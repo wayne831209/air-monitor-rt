@@ -361,6 +361,14 @@ namespace DeviceBox
                 {
                     var newMode = editForm.Mode;
                     newMode.Id = _modes.Count > 0 ? _modes.Max(m => m.Id) + 1 : 1;
+
+                    // 箇砞Τ璝穝家Α砞箇砞ㄤ家Α箇砞
+                    if (newMode.IsDefault)
+                    {
+                        foreach (var m in _modes)
+                            m.IsDefault = false;
+                    }
+
                     _modes.Add(newMode);
                     SaveModes();
                     RefreshModeList();
@@ -383,6 +391,14 @@ namespace DeviceBox
                     {
                         editedMode.Id = mode.Id;
                         editedMode.Schedules = mode.Schedules; // 玂痙Τ逼祘
+
+                        // 箇砞Τ璝家Α砞箇砞ㄤ家Α箇砞
+                        if (editedMode.IsDefault)
+                        {
+                            foreach (var m in _modes)
+                                m.IsDefault = false;
+                        }
+
                         _modes[index] = editedMode;
                         SaveModes();
                         RefreshModeList();
@@ -591,6 +607,108 @@ namespace DeviceBox
             }
             catch { }
             return null;
+        }
+
+        /// <summary>
+        /// 繰篈よ猭眔箇砞家ΑIsDefault=true
+        /// </summary>
+        public static ScheduleMode GetDefaultMode()
+        {
+            try
+            {
+                string configPath = Path.Combine(Application.StartupPath, ConfigFileName);
+                if (!File.Exists(configPath)) return null;
+
+                XDocument doc = XDocument.Load(configPath);
+                var modesElement = doc.Root?.Element("Modes");
+                if (modesElement == null) return null;
+
+                // т IsDefault=true 家Α
+                var defaultElement = modesElement.Elements("Mode")
+                    .FirstOrDefault(m => bool.Parse(m.Attribute("isDefault")?.Value ?? "false"));
+
+                // 璝⊿Τ箇砞家Α材
+                if (defaultElement == null)
+                    defaultElement = modesElement.Elements("Mode").FirstOrDefault();
+
+                if (defaultElement != null)
+                {
+                    int modeId = int.Parse(defaultElement.Attribute("id")?.Value ?? "0");
+                    return GetModeById(modeId);
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// 繰篈よ猭盢家Α逼祘甅ノ砞称砞﹚ㄑ币笆ㄏノ
+        /// </summary>
+        public static void ApplyModeSchedulesToConfig(ScheduleMode mode)
+        {
+            if (mode == null) return;
+
+            try
+            {
+                string configPath = Path.Combine(Application.StartupPath, ConfigFileName);
+                XDocument doc = XDocument.Load(configPath);
+
+                // 睲埃┮Τ砞称逼祘
+                foreach (var deviceElement in doc.Descendants("Device"))
+                {
+                    var scheduleElement = deviceElement.Element("Schedule");
+                    if (scheduleElement != null)
+                    {
+                        scheduleElement.SetAttributeValue("enabled", "false");
+                        scheduleElement.Elements("TimeRange").Remove();
+                    }
+                }
+
+                // 甅ノ家Α逼祘
+                foreach (var schedule in mode.Schedules.Where(s => s.Enabled))
+                {
+                    var factoryElement = doc.Descendants("Factory")
+                        .FirstOrDefault(f => int.Parse(f.Attribute("id")?.Value ?? "0") == schedule.FactoryId);
+
+                    if (factoryElement != null)
+                    {
+                        var deviceElement = factoryElement.Descendants("Device")
+                            .FirstOrDefault(d =>
+                                d.Attribute("name")?.Value == schedule.DeviceName &&
+                                int.Parse(d.Attribute("machineNo")?.Value ?? "0") == schedule.MachineNo);
+
+                        if (deviceElement != null)
+                        {
+                            var scheduleElement = deviceElement.Element("Schedule");
+                            if (scheduleElement == null)
+                            {
+                                scheduleElement = new XElement("Schedule");
+                                deviceElement.Add(scheduleElement);
+                            }
+
+                            scheduleElement.SetAttributeValue("enabled", "true");
+
+                            var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
+                            rangeElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
+
+                            if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
+                            {
+                                string daysStr = string.Join(",", schedule.Days.Select(d => (int)d));
+                                rangeElement.SetAttributeValue("days", daysStr);
+                            }
+
+                            scheduleElement.Add(rangeElement);
+                        }
+                    }
+                }
+
+                doc.Save(configPath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"ApplyModeSchedulesToConfig failed: {ex.Message}");
+            }
         }
 
         /// <summary>

@@ -1107,6 +1107,7 @@
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.Name = "MainForm";
             this.Text = "空壓系統即時狀態監控";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.panel1.ResumeLayout(false);
             this.panel14.ResumeLayout(false);
             this.panel13.ResumeLayout(false);
@@ -1134,7 +1135,6 @@
         private System.Windows.Forms.Panel panel5;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label Factory;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label11;
@@ -1197,5 +1197,6 @@
         private System.Windows.Forms.Label temp_col2;
         private System.Windows.Forms.Label temp_col1;
         private System.Windows.Forms.Label label16;
+        private System.Windows.Forms.Label Factory;
     }
 }

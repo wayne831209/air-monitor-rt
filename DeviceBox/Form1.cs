@@ -14,6 +14,7 @@ namespace DeviceBox
     {
         public static List<ModBus_List> modbus_List = new List<ModBus_List>();
         Config config = new Config();
+        bool Trigger = false;
         public Form1()
         {
             InitializeComponent();
@@ -46,7 +47,15 @@ namespace DeviceBox
 
         private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
         {
+            if (DateTime.Now.Minute % int.Parse(TimerSet.Text) == 0 && Trigger == true)
+            {
 
+                Trigger = false;
+            }
+            else if (DateTime.Now.Minute % int.Parse(TimerSet.Text) == 1)
+            {
+                Trigger = true;
+            }
         }
 
         private void backgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
