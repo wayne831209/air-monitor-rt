@@ -749,6 +749,8 @@
             this.device_col5.TabIndex = 10;
             this.device_col5.Text = "CO-30";
             this.device_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.device_col5.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.device_col5.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col4
             // 
@@ -763,6 +765,8 @@
             this.device_col4.TabIndex = 9;
             this.device_col4.Text = "CO-32";
             this.device_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.device_col4.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.device_col4.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col3
             // 
@@ -777,6 +781,8 @@
             this.device_col3.TabIndex = 8;
             this.device_col3.Text = "CO-35";
             this.device_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.device_col3.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.device_col3.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col2
             // 
@@ -791,6 +797,8 @@
             this.device_col2.TabIndex = 7;
             this.device_col2.Text = "CO-37";
             this.device_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.device_col2.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.device_col2.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col1
             // 
@@ -805,6 +813,8 @@
             this.device_col1.TabIndex = 6;
             this.device_col1.Text = "CO-38";
             this.device_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.device_col1.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.device_col1.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // panel11
             // 

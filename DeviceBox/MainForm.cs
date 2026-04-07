@@ -742,6 +742,32 @@ namespace DeviceBox
             trendChart.Show();
         }
 
+        /// <summary>
+        /// device_col1 ~ device_col5 點選事件 - 開啟壓力/溫度曲線圖
+        /// </summary>
+        private void DeviceCol_Click(object sender, EventArgs e)
+        {
+            Label clickedLabel = sender as Label;
+            if (clickedLabel == null) return;
+
+            // 判斷點選的是哪一欄
+            Label[] deviceLabels = { device_col1, device_col2, device_col3, device_col4, device_col5 };
+            Label[] factoryLabels = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
+
+            string factoryName = null;
+            for (int i = 0; i < deviceLabels.Length; i++)
+            {
+                if (clickedLabel == deviceLabels[i])
+                {
+                    factoryName = factoryLabels[i].Text;
+                    break;
+                }
+            }
+
+            DeviceTrendChartForm chartForm = new DeviceTrendChartForm(factoryName);
+            chartForm.Show();
+        }
+
         private void MainForm_Load(object sender, EventArgs e)
         {
 
