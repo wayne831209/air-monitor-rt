@@ -36,6 +36,10 @@ namespace DeviceBox
         private Config config;
         private ScheduleMode currentMode;  // 當前選擇的模式
 
+        // 記錄每個設備上次寫入的 DO 狀態，避免重複寫入
+        // Key: "FactoryId_MachineNo", Value: last written DO value (1=on, 0=off)
+        private Dictionary<string, ushort> lastDOStates = new Dictionary<string, ushort>();
+
         public MainForm()
         {
             InitializeComponent();
@@ -198,6 +202,7 @@ namespace DeviceBox
             try
             {
                 UpdateAllFactories();
+                ExecuteScheduleControl();
             }
             catch (Exception ex)
             {
@@ -438,7 +443,7 @@ namespace DeviceBox
                 double temperature = tempValue;
                 if (temperature == 0)
                     return "--";
-                return temperature.ToString("F2");
+                return temperature.ToString();
             }
             catch
             {
@@ -547,6 +552,51 @@ namespace DeviceBox
                 label.Text = text;
                 label.ForeColor = foreColor;
                 label.BackColor = backColor;
+            }
+        }
+
+        /// <summary>
+        /// 排程控制 - 根據排程時間自動控制 DO 輸出
+        /// 當目前時間在排程內 → DO=1 (啟動)
+        /// 當目前時間不在排程內 → DO=0 (停止)
+        /// </summary>
+        private void ExecuteScheduleControl()
+        {
+            for (int i = 0; i < config.Factories.Count; i++)
+            {
+                var factory = config.Factories[i];
+                if (i >= modbusList.Count) continue;
+
+                var modbus = modbusList[i];
+                if (!modbus.ConnectState || modbus.address_val == null) continue;
+
+                var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+                foreach (var compressor in compressors)
+                {
+                    // 只處理有設定 controlDO 且有啟用排程的設備
+                    if (compressor.IO.ControlDO < 0 || !compressor.Schedule.Enabled)
+                        continue;
+
+                    bool isInSchedule = compressor.Schedule.IsInSchedule();
+                    ushort targetValue = isInSchedule ? (ushort)1 : (ushort)0;
+
+                    // 用 FactoryId_MachineNo 作為 key 來追蹤狀態
+                    string key = factory.Id + "_" + compressor.MachineNo;
+
+                    // 只在狀態變化時才寫入，避免每秒重複寫入
+                    ushort lastValue;
+                    if (!lastDOStates.TryGetValue(key, out lastValue) || lastValue != targetValue)
+                    {
+                        bool success = modbus.WriteDO(compressor.IO.ControlDO, targetValue);
+                        if (success)
+                        {
+                            lastDOStates[key] = targetValue;
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[排程控制] {factory.Name} {compressor.Name} (MachineNo={compressor.MachineNo}) " +
+                                $"DO_{compressor.IO.ControlDO} = {targetValue} ({(isInSchedule ? "啟動" : "停止")})");
+                        }
+                    }
+                }
             }
         }
 

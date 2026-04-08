@@ -740,6 +740,7 @@
             // 
             this.device_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.device_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.device_col5.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col5.Dock = System.Windows.Forms.DockStyle.Left;
             this.device_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.device_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -749,13 +750,13 @@
             this.device_col5.TabIndex = 10;
             this.device_col5.Text = "CO-30";
             this.device_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.device_col5.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col5.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col4
             // 
             this.device_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.device_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.device_col4.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col4.Dock = System.Windows.Forms.DockStyle.Left;
             this.device_col4.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.device_col4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -765,13 +766,13 @@
             this.device_col4.TabIndex = 9;
             this.device_col4.Text = "CO-32";
             this.device_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.device_col4.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col4.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col3
             // 
             this.device_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.device_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.device_col3.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col3.Dock = System.Windows.Forms.DockStyle.Left;
             this.device_col3.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.device_col3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -781,13 +782,13 @@
             this.device_col3.TabIndex = 8;
             this.device_col3.Text = "CO-35";
             this.device_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.device_col3.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col3.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col2
             // 
             this.device_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.device_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.device_col2.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col2.Dock = System.Windows.Forms.DockStyle.Left;
             this.device_col2.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.device_col2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -797,13 +798,13 @@
             this.device_col2.TabIndex = 7;
             this.device_col2.Text = "CO-37";
             this.device_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.device_col2.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col2.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // device_col1
             // 
             this.device_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.device_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.device_col1.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col1.Dock = System.Windows.Forms.DockStyle.Left;
             this.device_col1.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.device_col1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -813,7 +814,6 @@
             this.device_col1.TabIndex = 6;
             this.device_col1.Text = "CO-38";
             this.device_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.device_col1.Cursor = System.Windows.Forms.Cursors.Hand;
             this.device_col1.Click += new System.EventHandler(this.DeviceCol_Click);
             // 
             // panel11
@@ -921,13 +921,13 @@
             this.label16.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
             this.label16.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.label16.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label16.Font = new System.Drawing.Font("微軟正黑體", 21.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label16.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label16.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.label16.Location = new System.Drawing.Point(0, 524);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(200, 64);
             this.label16.TabIndex = 3;
-            this.label16.Text = "機房溫度";
+            this.label16.Text = "機房溫度(°C)";
             this.label16.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label15
@@ -935,13 +935,13 @@
             this.label15.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
             this.label15.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.label15.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label15.Font = new System.Drawing.Font("微軟正黑體", 21.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label15.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label15.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.label15.Location = new System.Drawing.Point(0, 460);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(200, 64);
             this.label15.TabIndex = 2;
-            this.label15.Text = "空壓壓力";
+            this.label15.Text = "空壓(kg/cm2)";
             this.label15.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label14
@@ -949,7 +949,7 @@
             this.label14.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
             this.label14.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.label14.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label14.Font = new System.Drawing.Font("微軟正黑體", 21.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label14.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label14.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.label14.Location = new System.Drawing.Point(0, 396);
             this.label14.Name = "label14";
@@ -963,7 +963,7 @@
             this.label13.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
             this.label13.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.label13.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label13.Font = new System.Drawing.Font("微軟正黑體", 21.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label13.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label13.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.label13.Location = new System.Drawing.Point(0, 332);
             this.label13.Name = "label13";
@@ -977,7 +977,7 @@
             this.label12.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
             this.label12.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.label12.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label12.Font = new System.Drawing.Font("微軟正黑體", 21.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label12.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label12.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.label12.Location = new System.Drawing.Point(0, 268);
             this.label12.Name = "label12";
@@ -991,7 +991,7 @@
             this.label11.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
             this.label11.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.label11.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label11.Font = new System.Drawing.Font("微軟正黑體", 21.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label11.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label11.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.label11.Location = new System.Drawing.Point(0, 64);
             this.label11.Name = "label11";

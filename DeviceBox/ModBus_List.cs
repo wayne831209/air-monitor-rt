@@ -225,6 +225,31 @@ namespace DeviceBox
             master_rtu = ModbusSerialMaster.CreateRtu(port);
             master_rtu.Transport.ReadTimeout = 300;
         }
+        /// <summary>
+        /// 寫入 DO 值 (控制輸出)
+        /// doNumber: DO 通道編號 (0~7 對應 Address_4050_DO_0 ~ DO_7)
+        /// value: 1=啟動, 0=停止
+        /// </summary>
+        public bool WriteDO(int doNumber, ushort value)
+        {
+            if (!ConnectState || master_tcp == null) return false;
+            if (doNumber < 0 || doNumber > 7) return false;
+
+            try
+            {
+                // DO_0 對應 holding register 30, DO_1=31, DO_2=32 ...
+                ushort registerAddress = (ushort)(30 + doNumber);
+                master_tcp.WriteSingleRegister(1, registerAddress, value);
+                System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO: DO_{doNumber} (register {registerAddress}) = {value}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO failed: {ex.Message}");
+                return false;
+            }
+        }
+
         public bool TCP_Connect(string IP)
         {
             if (CheckInternet())

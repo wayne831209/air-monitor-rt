@@ -54,15 +54,33 @@ namespace DeviceBox
         /// </summary>
         public bool IsInRange(TimeSpan time, DayOfWeek day)
         {
-            // 檢查星期
-            if (Days.Count > 0 && !Days.Contains(day))
-                return false;
-
-            // 檢查時間
+            // 不跨午夜的排程 (例如 08:00~17:00)
             if (StartTime <= EndTime)
+            {
+                if (Days.Count > 0 && !Days.Contains(day))
+                    return false;
                 return time >= StartTime && time <= EndTime;
+            }
             else
-                return time >= StartTime || time <= EndTime;
+            {
+                // 跨午夜的排程 (例如 20:00~08:00)
+                // 午夜前的部分 (20:00~23:59): 檢查當天是否在排程日
+                if (time >= StartTime)
+                {
+                    if (Days.Count > 0 && !Days.Contains(day))
+                        return false;
+                    return true;
+                }
+                // 午夜後的部分 (00:00~08:00): 檢查前一天是否在排程日
+                if (time <= EndTime)
+                {
+                    DayOfWeek previousDay = (day == DayOfWeek.Sunday) ? DayOfWeek.Saturday : (DayOfWeek)((int)day - 1);
+                    if (Days.Count > 0 && !Days.Contains(previousDay))
+                        return false;
+                    return true;
+                }
+                return false;
+            }
         }
 
         /// <summary>
@@ -171,6 +189,7 @@ namespace DeviceBox
         public int OnDI { get; set; } = -1;       // On DI (Other devices)
         public int OffDI { get; set; } = -1;      // Off DI (Other devices)
         public int ReadyDI { get; set; } = -1;    // Ready DI
+        public int ControlDO { get; set; } = -1;  // Control DO (排程控制輸出)
         public string Adam { get; set; } = "4051"; // ADAM Module
     }
 
@@ -425,6 +444,8 @@ namespace DeviceBox
                 io.OffDI = int.Parse(element.Attribute("offDI").Value);
             if (element.Attribute("readyDI") != null)
                 io.ReadyDI = int.Parse(element.Attribute("readyDI").Value);
+            if (element.Attribute("controlDO") != null)
+                io.ControlDO = int.Parse(element.Attribute("controlDO").Value);
             if (element.Attribute("adam") != null)
                 io.Adam = element.Attribute("adam").Value;
 
