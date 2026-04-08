@@ -406,14 +406,49 @@ namespace DeviceBox
                 area.AxisY.StripLines.Clear();
             }
 
+            // 建立設備名稱與顏色的對應表，確保同一設備在所有圖表中顏色一致
+            var deviceColorMap = new Dictionary<string, Color>();
             int colorIndex = 0;
 
-            // 繪製壓力與溫度曲線
+            // 先從壓力/溫度資料收集設備名稱
+            foreach (var deviceName in groupedDeviceBox.Keys)
+            {
+                if (!deviceColorMap.ContainsKey(deviceName))
+                {
+                    deviceColorMap[deviceName] = SeriesColors[colorIndex % SeriesColors.Length];
+                    colorIndex++;
+                }
+            }
+
+            // 再從需量資料收集設備名稱（若有新設備才分配新顏色）
+            foreach (var deviceName in groupedDemand.Keys)
+            {
+                if (!deviceColorMap.ContainsKey(deviceName))
+                {
+                    deviceColorMap[deviceName] = SeriesColors[colorIndex % SeriesColors.Length];
+                    colorIndex++;
+                }
+            }
+
+            // 圖例只顯示設備名稱（每個設備一筆），用隱藏的 Series 代表
+            foreach (var kvp in deviceColorMap)
+            {
+                var legendSeries = new Series(kvp.Key);
+                legendSeries.ChartType = SeriesChartType.Line;
+                legendSeries.Color = kvp.Value;
+                legendSeries.BorderWidth = 2;
+                legendSeries.ChartArea = "ChartAreaPressure";
+                legendSeries.Legend = "LegendMain";
+                legendSeries.IsVisibleInLegend = true;
+                chartCombined.Series.Add(legendSeries);
+            }
+
+            // 繪製壓力與溫度曲線（實線，不顯示在圖例中）
             foreach (var kvp in groupedDeviceBox)
             {
                 string deviceName = kvp.Key;
                 var dataPoints = kvp.Value;
-                Color color = SeriesColors[colorIndex % SeriesColors.Length];
+                Color color = deviceColorMap[deviceName];
 
                 // 壓力曲線
                 var pressureSeries = new Series(deviceName + " 壓力");
@@ -422,6 +457,7 @@ namespace DeviceBox
                 pressureSeries.BorderWidth = 2;
                 pressureSeries.ChartArea = "ChartAreaPressure";
                 pressureSeries.Legend = "LegendMain";
+                pressureSeries.IsVisibleInLegend = false;
 
                 foreach (var dp in dataPoints)
                 {
@@ -430,14 +466,14 @@ namespace DeviceBox
 
                 chartCombined.Series.Add(pressureSeries);
 
-                // 溫度曲線
+                // 溫度曲線（實線）
                 var tempSeries = new Series(deviceName + " 溫度");
                 tempSeries.ChartType = SeriesChartType.Line;
                 tempSeries.Color = color;
                 tempSeries.BorderWidth = 2;
-                tempSeries.BorderDashStyle = ChartDashStyle.Dash;
                 tempSeries.ChartArea = "ChartAreaTemp";
                 tempSeries.Legend = "LegendMain";
+                tempSeries.IsVisibleInLegend = false;
 
                 foreach (var dp in dataPoints)
                 {
@@ -445,16 +481,14 @@ namespace DeviceBox
                 }
 
                 chartCombined.Series.Add(tempSeries);
-
-                colorIndex++;
             }
 
-            // 繪製需量曲線
+            // 繪製需量曲線（實線，使用相同設備對應的顏色，不顯示在圖例中）
             foreach (var kvp in groupedDemand)
             {
                 string deviceName = kvp.Key;
                 var dataPoints = kvp.Value;
-                Color color = SeriesColors[colorIndex % SeriesColors.Length];
+                Color color = deviceColorMap[deviceName];
 
                 var demandSeries = new Series(deviceName + " 需量");
                 demandSeries.ChartType = SeriesChartType.Line;
@@ -462,6 +496,7 @@ namespace DeviceBox
                 demandSeries.BorderWidth = 2;
                 demandSeries.ChartArea = "ChartAreaDemand";
                 demandSeries.Legend = "LegendMain";
+                demandSeries.IsVisibleInLegend = false;
 
                 foreach (var dp in dataPoints)
                 {
@@ -469,8 +504,6 @@ namespace DeviceBox
                 }
 
                 chartCombined.Series.Add(demandSeries);
-
-                colorIndex++;
             }
 
             // 設定 X 軸格式 - 固定以小時為單位
@@ -499,6 +532,15 @@ namespace DeviceBox
                 double dataMin = seriesInArea.Min(s => s.Points.Min(p => p.YValues[0]));
                 double dataMax = seriesInArea.Max(s => s.Points.Max(p => p.YValues[0]));
 
+                // 空壓壓力：Y軸固定顯示 0~10，間隔為 1
+                if (area.Name == "ChartAreaPressure")
+                {
+                    area.AxisY.Minimum = 0;
+                    area.AxisY.Maximum = 10;
+                    area.AxisY.Interval = 1;
+                    continue;
+                }
+
                 double range = dataMax - dataMin;
                 if (range < 0.01)
                 {
@@ -511,11 +553,11 @@ namespace DeviceBox
 
                 // 上下各留 10% 的邊距
                 double margin = range * 0.1;
-                double yMin = dataMin - margin;
-                double yMax = dataMax + margin;
+                double yMinCalc = dataMin - margin;
+                double yMaxCalc = dataMax + margin;
 
                 // 計算合適的刻度間距（目標約 4~6 格）
-                double rawInterval = (yMax - yMin) / 5.0;
+                double rawInterval = (yMaxCalc - yMinCalc) / 5.0;
                 double magnitude = Math.Pow(10, Math.Floor(Math.Log10(rawInterval)));
                 double normalized = rawInterval / magnitude;
                 double niceInterval;
@@ -529,11 +571,11 @@ namespace DeviceBox
                     niceInterval = 10.0 * magnitude;
 
                 // 將最小/最大值對齊到刻度
-                yMin = Math.Floor(yMin / niceInterval) * niceInterval;
-                yMax = Math.Ceiling(yMax / niceInterval) * niceInterval;
+                yMinCalc = Math.Floor(yMinCalc / niceInterval) * niceInterval;
+                yMaxCalc = Math.Ceiling(yMaxCalc / niceInterval) * niceInterval;
 
-                area.AxisY.Minimum = yMin;
-                area.AxisY.Maximum = yMax;
+                area.AxisY.Minimum = yMinCalc;
+                area.AxisY.Maximum = yMaxCalc;
                 area.AxisY.Interval = niceInterval;
             }
 
@@ -568,9 +610,8 @@ namespace DeviceBox
                 allPressureLimits.Add(new KeyValuePair<string, AlarmLimitsConfig>(factory.Name, factory.AlarmLimits));
             }
 
-            // 顏色設定
-            Color upperLimitColor = Color.FromArgb(255, 80, 80);   // 紅色 - 上限
-            Color lowerLimitColor = Color.FromArgb(80, 180, 255);  // 藍色 - 下限
+            // 顏色設定 - 上下限一律使用紅色虛線
+            Color limitColor = Color.Red;
 
             // 追蹤所有限制線的值，用於調整 Y 軸範圍
             var pressureLimitValues = new List<double>();
@@ -582,68 +623,68 @@ namespace DeviceBox
                 var limits = kvp.Value;
                 if (limits == null) continue;
 
-                // 壓力上限線
+                // 壓力上限線（紅色虛線）
                 if (limits.PressureUpperLimit != double.MaxValue)
                 {
                     var strip = new StripLine();
                     strip.IntervalOffset = limits.PressureUpperLimit;
                     strip.StripWidth = 0;
-                    strip.BorderColor = upperLimitColor;
+                    strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
-                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.BorderDashStyle = ChartDashStyle.Dash;
                     strip.Text = factoryName + " 上限: " + limits.PressureUpperLimit.ToString("F2");
-                    strip.ForeColor = upperLimitColor;
+                    strip.ForeColor = limitColor;
                     strip.Font = new Font("微軟正黑體", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaPressure.AxisY.StripLines.Add(strip);
                     pressureLimitValues.Add(limits.PressureUpperLimit);
                 }
 
-                // 壓力下限線
+                // 壓力下限線（紅色虛線）
                 if (limits.PressureLowerLimit != double.MinValue)
                 {
                     var strip = new StripLine();
                     strip.IntervalOffset = limits.PressureLowerLimit;
                     strip.StripWidth = 0;
-                    strip.BorderColor = lowerLimitColor;
+                    strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
-                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.BorderDashStyle = ChartDashStyle.Dash;
                     strip.Text = factoryName + " 下限: " + limits.PressureLowerLimit.ToString("F2");
-                    strip.ForeColor = lowerLimitColor;
+                    strip.ForeColor = limitColor;
                     strip.Font = new Font("微軟正黑體", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaPressure.AxisY.StripLines.Add(strip);
                     pressureLimitValues.Add(limits.PressureLowerLimit);
                 }
 
-                // 溫度上限線
+                // 溫度上限線（紅色虛線）
                 if (limits.TempUpperLimit != double.MaxValue)
                 {
                     var strip = new StripLine();
                     strip.IntervalOffset = limits.TempUpperLimit;
                     strip.StripWidth = 0;
-                    strip.BorderColor = upperLimitColor;
+                    strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
-                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.BorderDashStyle = ChartDashStyle.Dash;
                     strip.Text = factoryName + " 上限: " + limits.TempUpperLimit.ToString("F1");
-                    strip.ForeColor = upperLimitColor;
+                    strip.ForeColor = limitColor;
                     strip.Font = new Font("微軟正黑體", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaTemp.AxisY.StripLines.Add(strip);
                     tempLimitValues.Add(limits.TempUpperLimit);
                 }
 
-                // 溫度下限線
+                // 溫度下限線（紅色虛線）
                 if (limits.TempLowerLimit != double.MinValue)
                 {
                     var strip = new StripLine();
                     strip.IntervalOffset = limits.TempLowerLimit;
                     strip.StripWidth = 0;
-                    strip.BorderColor = lowerLimitColor;
+                    strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
-                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.BorderDashStyle = ChartDashStyle.Dash;
                     strip.Text = factoryName + " 下限: " + limits.TempLowerLimit.ToString("F1");
-                    strip.ForeColor = lowerLimitColor;
+                    strip.ForeColor = limitColor;
                     strip.Font = new Font("微軟正黑體", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaTemp.AxisY.StripLines.Add(strip);
