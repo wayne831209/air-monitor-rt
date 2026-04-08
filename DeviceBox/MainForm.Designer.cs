@@ -152,6 +152,7 @@
             // 
             this.temp_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.temp_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.temp_col5.Cursor = System.Windows.Forms.Cursors.Hand;
             this.temp_col5.Dock = System.Windows.Forms.DockStyle.Left;
             this.temp_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.temp_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -161,11 +162,13 @@
             this.temp_col5.TabIndex = 20;
             this.temp_col5.Text = "0";
             this.temp_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.temp_col5.Click += new System.EventHandler(this.TempCol_Click);
             // 
             // temp_col4
             // 
             this.temp_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.temp_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.temp_col4.Cursor = System.Windows.Forms.Cursors.Hand;
             this.temp_col4.Dock = System.Windows.Forms.DockStyle.Left;
             this.temp_col4.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.temp_col4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -175,11 +178,13 @@
             this.temp_col4.TabIndex = 19;
             this.temp_col4.Text = "0";
             this.temp_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.temp_col4.Click += new System.EventHandler(this.TempCol_Click);
             // 
             // temp_col3
             // 
             this.temp_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.temp_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.temp_col3.Cursor = System.Windows.Forms.Cursors.Hand;
             this.temp_col3.Dock = System.Windows.Forms.DockStyle.Left;
             this.temp_col3.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.temp_col3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -189,11 +194,13 @@
             this.temp_col3.TabIndex = 18;
             this.temp_col3.Text = "0";
             this.temp_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.temp_col3.Click += new System.EventHandler(this.TempCol_Click);
             // 
             // temp_col2
             // 
             this.temp_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.temp_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.temp_col2.Cursor = System.Windows.Forms.Cursors.Hand;
             this.temp_col2.Dock = System.Windows.Forms.DockStyle.Left;
             this.temp_col2.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.temp_col2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -203,11 +210,13 @@
             this.temp_col2.TabIndex = 17;
             this.temp_col2.Text = "0";
             this.temp_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.temp_col2.Click += new System.EventHandler(this.TempCol_Click);
             // 
             // temp_col1
             // 
             this.temp_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.temp_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.temp_col1.Cursor = System.Windows.Forms.Cursors.Hand;
             this.temp_col1.Dock = System.Windows.Forms.DockStyle.Left;
             this.temp_col1.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.temp_col1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -217,6 +226,7 @@
             this.temp_col1.TabIndex = 16;
             this.temp_col1.Text = "0";
             this.temp_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.temp_col1.Click += new System.EventHandler(this.TempCol_Click);
             // 
             // panel13
             // 
@@ -236,6 +246,7 @@
             // 
             this.pressure_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.pressure_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pressure_col5.Cursor = System.Windows.Forms.Cursors.Hand;
             this.pressure_col5.Dock = System.Windows.Forms.DockStyle.Left;
             this.pressure_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.pressure_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -245,11 +256,13 @@
             this.pressure_col5.TabIndex = 15;
             this.pressure_col5.Text = "0";
             this.pressure_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pressure_col5.Click += new System.EventHandler(this.PressureCol_Click);
             // 
             // pressure_col4
             // 
             this.pressure_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.pressure_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pressure_col4.Cursor = System.Windows.Forms.Cursors.Hand;
             this.pressure_col4.Dock = System.Windows.Forms.DockStyle.Left;
             this.pressure_col4.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.pressure_col4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -259,11 +272,13 @@
             this.pressure_col4.TabIndex = 14;
             this.pressure_col4.Text = "0";
             this.pressure_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pressure_col4.Click += new System.EventHandler(this.PressureCol_Click);
             // 
             // pressure_col3
             // 
             this.pressure_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.pressure_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pressure_col3.Cursor = System.Windows.Forms.Cursors.Hand;
             this.pressure_col3.Dock = System.Windows.Forms.DockStyle.Left;
             this.pressure_col3.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.pressure_col3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -273,11 +288,13 @@
             this.pressure_col3.TabIndex = 13;
             this.pressure_col3.Text = "0";
             this.pressure_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pressure_col3.Click += new System.EventHandler(this.PressureCol_Click);
             // 
             // pressure_col2
             // 
             this.pressure_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.pressure_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pressure_col2.Cursor = System.Windows.Forms.Cursors.Hand;
             this.pressure_col2.Dock = System.Windows.Forms.DockStyle.Left;
             this.pressure_col2.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.pressure_col2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -287,11 +304,13 @@
             this.pressure_col2.TabIndex = 12;
             this.pressure_col2.Text = "0";
             this.pressure_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pressure_col2.Click += new System.EventHandler(this.PressureCol_Click);
             // 
             // pressure_col1
             // 
             this.pressure_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.pressure_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pressure_col1.Cursor = System.Windows.Forms.Cursors.Hand;
             this.pressure_col1.Dock = System.Windows.Forms.DockStyle.Left;
             this.pressure_col1.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.pressure_col1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -301,6 +320,7 @@
             this.pressure_col1.TabIndex = 11;
             this.pressure_col1.Text = "0";
             this.pressure_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pressure_col1.Click += new System.EventHandler(this.PressureCol_Click);
             // 
             // panel12
             // 

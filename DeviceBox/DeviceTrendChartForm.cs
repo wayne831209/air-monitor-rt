@@ -102,7 +102,7 @@ namespace DeviceBox
                 foreach (var compressor in compressors)
                 {
                     if (compressor == null) continue;
-                    string displayName = (factory.Name ?? "") + " - " + (compressor.Name ?? "");
+                    string displayName = (compressor.Name ?? "") + " - " + (factory.Name ?? "");
                     _allDeviceNames.Add(compressor.Name ?? "");
 
                     // 若有指定預選廠域，僅勾選該廠域的設備；否則全選
@@ -178,11 +178,15 @@ namespace DeviceBox
             var area = chart.ChartAreas[chartAreaName];
             area.BackColor = Color.FromArgb(35, 35, 38);
             area.AxisX.LabelStyle.ForeColor = Color.White;
-            area.AxisX.LabelStyle.Format = "MM/dd HH:mm";
+            area.AxisX.LabelStyle.Format = "MM/dd HH:00";
             area.AxisX.MajorGrid.LineColor = Color.FromArgb(60, 60, 65);
             area.AxisX.LineColor = Color.FromArgb(100, 100, 105);
             area.AxisX.LabelStyle.Font = new Font("微軟正黑體", 8F);
             area.AxisX.IsMarginVisible = false;
+            area.AxisX.IntervalType = DateTimeIntervalType.Hours;
+            area.AxisX.Interval = 1;
+            area.AxisX.MajorGrid.IntervalType = DateTimeIntervalType.Hours;
+            area.AxisX.MajorGrid.Interval = 1;
 
             area.AxisY.LabelStyle.ForeColor = Color.White;
             area.AxisY.MajorGrid.LineColor = Color.FromArgb(60, 60, 65);
@@ -396,6 +400,12 @@ namespace DeviceBox
         {
             chartCombined.Series.Clear();
 
+            // 清除舊的限制線
+            foreach (var area in chartCombined.ChartAreas)
+            {
+                area.AxisY.StripLines.Clear();
+            }
+
             int colorIndex = 0;
 
             // 繪製壓力與溫度曲線
@@ -463,11 +473,12 @@ namespace DeviceBox
                 colorIndex++;
             }
 
-            // 設定 X 軸格式
+            // 設定 X 軸格式 - 固定以小時為單位
             foreach (var area in chartCombined.ChartAreas)
             {
-                area.AxisX.LabelStyle.Format = "MM/dd HH:mm";
-                area.AxisX.IntervalType = DateTimeIntervalType.Auto;
+                area.AxisX.LabelStyle.Format = "MM/dd HH:00";
+                area.AxisX.IntervalType = DateTimeIntervalType.Hours;
+                area.AxisX.Interval = 1;
             }
 
             // 根據實際資料重新計算每個 ChartArea 的 Y 軸範圍
@@ -525,6 +536,154 @@ namespace DeviceBox
                 area.AxisY.Maximum = yMax;
                 area.AxisY.Interval = niceInterval;
             }
+
+            // 繪製警報上下限線
+            var selectedDevices = GetSelectedDeviceNames();
+            DrawAlarmLimitLines(selectedDevices);
+        }
+
+        /// <summary>
+        /// 繪製警報上下限線到圖表上
+        /// 從選取設備對應的工廠取得 AlarmLimits，在壓力與溫度 ChartArea 上繪製水平參考線
+        /// </summary>
+        private void DrawAlarmLimitLines(List<string> selectedDeviceNames)
+        {
+            var chart = chartCombined;
+            var areaPressure = chart.ChartAreas["ChartAreaPressure"];
+            var areaTemp = chart.ChartAreas["ChartAreaTemp"];
+
+            // 收集所有選取設備對應工廠的 AlarmLimits（去重複）
+            var processedFactoryIds = new HashSet<int>();
+            var allPressureLimits = new List<KeyValuePair<string, AlarmLimitsConfig>>();
+
+            foreach (var factory in _config.Factories)
+            {
+                if (factory == null) continue;
+                var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+                bool hasSelected = compressors.Any(c => selectedDeviceNames.Contains(c.Name));
+                if (!hasSelected) continue;
+                if (processedFactoryIds.Contains(factory.Id)) continue;
+                processedFactoryIds.Add(factory.Id);
+
+                allPressureLimits.Add(new KeyValuePair<string, AlarmLimitsConfig>(factory.Name, factory.AlarmLimits));
+            }
+
+            // 顏色設定
+            Color upperLimitColor = Color.FromArgb(255, 80, 80);   // 紅色 - 上限
+            Color lowerLimitColor = Color.FromArgb(80, 180, 255);  // 藍色 - 下限
+
+            // 追蹤所有限制線的值，用於調整 Y 軸範圍
+            var pressureLimitValues = new List<double>();
+            var tempLimitValues = new List<double>();
+
+            foreach (var kvp in allPressureLimits)
+            {
+                string factoryName = kvp.Key;
+                var limits = kvp.Value;
+                if (limits == null) continue;
+
+                // 壓力上限線
+                if (limits.PressureUpperLimit != double.MaxValue)
+                {
+                    var strip = new StripLine();
+                    strip.IntervalOffset = limits.PressureUpperLimit;
+                    strip.StripWidth = 0;
+                    strip.BorderColor = upperLimitColor;
+                    strip.BorderWidth = 2;
+                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.Text = factoryName + " 上限: " + limits.PressureUpperLimit.ToString("F2");
+                    strip.ForeColor = upperLimitColor;
+                    strip.Font = new Font("微軟正黑體", 8F);
+                    strip.TextAlignment = StringAlignment.Near;
+                    areaPressure.AxisY.StripLines.Add(strip);
+                    pressureLimitValues.Add(limits.PressureUpperLimit);
+                }
+
+                // 壓力下限線
+                if (limits.PressureLowerLimit != double.MinValue)
+                {
+                    var strip = new StripLine();
+                    strip.IntervalOffset = limits.PressureLowerLimit;
+                    strip.StripWidth = 0;
+                    strip.BorderColor = lowerLimitColor;
+                    strip.BorderWidth = 2;
+                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.Text = factoryName + " 下限: " + limits.PressureLowerLimit.ToString("F2");
+                    strip.ForeColor = lowerLimitColor;
+                    strip.Font = new Font("微軟正黑體", 8F);
+                    strip.TextAlignment = StringAlignment.Near;
+                    areaPressure.AxisY.StripLines.Add(strip);
+                    pressureLimitValues.Add(limits.PressureLowerLimit);
+                }
+
+                // 溫度上限線
+                if (limits.TempUpperLimit != double.MaxValue)
+                {
+                    var strip = new StripLine();
+                    strip.IntervalOffset = limits.TempUpperLimit;
+                    strip.StripWidth = 0;
+                    strip.BorderColor = upperLimitColor;
+                    strip.BorderWidth = 2;
+                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.Text = factoryName + " 上限: " + limits.TempUpperLimit.ToString("F1");
+                    strip.ForeColor = upperLimitColor;
+                    strip.Font = new Font("微軟正黑體", 8F);
+                    strip.TextAlignment = StringAlignment.Near;
+                    areaTemp.AxisY.StripLines.Add(strip);
+                    tempLimitValues.Add(limits.TempUpperLimit);
+                }
+
+                // 溫度下限線
+                if (limits.TempLowerLimit != double.MinValue)
+                {
+                    var strip = new StripLine();
+                    strip.IntervalOffset = limits.TempLowerLimit;
+                    strip.StripWidth = 0;
+                    strip.BorderColor = lowerLimitColor;
+                    strip.BorderWidth = 2;
+                    strip.BorderDashStyle = ChartDashStyle.DashDot;
+                    strip.Text = factoryName + " 下限: " + limits.TempLowerLimit.ToString("F1");
+                    strip.ForeColor = lowerLimitColor;
+                    strip.Font = new Font("微軟正黑體", 8F);
+                    strip.TextAlignment = StringAlignment.Near;
+                    areaTemp.AxisY.StripLines.Add(strip);
+                    tempLimitValues.Add(limits.TempLowerLimit);
+                }
+            }
+
+            // 調整 Y 軸範圍以確保限制線可見
+            AdjustAxisRangeForLimits(areaPressure, pressureLimitValues);
+            AdjustAxisRangeForLimits(areaTemp, tempLimitValues);
+        }
+
+        /// <summary>
+        /// 調整 ChartArea 的 Y 軸範圍以確保限制線可見
+        /// </summary>
+        private void AdjustAxisRangeForLimits(ChartArea area, List<double> limitValues)
+        {
+            if (limitValues.Count == 0) return;
+            if (double.IsNaN(area.AxisY.Minimum) || double.IsNaN(area.AxisY.Maximum)) return;
+
+            double currentMin = area.AxisY.Minimum;
+            double currentMax = area.AxisY.Maximum;
+            double interval = area.AxisY.Interval;
+            if (interval <= 0) return;
+
+            double newMin = currentMin;
+            double newMax = currentMax;
+
+            foreach (var val in limitValues)
+            {
+                if (val < newMin) newMin = val - interval;
+                if (val > newMax) newMax = val + interval;
+            }
+
+            // 對齊到刻度
+            newMin = Math.Floor(newMin / interval) * interval;
+            newMax = Math.Ceiling(newMax / interval) * interval;
+
+            area.AxisY.Minimum = newMin;
+            area.AxisY.Maximum = newMax;
         }
 
         /// <summary>

@@ -24,6 +24,7 @@ namespace DeviceBox
         private static readonly Color TextNormal = Color.White;                        // Normal Text
         private static readonly Color ScheduleActive = Color.FromArgb(0, 150, 0);     // Green - Schedule Active
         private static readonly Color ScheduleInactive = Color.FromArgb(150, 0, 0);   // Red - No Schedule
+        private static readonly Color StatusOverLimit = Color.FromArgb(255, 50, 50);   // Red - Over Limit
 
         // View Mode
         private enum ViewMode { OtherFactories, CastingFactory }
@@ -271,8 +272,8 @@ namespace DeviceBox
                     UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
                     UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
                     UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
-                    UpdateLabel(pressureLabels[colIndex], pressure, StatusRunning);
-                    UpdateLabel(tempLabels[colIndex], temp, StatusRunning);
+                    UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, castingFactory.AlarmLimits);
+                    UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, castingFactory.AlarmLimits);
                 }
             }
             else
@@ -316,8 +317,8 @@ namespace DeviceBox
                         UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
                         UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
                         UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
-                        UpdateLabel(pressureLabels[colIndex], pressure, StatusRunning);
-                        UpdateLabel(tempLabels[colIndex], temp, StatusRunning);
+                        UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, factory.AlarmLimits);
+                        UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, factory.AlarmLimits);
                     }
                 }
             }
@@ -816,6 +817,174 @@ namespace DeviceBox
 
             DeviceTrendChartForm chartForm = new DeviceTrendChartForm(factoryName);
             chartForm.Show();
+        }
+
+        /// <summary>
+        /// pressure_col1 ~ pressure_col5 點選事件 - 設定空壓上下限
+        /// </summary>
+        private void PressureCol_Click(object sender, EventArgs e)
+        {
+            Label clickedLabel = sender as Label;
+            if (clickedLabel == null) return;
+
+            Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
+            Label[] factoryLabels = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
+
+            int colIndex = -1;
+            for (int i = 0; i < pressureLabels.Length; i++)
+            {
+                if (clickedLabel == pressureLabels[i])
+                {
+                    colIndex = i;
+                    break;
+                }
+            }
+            if (colIndex < 0) return;
+
+            FactoryConfig factory = GetFactoryByColumnIndex(colIndex);
+            if (factory == null) return;
+
+            using (var form = new AlarmLimitSettingForm(factory.Id, factory.Name, factory.AlarmLimits, "Pressure"))
+            {
+                if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    config.SaveAlarmLimits(factory.Id, form.ResultLimits);
+                }
+            }
+        }
+
+        /// <summary>
+        /// temp_col1 ~ temp_col5 點選事件 - 設定溫度上下限
+        /// </summary>
+        private void TempCol_Click(object sender, EventArgs e)
+        {
+            Label clickedLabel = sender as Label;
+            if (clickedLabel == null) return;
+
+            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+            Label[] factoryLabels = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
+
+            int colIndex = -1;
+            for (int i = 0; i < tempLabels.Length; i++)
+            {
+                if (clickedLabel == tempLabels[i])
+                {
+                    colIndex = i;
+                    break;
+                }
+            }
+            if (colIndex < 0) return;
+
+            FactoryConfig factory = GetFactoryByColumnIndex(colIndex);
+            if (factory == null) return;
+
+            using (var form = new AlarmLimitSettingForm(factory.Id, factory.Name, factory.AlarmLimits, "Temp"))
+            {
+                if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    config.SaveAlarmLimits(factory.Id, form.ResultLimits);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 根據目前顯示欄位索引取得對應的 FactoryConfig
+        /// </summary>
+        private FactoryConfig GetFactoryByColumnIndex(int colIndex)
+        {
+            if (currentViewMode == ViewMode.CastingFactory)
+            {
+                return config.Factories.FirstOrDefault(f => f.Id == CASTING_FACTORY_ID);
+            }
+            else
+            {
+                var otherFactories = config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).Take(5).ToList();
+                if (colIndex < otherFactories.Count)
+                    return otherFactories[colIndex];
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 更新空壓 Label 並檢查是否超過上下限，超過則變色並呼叫推播函式
+        /// </summary>
+        private void UpdatePressureLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits)
+        {
+            double value;
+            if (double.TryParse(valueText, out value))
+            {
+                bool overLimit = (limits.PressureUpperLimit != double.MaxValue && value > limits.PressureUpperLimit)
+                              || (limits.PressureLowerLimit != double.MinValue && value < limits.PressureLowerLimit);
+                if (overLimit)
+                {
+                    UpdateLabel(label, valueText, StatusOverLimit);
+                    // 呼叫推播通知
+                    OnPressureOverLimit(label.FindForm()?.Text, valueText, limits);
+                }
+                else
+                {
+                    UpdateLabel(label, valueText, StatusRunning);
+                }
+            }
+            else
+            {
+                UpdateLabel(label, valueText, StatusRunning);
+            }
+        }
+
+        /// <summary>
+        /// 更新溫度 Label 並檢查是否超過上下限，超過則變色並呼叫推播函式
+        /// </summary>
+        private void UpdateTempLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits)
+        {
+            double value;
+            if (double.TryParse(valueText, out value))
+            {
+                bool overLimit = (limits.TempUpperLimit != double.MaxValue && value > limits.TempUpperLimit)
+                              || (limits.TempLowerLimit != double.MinValue && value < limits.TempLowerLimit);
+                if (overLimit)
+                {
+                    UpdateLabel(label, valueText, StatusOverLimit);
+                    // 呼叫推播通知
+                    OnTempOverLimit(label.FindForm()?.Text, valueText, limits);
+                }
+                else
+                {
+                    UpdateLabel(label, valueText, StatusRunning);
+                }
+            }
+            else
+            {
+                UpdateLabel(label, valueText, StatusRunning);
+            }
+        }
+
+        /// <summary>
+        /// 【預留】空壓數值超過上下限時的推播通知函式
+        /// TODO: 實作推播通知邏輯（例如 Line Notify、Email、簡訊等）
+        /// </summary>
+        /// <param name="source">來源資訊</param>
+        /// <param name="currentValue">目前空壓數值</param>
+        /// <param name="limits">設定的上下限</param>
+        private void OnPressureOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
+        {
+            // TODO: 在此實作空壓超限推播通知
+            // 例如：發送 Line Notify、Email、簡訊通知相關人員
+            // System.Diagnostics.Debug.WriteLine($"[推播] 空壓超限! 來源={source}, 數值={currentValue}, 上限={limits.PressureUpperLimit}, 下限={limits.PressureLowerLimit}");
+        }
+
+        /// <summary>
+        /// 【預留】溫度數值超過上下限時的推播通知函式
+        /// TODO: 實作推播通知邏輯（例如 Line Notify、Email、簡訊等）
+        /// </summary>
+        /// <param name="source">來源資訊</param>
+        /// <param name="currentValue">目前溫度數值</param>
+        /// <param name="limits">設定的上下限</param>
+        private void OnTempOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
+        {
+            // TODO: 在此實作溫度超限推播通知
+            // 例如：發送 Line Notify、Email、簡訊通知相關人員
+            // System.Diagnostics.Debug.WriteLine($"[推播] 溫度超限! 來源={source}, 數值={currentValue}, 上限={limits.TempUpperLimit}, 下限={limits.TempLowerLimit}");
         }
 
         private void MainForm_Load(object sender, EventArgs e)

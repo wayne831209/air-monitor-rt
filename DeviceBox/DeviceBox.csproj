@@ -94,6 +94,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Address.cs" />
+    <Compile Include="AlarmLimitSettingForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="AlarmLimitSettingForm.Designer.cs">
+      <DependentUpon>AlarmLimitSettingForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Config.cs" />
     <Compile Include="DeviceTrendChartForm.cs">
       <SubType>Form</SubType>

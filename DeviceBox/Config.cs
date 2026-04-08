@@ -213,6 +213,17 @@ namespace DeviceBox
     }
 
     /// <summary>
+    /// 警報上下限設定
+    /// </summary>
+    public class AlarmLimitsConfig
+    {
+        public double PressureUpperLimit { get; set; } = double.MaxValue;
+        public double PressureLowerLimit { get; set; } = double.MinValue;
+        public double TempUpperLimit { get; set; } = double.MaxValue;
+        public double TempLowerLimit { get; set; } = double.MinValue;
+    }
+
+    /// <summary>
     /// Factory Configuration
     /// </summary>
     public class FactoryConfig
@@ -222,10 +233,12 @@ namespace DeviceBox
         public string ModbusIp { get; set; }
         public string ModbusPort { get; set; }
         public List<DeviceConfig> Devices { get; set; }
+        public AlarmLimitsConfig AlarmLimits { get; set; }
 
         public FactoryConfig()
         {
             Devices = new List<DeviceConfig>();
+            AlarmLimits = new AlarmLimitsConfig();
         }
 
         public List<DeviceConfig> GetDevicesByType(DeviceType type)
@@ -382,6 +395,13 @@ namespace DeviceBox
                 }
             }
 
+            // Parse AlarmLimits
+            var alarmLimitsElement = element.Element("AlarmLimits");
+            if (alarmLimitsElement != null)
+            {
+                factory.AlarmLimits = ParseAlarmLimits(alarmLimitsElement);
+            }
+
             System.Diagnostics.Debug.WriteLine($"[Config] Factory={factory.Name} loaded {factory.Devices.Count} devices, Compressors={factory.Devices.Count(d => d.Type == DeviceType.Compressor)}");
 
             return factory;
@@ -527,6 +547,92 @@ namespace DeviceBox
             }
 
             return schedule;
+        }
+
+        /// <summary>
+        /// Parse AlarmLimits Element
+        /// </summary>
+        private AlarmLimitsConfig ParseAlarmLimits(XElement element)
+        {
+            var limits = new AlarmLimitsConfig();
+
+            string pressureUpperStr = element.Attribute("pressureUpper")?.Value;
+            if (!string.IsNullOrEmpty(pressureUpperStr))
+            {
+                double val;
+                if (double.TryParse(pressureUpperStr, out val))
+                    limits.PressureUpperLimit = val;
+            }
+
+            string pressureLowerStr = element.Attribute("pressureLower")?.Value;
+            if (!string.IsNullOrEmpty(pressureLowerStr))
+            {
+                double val;
+                if (double.TryParse(pressureLowerStr, out val))
+                    limits.PressureLowerLimit = val;
+            }
+
+            string tempUpperStr = element.Attribute("tempUpper")?.Value;
+            if (!string.IsNullOrEmpty(tempUpperStr))
+            {
+                double val;
+                if (double.TryParse(tempUpperStr, out val))
+                    limits.TempUpperLimit = val;
+            }
+
+            string tempLowerStr = element.Attribute("tempLower")?.Value;
+            if (!string.IsNullOrEmpty(tempLowerStr))
+            {
+                double val;
+                if (double.TryParse(tempLowerStr, out val))
+                    limits.TempLowerLimit = val;
+            }
+
+            return limits;
+        }
+
+        /// <summary>
+        /// 儲存指定工廠的警報上下限到 config.xml
+        /// </summary>
+        public bool SaveAlarmLimits(int factoryId, AlarmLimitsConfig limits)
+        {
+            try
+            {
+                string configPath = Path.Combine(System.Windows.Forms.Application.StartupPath, ConfigFileName);
+                XDocument doc = XDocument.Load(configPath);
+                var factoryElement = doc.Root.Element("Factories")?.Elements("Factory")
+                    .FirstOrDefault(f => f.Attribute("id")?.Value == factoryId.ToString());
+
+                if (factoryElement == null) return false;
+
+                var alarmElement = factoryElement.Element("AlarmLimits");
+                if (alarmElement == null)
+                {
+                    alarmElement = new XElement("AlarmLimits");
+                    factoryElement.Add(alarmElement);
+                }
+
+                alarmElement.SetAttributeValue("pressureUpper", limits.PressureUpperLimit == double.MaxValue ? "" : limits.PressureUpperLimit.ToString());
+                alarmElement.SetAttributeValue("pressureLower", limits.PressureLowerLimit == double.MinValue ? "" : limits.PressureLowerLimit.ToString());
+                alarmElement.SetAttributeValue("tempUpper", limits.TempUpperLimit == double.MaxValue ? "" : limits.TempUpperLimit.ToString());
+                alarmElement.SetAttributeValue("tempLower", limits.TempLowerLimit == double.MinValue ? "" : limits.TempLowerLimit.ToString());
+
+                doc.Save(configPath);
+
+                // 更新記憶體中的設定
+                var factory = GetFactoryById(factoryId);
+                if (factory != null)
+                {
+                    factory.AlarmLimits = limits;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Save alarm limits failed: " + ex.Message);
+                return false;
+            }
         }
 
         /// <summary>
