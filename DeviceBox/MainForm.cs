@@ -216,6 +216,7 @@ namespace DeviceBox
         /// </summary>
         private void UpdateAllFactories()
         {
+            Label[] deviceNameLabels = { device_col1, device_col2, device_col3, device_col4, device_col5 };
             Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
             Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
             Label[] precoolerLabels = { precooler_col1, precooler_col2, precooler_col3, precooler_col4, precooler_col5 };
@@ -237,7 +238,13 @@ namespace DeviceBox
                 if (modbus.address_val == null) return;
 
                 var compressors = castingFactory.GetDevicesByType(DeviceType.Compressor).OrderBy(c => c.MachineNo).ToList();
-                
+
+                // Update device name label color based on ConnectState
+                for (int colIndex = 0; colIndex < Math.Min(compressors.Count, 5); colIndex++)
+                {
+                    UpdateLabel(deviceNameLabels[colIndex], deviceNameLabels[colIndex].Text, modbus.ConnectState ? Color.Green : Color.Red);
+                }
+
                 // Common devices (shared across all columns)
                 var precoolerStatus = GetDeviceStatusByConfig(modbus, castingFactory, DeviceType.Precooler);
                 var dryerStatus = GetDeviceStatusByConfig(modbus, castingFactory, DeviceType.Dryer);
@@ -291,6 +298,10 @@ namespace DeviceBox
                         if (modbusIndex >= modbusList.Count) continue;
 
                         var modbus = modbusList[modbusIndex];
+
+                        // Update device name label color based on ConnectState
+                        UpdateLabel(deviceNameLabels[colIndex], deviceNameLabels[colIndex].Text, modbus.ConnectState ? Color.Green : Color.Red);
+
                         if (modbus.address_val == null) continue;
 
                         var compressors = factory.GetDevicesByType(DeviceType.Compressor);

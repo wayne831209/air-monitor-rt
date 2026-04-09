@@ -94,6 +94,8 @@ namespace DeviceBox
             if (_config == null || _config.Factories == null || _config.Factories.Count == 0)
                 return;
 
+            clbDevices.Items.Add("CO-29 - 裝配一廠", false);
+            _allDeviceNames.Add("CO-29");
             foreach (var factory in _config.Factories)
             {
                 if (factory == null) continue;
@@ -302,15 +304,6 @@ namespace DeviceBox
             // 建立 IN 條件
             string nameCondition = string.Join(",", deviceNames.Select(n => "'" + n.Replace("'", "''") + "'"));
 
-            // 查詢壓力與溫度資料
-            string sqlDeviceBox = "SELECT `Name`, `Time`, `CompressedAir`, `AmbientTempPV` FROM " + deviceBoxTable +
-                         " WHERE `Name` IN (" + nameCondition + ")" +
-                         " AND `Time` >= '" + startDate.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
-                         " AND `Time` <= '" + endDate.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
-                         " ORDER BY `Time` ASC";
-
-            DataTable dtDeviceBox = _mysql.GetMyDataTable(sqlDeviceBox);
-
             // 查詢需量資料
             DataTable dtDemand = null;
             if (!string.IsNullOrEmpty(demandTable))
@@ -329,6 +322,20 @@ namespace DeviceBox
                     // 需量表查詢失敗不影響其他資料顯示
                 }
             }
+
+            if (nameCondition == "'CO-29'")
+            {
+                nameCondition = "'CO-28'";
+            }
+            // 查詢壓力與溫度資料
+            string sqlDeviceBox = "SELECT `Name`, `Time`, `CompressedAir`, `AmbientTempPV` FROM " + deviceBoxTable +
+                         " WHERE `Name` IN (" + nameCondition + ")" +
+                         " AND `Time` >= '" + startDate.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
+                         " AND `Time` <= '" + endDate.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
+                         " ORDER BY `Time` ASC";
+
+            DataTable dtDeviceBox = _mysql.GetMyDataTable(sqlDeviceBox);
+
 
             bool hasDeviceBoxData = dtDeviceBox != null && dtDeviceBox.Rows.Count > 0;
             bool hasDemandData = dtDemand != null && dtDemand.Rows.Count > 0;
