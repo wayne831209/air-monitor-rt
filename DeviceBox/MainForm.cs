@@ -831,69 +831,35 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// pressure_col1 ~ pressure_col5 點選事件 - 設定空壓上下限
+        /// pressure_col1 ~ pressure_col5 點選事件 - 設定空壓上下限（全部設備）
         /// </summary>
         private void PressureCol_Click(object sender, EventArgs e)
         {
-            Label clickedLabel = sender as Label;
-            if (clickedLabel == null) return;
-
-            Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
-            Label[] factoryLabels = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
-
-            int colIndex = -1;
-            for (int i = 0; i < pressureLabels.Length; i++)
-            {
-                if (clickedLabel == pressureLabels[i])
-                {
-                    colIndex = i;
-                    break;
-                }
-            }
-            if (colIndex < 0) return;
-
-            FactoryConfig factory = GetFactoryByColumnIndex(colIndex);
-            if (factory == null) return;
-
-            using (var form = new AlarmLimitSettingForm(factory.Id, factory.Name, factory.AlarmLimits, "Pressure"))
+            using (var form = new AlarmLimitSettingForm(config.Factories, "Pressure"))
             {
                 if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    config.SaveAlarmLimits(factory.Id, form.ResultLimits);
+                    foreach (var kvp in form.ResultLimitsMap)
+                    {
+                        config.SaveAlarmLimits(kvp.Key, kvp.Value);
+                    }
                 }
             }
         }
 
         /// <summary>
-        /// temp_col1 ~ temp_col5 點選事件 - 設定溫度上下限
+        /// temp_col1 ~ temp_col5 點選事件 - 設定溫度上下限（全部設備）
         /// </summary>
         private void TempCol_Click(object sender, EventArgs e)
         {
-            Label clickedLabel = sender as Label;
-            if (clickedLabel == null) return;
-
-            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
-            Label[] factoryLabels = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
-
-            int colIndex = -1;
-            for (int i = 0; i < tempLabels.Length; i++)
-            {
-                if (clickedLabel == tempLabels[i])
-                {
-                    colIndex = i;
-                    break;
-                }
-            }
-            if (colIndex < 0) return;
-
-            FactoryConfig factory = GetFactoryByColumnIndex(colIndex);
-            if (factory == null) return;
-
-            using (var form = new AlarmLimitSettingForm(factory.Id, factory.Name, factory.AlarmLimits, "Temp"))
+            using (var form = new AlarmLimitSettingForm(config.Factories, "Temp"))
             {
                 if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    config.SaveAlarmLimits(factory.Id, form.ResultLimits);
+                    foreach (var kvp in form.ResultLimitsMap)
+                    {
+                        config.SaveAlarmLimits(kvp.Key, kvp.Value);
+                    }
                 }
             }
         }
