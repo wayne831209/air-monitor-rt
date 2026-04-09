@@ -38,6 +38,9 @@ namespace DeviceBox
             this.chartCombined = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.panelDeviceFilter = new System.Windows.Forms.Panel();
             this.clbDevices = new System.Windows.Forms.CheckedListBox();
+            this.panelAlarmLimits = new System.Windows.Forms.Panel();
+            this.clbAlarmLimits = new System.Windows.Forms.CheckedListBox();
+            this.labelAlarmLimits = new System.Windows.Forms.Label();
             this.btnDeselectAll = new System.Windows.Forms.Button();
             this.btnSelectAll = new System.Windows.Forms.Button();
             this.labelDeviceFilter = new System.Windows.Forms.Label();
@@ -54,6 +57,7 @@ namespace DeviceBox
             this.panelCharts.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.chartCombined)).BeginInit();
             this.panelDeviceFilter.SuspendLayout();
+            this.panelAlarmLimits.SuspendLayout();
             this.panelToolbar.SuspendLayout();
             this.panelTitle.SuspendLayout();
             this.SuspendLayout();
@@ -104,6 +108,7 @@ namespace DeviceBox
             // 
             this.panelDeviceFilter.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
             this.panelDeviceFilter.Controls.Add(this.clbDevices);
+            this.panelDeviceFilter.Controls.Add(this.panelAlarmLimits);
             this.panelDeviceFilter.Controls.Add(this.btnDeselectAll);
             this.panelDeviceFilter.Controls.Add(this.btnSelectAll);
             this.panelDeviceFilter.Controls.Add(this.labelDeviceFilter);
@@ -124,8 +129,47 @@ namespace DeviceBox
             this.clbDevices.FormattingEnabled = true;
             this.clbDevices.Location = new System.Drawing.Point(0, 100);
             this.clbDevices.Name = "clbDevices";
-            this.clbDevices.Size = new System.Drawing.Size(180, 540);
+            this.clbDevices.Size = new System.Drawing.Size(180, 340);
             this.clbDevices.TabIndex = 3;
+            // 
+            // panelAlarmLimits
+            // 
+            this.panelAlarmLimits.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
+            this.panelAlarmLimits.Controls.Add(this.clbAlarmLimits);
+            this.panelAlarmLimits.Controls.Add(this.labelAlarmLimits);
+            this.panelAlarmLimits.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panelAlarmLimits.Location = new System.Drawing.Point(0, 440);
+            this.panelAlarmLimits.Name = "panelAlarmLimits";
+            this.panelAlarmLimits.Size = new System.Drawing.Size(180, 200);
+            this.panelAlarmLimits.TabIndex = 4;
+            // 
+            // clbAlarmLimits
+            // 
+            this.clbAlarmLimits.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(55)))));
+            this.clbAlarmLimits.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.clbAlarmLimits.CheckOnClick = true;
+            this.clbAlarmLimits.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.clbAlarmLimits.Font = new System.Drawing.Font("微軟正黑體", 10.5F);
+            this.clbAlarmLimits.ForeColor = System.Drawing.Color.White;
+            this.clbAlarmLimits.FormattingEnabled = true;
+            this.clbAlarmLimits.Location = new System.Drawing.Point(0, 30);
+            this.clbAlarmLimits.Name = "clbAlarmLimits";
+            this.clbAlarmLimits.Size = new System.Drawing.Size(180, 170);
+            this.clbAlarmLimits.TabIndex = 1;
+            this.clbAlarmLimits.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.clbAlarmLimits_ItemCheck);
+            // 
+            // labelAlarmLimits
+            // 
+            this.labelAlarmLimits.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(100)))), ((int)(((byte)(180)))));
+            this.labelAlarmLimits.Dock = System.Windows.Forms.DockStyle.Top;
+            this.labelAlarmLimits.Font = new System.Drawing.Font("微軟正黑體", 12F, System.Drawing.FontStyle.Bold);
+            this.labelAlarmLimits.ForeColor = System.Drawing.Color.White;
+            this.labelAlarmLimits.Location = new System.Drawing.Point(0, 0);
+            this.labelAlarmLimits.Name = "labelAlarmLimits";
+            this.labelAlarmLimits.Size = new System.Drawing.Size(180, 30);
+            this.labelAlarmLimits.TabIndex = 0;
+            this.labelAlarmLimits.Text = "上下限顯示";
+            this.labelAlarmLimits.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // btnDeselectAll
             // 
@@ -282,6 +326,7 @@ namespace DeviceBox
             this.panelCharts.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.chartCombined)).EndInit();
             this.panelDeviceFilter.ResumeLayout(false);
+            this.panelAlarmLimits.ResumeLayout(false);
             this.panelToolbar.ResumeLayout(false);
             this.panelTitle.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -307,5 +352,8 @@ namespace DeviceBox
         private System.Windows.Forms.Panel panelCharts;
         private System.Windows.Forms.DataVisualization.Charting.Chart chartCombined;
         private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.Panel panelAlarmLimits;
+        private System.Windows.Forms.CheckedListBox clbAlarmLimits;
+        private System.Windows.Forms.Label labelAlarmLimits;
     }
 }

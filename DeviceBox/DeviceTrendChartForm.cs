@@ -14,6 +14,7 @@ namespace DeviceBox
         private Config _config;
         private MYSQL _mysql;
         private List<string> _allDeviceNames = new List<string>();
+        private List<string> _alarmLimitFactoryNames = new List<string>();
         private string _preSelectedFactoryName;
 
         // 圖表配色
@@ -398,6 +399,9 @@ namespace DeviceBox
 
             // 繪製圖表
             DrawCharts(groupedDeviceBox, groupedDemand);
+
+            // 更新上下限顯示清單
+            PopulateAlarmLimitsChecklist(GetSelectedDeviceNames());
         }
 
         /// <summary>
@@ -522,6 +526,7 @@ namespace DeviceBox
             }
 
             // 根據實際資料重新計算每個 ChartArea 的 Y 軸範圍
+            // 溫度、壓力、需量：最大值+3、最小值-3，間隔 0.5
             foreach (var area in chartCombined.ChartAreas)
             {
                 var seriesInArea = chartCombined.Series.Cast<Series>()
@@ -539,56 +544,111 @@ namespace DeviceBox
                 double dataMin = seriesInArea.Min(s => s.Points.Min(p => p.YValues[0]));
                 double dataMax = seriesInArea.Max(s => s.Points.Max(p => p.YValues[0]));
 
-                // 空壓壓力：Y軸固定顯示 0~10，間隔為 1
-                if (area.Name == "ChartAreaPressure")
+                // 空壓壓力：±1、5 格；溫度與需量：±3、10 格
+                bool isPressure = (area.Name == "ChartAreaPressure");
+                int targetTicks = isPressure ? 5 : 10;
+                double margin = isPressure ? 1 : 3;
+                double rawRange = (dataMax + margin) - (dataMin - margin);
+                double yInterval = CalculateNiceInterval(rawRange, targetTicks);
+
+                double yMinCalc = Math.Floor((dataMin - margin) / yInterval) * yInterval;
+                double yMaxCalc = yMinCalc + yInterval * targetTicks;
+
+                // 確保資料最大值+margin 在範圍內
+                if (yMaxCalc < dataMax + margin)
                 {
-                    area.AxisY.Minimum = 0;
-                    area.AxisY.Maximum = 10;
-                    area.AxisY.Interval = 1;
-                    continue;
+                    yMaxCalc += yInterval;
+                    yMinCalc = yMaxCalc - yInterval * targetTicks;
                 }
-
-                double range = dataMax - dataMin;
-                if (range < 0.01)
-                {
-                    // 資料幾乎無變化時，以中心值上下擴展
-                    double center = (dataMax + dataMin) / 2.0;
-                    dataMin = center - 1;
-                    dataMax = center + 1;
-                    range = 2;
-                }
-
-                // 上下各留 10% 的邊距
-                double margin = range * 0.1;
-                double yMinCalc = dataMin - margin;
-                double yMaxCalc = dataMax + margin;
-
-                // 計算合適的刻度間距（目標約 4~6 格）
-                double rawInterval = (yMaxCalc - yMinCalc) / 5.0;
-                double magnitude = Math.Pow(10, Math.Floor(Math.Log10(rawInterval)));
-                double normalized = rawInterval / magnitude;
-                double niceInterval;
-                if (normalized <= 1.0)
-                    niceInterval = 1.0 * magnitude;
-                else if (normalized <= 2.0)
-                    niceInterval = 2.0 * magnitude;
-                else if (normalized <= 5.0)
-                    niceInterval = 5.0 * magnitude;
-                else
-                    niceInterval = 10.0 * magnitude;
-
-                // 將最小/最大值對齊到刻度
-                yMinCalc = Math.Floor(yMinCalc / niceInterval) * niceInterval;
-                yMaxCalc = Math.Ceiling(yMaxCalc / niceInterval) * niceInterval;
 
                 area.AxisY.Minimum = yMinCalc;
                 area.AxisY.Maximum = yMaxCalc;
-                area.AxisY.Interval = niceInterval;
+                area.AxisY.Interval = yInterval;
             }
 
             // 繪製警報上下限線
             var selectedDevices = GetSelectedDeviceNames();
             DrawAlarmLimitLines(selectedDevices);
+        }
+
+        /// <summary>
+        /// 更新上下限顯示清單 - 依選取設備對應的工廠列出
+        /// </summary>
+        private void PopulateAlarmLimitsChecklist(List<string> selectedDeviceNames)
+        {
+            // 記住目前已勾選的工廠名稱
+            var previouslyChecked = new HashSet<string>();
+            for (int i = 0; i < clbAlarmLimits.Items.Count; i++)
+            {
+                if (clbAlarmLimits.GetItemChecked(i) && i < _alarmLimitFactoryNames.Count)
+                {
+                    previouslyChecked.Add(_alarmLimitFactoryNames[i]);
+                }
+            }
+
+            _alarmLimitFactoryNames.Clear();
+            clbAlarmLimits.Items.Clear();
+
+            var processedFactoryIds = new HashSet<int>();
+            foreach (var factory in _config.Factories)
+            {
+                if (factory == null) continue;
+                var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+                bool hasSelected = compressors.Any(c => selectedDeviceNames.Contains(c.Name));
+                if (!hasSelected) continue;
+                if (processedFactoryIds.Contains(factory.Id)) continue;
+                processedFactoryIds.Add(factory.Id);
+
+                if (factory.AlarmLimits == null) continue;
+
+                _alarmLimitFactoryNames.Add(factory.Name);
+                // 若之前已存在且有勾選，保持勾選；首次出現預設勾選
+                bool isChecked = previouslyChecked.Count == 0 || previouslyChecked.Contains(factory.Name);
+                clbAlarmLimits.Items.Add(factory.Name + " 上下限", isChecked);
+            }
+        }
+
+        /// <summary>
+        /// 上下限顯示勾選變更時，重新繪製限制線
+        /// </summary>
+        private void clbAlarmLimits_ItemCheck(object sender, ItemCheckEventArgs e)
+        {
+            // 使用 BeginInvoke 等待 CheckState 更新後再重繪
+            this.BeginInvoke((Action)(() =>
+            {
+                RefreshAlarmLimitLines();
+            }));
+        }
+
+        /// <summary>
+        /// 重新繪製警報上下限線（根據 clbAlarmLimits 的勾選狀態）
+        /// </summary>
+        private void RefreshAlarmLimitLines()
+        {
+            // 清除舊的限制線
+            foreach (var area in chartCombined.ChartAreas)
+            {
+                area.AxisY.StripLines.Clear();
+            }
+
+            var selectedDevices = GetSelectedDeviceNames();
+            DrawAlarmLimitLines(selectedDevices);
+        }
+
+        /// <summary>
+        /// 取得目前勾選的上下限工廠名稱
+        /// </summary>
+        private HashSet<string> GetCheckedAlarmLimitFactories()
+        {
+            var checkedFactories = new HashSet<string>();
+            for (int i = 0; i < clbAlarmLimits.Items.Count; i++)
+            {
+                if (clbAlarmLimits.GetItemChecked(i) && i < _alarmLimitFactoryNames.Count)
+                {
+                    checkedFactories.Add(_alarmLimitFactoryNames[i]);
+                }
+            }
+            return checkedFactories;
         }
 
         /// <summary>
@@ -601,7 +661,10 @@ namespace DeviceBox
             var areaPressure = chart.ChartAreas["ChartAreaPressure"];
             var areaTemp = chart.ChartAreas["ChartAreaTemp"];
 
-            // 收集所有選取設備對應工廠的 AlarmLimits（去重複）
+            // 取得目前勾選要顯示上下限的工廠名稱
+            var checkedFactories = GetCheckedAlarmLimitFactories();
+
+            // 收集所有選取設備對應工廠的 AlarmLimits（去重複，且僅限勾選的工廠）
             var processedFactoryIds = new HashSet<int>();
             var allPressureLimits = new List<KeyValuePair<string, AlarmLimitsConfig>>();
 
@@ -613,6 +676,9 @@ namespace DeviceBox
                 if (!hasSelected) continue;
                 if (processedFactoryIds.Contains(factory.Id)) continue;
                 processedFactoryIds.Add(factory.Id);
+
+                // 只繪製有勾選的工廠上下限
+                if (!checkedFactories.Contains(factory.Name)) continue;
 
                 allPressureLimits.Add(new KeyValuePair<string, AlarmLimitsConfig>(factory.Name, factory.AlarmLimits));
             }
@@ -726,12 +792,48 @@ namespace DeviceBox
                 if (val > newMax) newMax = val + interval;
             }
 
-            // 對齊到刻度
-            newMin = Math.Floor(newMin / interval) * interval;
-            newMax = Math.Ceiling(newMax / interval) * interval;
+            // 空壓壓力 5 格，其餘 10 格
+            int targetTicks = (area.Name == "ChartAreaPressure") ? 5 : 10;
+            double rawRange = newMax - newMin;
+            double newInterval = CalculateNiceInterval(rawRange, targetTicks);
+
+            newMin = Math.Floor(newMin / newInterval) * newInterval;
+            newMax = newMin + newInterval * targetTicks;
+
+            // 確保所有限制線在範圍內
+            double limitsMax = limitValues.Max();
+            if (newMax < limitsMax + newInterval)
+            {
+                newMax = Math.Ceiling((limitsMax + newInterval) / newInterval) * newInterval;
+                newMin = newMax - newInterval * targetTicks;
+            }
 
             area.AxisY.Minimum = newMin;
             area.AxisY.Maximum = newMax;
+            area.AxisY.Interval = newInterval;
+        }
+
+        /// <summary>
+        /// 計算適合的 Y 軸間隔（Nice Number），使刻度數量接近目標格數
+        /// </summary>
+        private static double CalculateNiceInterval(double range, int targetTicks)
+        {
+            if (range <= 0) range = 1;
+            double rawInterval = range / targetTicks;
+            double magnitude = Math.Pow(10, Math.Floor(Math.Log10(rawInterval)));
+            double normalized = rawInterval / magnitude;
+
+            double niceInterval;
+            if (normalized <= 1.0)
+                niceInterval = 1.0 * magnitude;
+            else if (normalized <= 2.0)
+                niceInterval = 2.0 * magnitude;
+            else if (normalized <= 5.0)
+                niceInterval = 5.0 * magnitude;
+            else
+                niceInterval = 10.0 * magnitude;
+
+            return niceInterval;
         }
 
         /// <summary>
