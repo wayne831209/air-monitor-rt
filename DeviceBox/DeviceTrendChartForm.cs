@@ -16,6 +16,13 @@ namespace DeviceBox
         private List<string> _allDeviceNames = new List<string>();
         private List<string> _alarmLimitFactoryNames = new List<string>();
         private string _preSelectedFactoryName;
+        private bool _isSyncingZoom = false;
+
+        // 自訂矩形框選放大用的滑鼠追蹤變數
+        private bool _isSelecting = false;
+        private Point _selectionStartPoint;
+        private Point _selectionEndPoint;
+        private ChartArea _selectionChartArea = null;
 
         // 圖表配色
         private static readonly Color[] SeriesColors = new Color[]
@@ -169,8 +176,16 @@ namespace DeviceBox
             chartTitle.ForeColor = Color.White;
             chart.Titles.Add(chartTitle);
 
-            // 滑鼠移動時顯示數值 (Tooltip)
+            // 滑鼠移動時顯示數值 (Tooltip) 與框選矩形繪製
             chart.MouseMove += ChartCombined_MouseMove;
+
+            // 自訂矩形框選放大：滑鼠按下/放開
+            chart.MouseDown += ChartCombined_MouseDown;
+            chart.MouseUp += ChartCombined_MouseUp;
+            chart.Paint += ChartCombined_Paint;
+
+            // 當任一 ChartArea 的軸視圖變更（ScrollBar 捲動）時同步 X 軸
+            chart.AxisViewChanged += ChartCombined_AxisViewChanged;
         }
 
         /// <summary>
@@ -201,19 +216,220 @@ namespace DeviceBox
             area.AxisX.TitleForeColor = Color.White;
             area.AxisY.TitleForeColor = Color.White;
 
-            // 游標設定（用於顯示十字線）
-            area.CursorX.IsUserEnabled = true;
+            // 游標設定（停用內建框選，改用自訂矩形框選放大）
+            area.CursorX.IsUserEnabled = false;
             area.CursorX.IsUserSelectionEnabled = false;
             area.CursorX.LineColor = Color.FromArgb(150, 255, 255, 255);
             area.CursorX.LineDashStyle = ChartDashStyle.Dash;
+
+            area.CursorY.IsUserEnabled = false;
+            area.CursorY.IsUserSelectionEnabled = false;
+            area.CursorY.LineColor = Color.FromArgb(150, 255, 255, 255);
+            area.CursorY.LineDashStyle = ChartDashStyle.Dash;
+
+            // 啟用 X 軸與 Y 軸的縮放與捲動（由程式碼控制 Zoom）
+            area.AxisX.ScaleView.Zoomable = true;
+            area.AxisY.ScaleView.Zoomable = true;
+            area.AxisX.ScrollBar.Enabled = true;
+            area.AxisX.ScrollBar.ButtonStyle = ScrollBarButtonStyles.SmallScroll;
+            area.AxisX.ScrollBar.ButtonColor = Color.FromArgb(80, 80, 85);
+            area.AxisX.ScrollBar.BackColor = Color.FromArgb(50, 50, 55);
+            area.AxisY.ScrollBar.Enabled = true;
+            area.AxisY.ScrollBar.ButtonStyle = ScrollBarButtonStyles.SmallScroll;
+            area.AxisY.ScrollBar.ButtonColor = Color.FromArgb(80, 80, 85);
+            area.AxisY.ScrollBar.BackColor = Color.FromArgb(50, 50, 55);
         }
 
         /// <summary>
-        /// 滑鼠移動時在 ToolTip 顯示數值
+        /// 找出滑鼠座標所在的 ChartArea
+        /// </summary>
+        private ChartArea GetChartAreaFromPoint(Point pt)
+        {
+            var hit = chartCombined.HitTest(pt.X, pt.Y);
+            if (hit.ChartArea != null) return hit.ChartArea;
+            return null;
+        }
+
+        /// <summary>
+        /// 滑鼠按下 - 開始框選
+        /// </summary>
+        private void ChartCombined_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left) return;
+
+            var area = GetChartAreaFromPoint(e.Location);
+            if (area == null) return;
+
+            _isSelecting = true;
+            _selectionStartPoint = e.Location;
+            _selectionEndPoint = e.Location;
+            _selectionChartArea = area;
+        }
+
+        /// <summary>
+        /// 滑鼠放開 - 完成框選並套用放大（X 軸同步所有 ChartArea，Y 軸僅套用被框選的 ChartArea）
+        /// </summary>
+        private void ChartCombined_MouseUp(object sender, MouseEventArgs e)
+        {
+            if (!_isSelecting || e.Button != MouseButtons.Left)
+            {
+                _isSelecting = false;
+                _selectionChartArea = null;
+                return;
+            }
+
+            _isSelecting = false;
+            _selectionEndPoint = e.Location;
+
+            int x1 = Math.Min(_selectionStartPoint.X, _selectionEndPoint.X);
+            int x2 = Math.Max(_selectionStartPoint.X, _selectionEndPoint.X);
+            int y1 = Math.Min(_selectionStartPoint.Y, _selectionEndPoint.Y);
+            int y2 = Math.Max(_selectionStartPoint.Y, _selectionEndPoint.Y);
+
+            // 框選範圍太小則忽略（避免誤觸）
+            if (Math.Abs(x2 - x1) < 5 && Math.Abs(y2 - y1) < 5)
+            {
+                _selectionChartArea = null;
+                chartCombined.Invalidate();
+                return;
+            }
+
+            try
+            {
+                var area = _selectionChartArea;
+                if (area == null) return;
+
+                // 將像素座標轉換為軸數值
+                double xValStart = Math.Round(area.AxisX.PixelPositionToValue(x1),2);
+                double xValEnd = Math.Round(area.AxisX.PixelPositionToValue(x2),2);
+                double yValStart = Math.Round(area.AxisY.PixelPositionToValue(y2),2); // Y 像素上下相反
+                double yValEnd = Math.Round(area.AxisY.PixelPositionToValue(y1),2);
+
+                if (xValStart > xValEnd) { double tmp = xValStart; xValStart = xValEnd; xValEnd = tmp; }
+                if (yValStart > yValEnd) { double tmp = yValStart; yValStart = yValEnd; yValEnd = tmp; }
+
+                double xSize = xValEnd - xValStart;
+                double ySize = yValEnd - yValStart;
+
+                // X 軸放大（同步所有 ChartArea）
+                if (xSize > 0)
+                {
+                    _isSyncingZoom = true;
+                    foreach (var ca in chartCombined.ChartAreas)
+                    {
+                        ca.AxisX.ScaleView.Zoom(xValStart, xValEnd);
+                    }
+                    _isSyncingZoom = false;
+                }
+
+                // Y 軸放大（僅套用在被框選的 ChartArea）
+                if (ySize > 0)
+                {
+                    area.AxisY.ScaleView.Zoom(yValStart, yValEnd);
+                }
+            }
+            catch
+            {
+                // 座標轉換可能在無資料時失敗，忽略
+            }
+            finally
+            {
+                _selectionChartArea = null;
+                chartCombined.Invalidate();
+            }
+        }
+
+        /// <summary>
+        /// 在圖表上繪製半透明藍色框選矩形
+        /// </summary>
+        private void ChartCombined_Paint(object sender, PaintEventArgs e)
+        {
+            if (!_isSelecting) return;
+
+            int x = Math.Min(_selectionStartPoint.X, _selectionEndPoint.X);
+            int y = Math.Min(_selectionStartPoint.Y, _selectionEndPoint.Y);
+            int w = Math.Abs(_selectionEndPoint.X - _selectionStartPoint.X);
+            int h = Math.Abs(_selectionEndPoint.Y - _selectionStartPoint.Y);
+
+            if (w < 2 && h < 2) return;
+
+            using (var brush = new SolidBrush(Color.FromArgb(40, 0, 120, 255)))
+            using (var pen = new Pen(Color.FromArgb(160, 0, 150, 255), 1))
+            {
+                e.Graphics.FillRectangle(brush, x, y, w, h);
+                e.Graphics.DrawRectangle(pen, x, y, w, h);
+            }
+        }
+
+        /// <summary>
+        /// 當任一 ChartArea 的軸視圖變更（ScrollBar 捲動）時，同步所有 ChartArea 的 X 軸
+        /// </summary>
+        private void ChartCombined_AxisViewChanged(object sender, ViewEventArgs e)
+        {
+            if (_isSyncingZoom) return;
+
+            // 只同步 X 軸
+            if (e.Axis.AxisName != AxisName.X) return;
+
+            _isSyncingZoom = true;
+            try
+            {
+                var sourceArea = e.ChartArea;
+                foreach (var area in chartCombined.ChartAreas)
+                {
+                    if (area.Name == sourceArea.Name) continue;
+
+                    if (double.IsNaN(e.NewSize) || e.NewSize == 0)
+                    {
+                        area.AxisX.ScaleView.ZoomReset(0);
+                    }
+                    else
+                    {
+                        area.AxisX.ScaleView.Zoom(e.NewPosition, e.NewSize, DateTimeIntervalType.Number);
+                    }
+                }
+            }
+            finally
+            {
+                _isSyncingZoom = false;
+            }
+        }
+
+        /// <summary>
+        /// 重置所有 ChartArea 的縮放
+        /// </summary>
+        private void btnResetZoom_Click(object sender, EventArgs e)
+        {
+            _isSyncingZoom = true;
+            try
+            {
+                foreach (var area in chartCombined.ChartAreas)
+                {
+                    area.AxisX.ScaleView.ZoomReset(0);
+                    area.AxisY.ScaleView.ZoomReset(0);
+                }
+            }
+            finally
+            {
+                _isSyncingZoom = false;
+            }
+        }
+
+        /// <summary>
+        /// 滑鼠移動時在 ToolTip 顯示數值，並即時繪製框選矩形
         /// </summary>
         private void ChartCombined_MouseMove(object sender, MouseEventArgs e)
         {
             var chart = chartCombined;
+
+            // 框選中時即時更新矩形
+            if (_isSelecting)
+            {
+                _selectionEndPoint = e.Location;
+                chart.Invalidate();
+                return;
+            }
+
             var hitResult = chart.HitTest(e.X, e.Y);
 
             if (hitResult.ChartElementType == ChartElementType.DataPoint && hitResult.Series != null)
@@ -546,8 +762,8 @@ namespace DeviceBox
 
                 // 空壓壓力：±1、5 格；溫度與需量：±3、10 格
                 bool isPressure = (area.Name == "ChartAreaPressure");
-                int targetTicks = isPressure ? 5 : 10;
-                double margin = isPressure ? 1 : 3;
+                int targetTicks = 5;
+                double margin = 2;
                 double rawRange = (dataMax + margin) - (dataMin - margin);
                 double yInterval = CalculateNiceInterval(rawRange, targetTicks);
 
@@ -792,8 +1008,7 @@ namespace DeviceBox
                 if (val > newMax) newMax = val + interval;
             }
 
-            // 空壓壓力 5 格，其餘 10 格
-            int targetTicks = (area.Name == "ChartAreaPressure") ? 5 : 10;
+            int targetTicks = 5;
             double rawRange = newMax - newMin;
             double newInterval = CalculateNiceInterval(rawRange, targetTicks);
 

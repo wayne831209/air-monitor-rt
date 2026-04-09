@@ -46,6 +46,7 @@ namespace DeviceBox
             this.labelDeviceFilter = new System.Windows.Forms.Label();
             this.panelToolbar = new System.Windows.Forms.Panel();
             this.btnQuery = new System.Windows.Forms.Button();
+            this.btnResetZoom = new System.Windows.Forms.Button();
             this.dtpEnd = new System.Windows.Forms.DateTimePicker();
             this.labelTo = new System.Windows.Forms.Label();
             this.dtpStart = new System.Windows.Forms.DateTimePicker();
@@ -219,6 +220,7 @@ namespace DeviceBox
             // panelToolbar
             // 
             this.panelToolbar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(45)))));
+            this.panelToolbar.Controls.Add(this.btnResetZoom);
             this.panelToolbar.Controls.Add(this.btnQuery);
             this.panelToolbar.Controls.Add(this.dtpEnd);
             this.panelToolbar.Controls.Add(this.labelTo);
@@ -244,6 +246,21 @@ namespace DeviceBox
             this.btnQuery.Text = "查詢";
             this.btnQuery.UseVisualStyleBackColor = false;
             this.btnQuery.Click += new System.EventHandler(this.btnQuery_Click);
+            // 
+            // btnResetZoom
+            // 
+            this.btnResetZoom.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(80)))), ((int)(((byte)(80)))), ((int)(((byte)(85)))));
+            this.btnResetZoom.FlatAppearance.BorderSize = 0;
+            this.btnResetZoom.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnResetZoom.Font = new System.Drawing.Font("微軟正黑體", 9.75F, System.Drawing.FontStyle.Bold);
+            this.btnResetZoom.ForeColor = System.Drawing.Color.White;
+            this.btnResetZoom.Location = new System.Drawing.Point(660, 5);
+            this.btnResetZoom.Name = "btnResetZoom";
+            this.btnResetZoom.Size = new System.Drawing.Size(100, 30);
+            this.btnResetZoom.TabIndex = 5;
+            this.btnResetZoom.Text = "重置縮放";
+            this.btnResetZoom.UseVisualStyleBackColor = false;
+            this.btnResetZoom.Click += new System.EventHandler(this.btnResetZoom_Click);
             // 
             // dtpEnd
             // 
@@ -340,6 +357,7 @@ namespace DeviceBox
         private System.Windows.Forms.Label labelTitle;
         private System.Windows.Forms.Panel panelToolbar;
         private System.Windows.Forms.Button btnQuery;
+        private System.Windows.Forms.Button btnResetZoom;
         private System.Windows.Forms.DateTimePicker dtpEnd;
         private System.Windows.Forms.Label labelTo;
         private System.Windows.Forms.DateTimePicker dtpStart;
