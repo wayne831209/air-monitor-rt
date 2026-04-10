@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MySQL;
 
 namespace DeviceBox
 {
@@ -223,7 +224,8 @@ namespace DeviceBox
             Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
             Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
             Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
-            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+        Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+            Label[] powerLabels = { power_col1, power_col2, power_col3, power_col4, power_col5 };
 
             if (currentViewMode == ViewMode.CastingFactory)
             {
@@ -281,6 +283,10 @@ namespace DeviceBox
                     UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
                     UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, castingFactory.AlarmLimits);
                     UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, castingFactory.AlarmLimits);
+
+                    // Power value from DB
+                    string powerValue = GetPowerValueFromDB(compressor.Name);
+                    UpdateLabel(powerLabels[colIndex], powerValue, StatusRunning);
                 }
             }
             else
@@ -330,6 +336,24 @@ namespace DeviceBox
                         UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
                         UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, factory.AlarmLimits);
                         UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, factory.AlarmLimits);
+
+                        // Power value from DB - build combined power text for all compressors
+                        if (compressors.Count == 1)
+                        {
+                            string powerValue = GetPowerValueFromDB(compressors[0].Name);
+                            UpdateLabel(powerLabels[colIndex], powerValue, StatusRunning);
+                        }
+                        else if (compressors.Count > 1)
+                        {
+                            var powerTexts = compressors
+                                .OrderBy(c => c.MachineNo)
+                                .Select(c => c.Name + ":" + GetPowerValueFromDB(c.Name));
+                            UpdateLabel(powerLabels[colIndex], string.Join("\n", powerTexts), StatusRunning);
+                        }
+                        else
+                        {
+                            UpdateLabel(powerLabels[colIndex], "--", StatusDisabled);
+                        }
                     }
                 }
             }
@@ -459,6 +483,34 @@ namespace DeviceBox
             }
             catch
             {
+                return "--";
+            }
+        }
+
+        /// <summary>
+        /// 從資料庫讀取設備的功率值 (P 欄位)
+        /// </summary>
+        /// <param name="deviceName">設備名稱</param>
+        /// <returns>功率值字串，讀取失敗時回傳 "--"</returns>
+        private string GetPowerValueFromDB(string deviceName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(config.IP) || string.IsNullOrEmpty(config.DB) || string.IsNullOrEmpty(config.machinery_factory_realtime_table1))
+                    return "--";
+
+                var db = new MYSQL(config.IP, config.DB, config.USER, config.Password);
+                db.selectdata("SELECT `P` FROM `" + config.machinery_factory_realtime_table1 + "` WHERE `Meter_Name`='" + deviceName + "' ORDER BY `Time` DESC LIMIT 1");
+
+                if (db.readdata != null && db.readdata.Count > 0 && !string.IsNullOrEmpty(db.readdata[0]))
+                {
+                    return db.readdata[0];
+                }
+                return "--";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GetPowerValueFromDB] {deviceName} failed: {ex.Message}");
                 return "--";
             }
         }
@@ -672,6 +724,7 @@ namespace DeviceBox
             Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
             Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
             Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+            Label[] powerLabels = { power_col1, power_col2, power_col3, power_col4, power_col5 };
 
             if (currentViewMode == ViewMode.CastingFactory)
             {
@@ -694,6 +747,8 @@ namespace DeviceBox
                             UpdateScheduleLabel(scheduleLabels[i], new List<DeviceConfig> { compressor });
                             // Status will be updated in timer
                             UpdateLabel(statusLabels[i], "--", StatusDisabled);
+                            // Power will be updated in timer
+                            UpdateLabel(powerLabels[i], "--", StatusDisabled);
                             // Common devices will be updated in timer (show in all columns)
                         }
                         else
@@ -708,6 +763,7 @@ namespace DeviceBox
                             UpdateLabel(fanLabels[i], "--", StatusDisabled);
                             UpdateLabel(pressureLabels[i], "--", StatusDisabled);
                             UpdateLabel(tempLabels[i], "--", StatusDisabled);
+                            UpdateLabel(powerLabels[i], "--", StatusDisabled);
                         }
                     }
                 }
@@ -749,6 +805,7 @@ namespace DeviceBox
                         UpdateLabel(fanLabels[i], "--", StatusDisabled);
                         UpdateLabel(pressureLabels[i], "--", StatusDisabled);
                         UpdateLabel(tempLabels[i], "--", StatusDisabled);
+                        UpdateLabel(powerLabels[i], "--", StatusDisabled);
                     }
                 }
             }

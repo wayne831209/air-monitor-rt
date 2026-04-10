@@ -262,6 +262,7 @@ namespace DeviceBox
         public string USER;
         public string Password;
         public string mysql_on;
+        public string machinery_factory_realtime_table1;
         public string machinery_factory_demand_table1;
         public string machinery_factory_devicebox_table1;
 
@@ -339,6 +340,7 @@ namespace DeviceBox
             DB = dbElement.Element("DB")?.Value ?? "";
             USER = dbElement.Element("USER")?.Value ?? "";
             Password = dbElement.Element("Password")?.Value ?? "";
+            machinery_factory_realtime_table1 = dbElement.Element("machinery_factory_realtime_table1")?.Value ?? "";
             machinery_factory_demand_table1 = dbElement.Element("machinery_factory_demand_table1")?.Value ?? "";
             machinery_factory_devicebox_table1 = dbElement.Element("machinery_factory_devicebox_table1")?.Value ?? "";
         }

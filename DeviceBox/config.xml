@@ -6,6 +6,7 @@
     <DB>ycm_energy</DB>
     <USER>Client</USER>
     <Password>root</Password>
+    <machinery_factory_realtime_table1>machinery_factory_realtime</machinery_factory_realtime_table1>
     <machinery_factory_demand_table1>machinery_factory_demand</machinery_factory_demand_table1>
     <machinery_factory_devicebox_table1>devicebox</machinery_factory_devicebox_table1>
   </Database>
