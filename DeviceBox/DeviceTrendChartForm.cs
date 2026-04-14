@@ -17,6 +17,7 @@ namespace DeviceBox
         private List<string> _alarmLimitFactoryNames = new List<string>();
         private string _preSelectedFactoryName;
         private bool _isSyncingZoom = false;
+        private const int CASTING_FACTORY_ID = 6;
 
         // 自訂矩形框選放大用的滑鼠追蹤變數
         private bool _isSelecting = false;
@@ -92,7 +93,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 初始化設備清單 - 從 Config 取得所有設備名稱
+        /// 初始化設備清單 - 建立廠域下拉並根據預選廠域設定初始選項
         /// </summary>
         private void InitializeDeviceList()
         {
@@ -102,9 +103,61 @@ namespace DeviceBox
             if (_config == null || _config.Factories == null || _config.Factories.Count == 0)
                 return;
 
-            clbDevices.Items.Add("CO-29 - 裝配一廠", false);
-            _allDeviceNames.Add("CO-29");
-            foreach (var factory in _config.Factories)
+            // 建立廠域選擇下拉
+            cmbFactory.Items.Clear();
+            cmbFactory.Items.Add("其他廠域");
+            cmbFactory.Items.Add("鑄造廠");
+
+            // 根據預選廠域決定初始選項
+            if (!string.IsNullOrEmpty(_preSelectedFactoryName))
+            {
+                var matchedFactory = _config.Factories.FirstOrDefault(f => f.Name == _preSelectedFactoryName);
+                if (matchedFactory != null && matchedFactory.Id == CASTING_FACTORY_ID)
+                    cmbFactory.SelectedIndex = 1; // 鑄造廠
+                else
+                    cmbFactory.SelectedIndex = 0; // 其他廠域
+            }
+            else
+            {
+                cmbFactory.SelectedIndex = 0; // 預設其他廠域
+            }
+        }
+
+        /// <summary>
+        /// 廠域選擇變更時，重新載入設備清單
+        /// </summary>
+        private void cmbFactory_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            RefreshDeviceList();
+        }
+
+        /// <summary>
+        /// 根據目前選擇的廠域重新載入設備清單
+        /// </summary>
+        private void RefreshDeviceList()
+        {
+            _allDeviceNames.Clear();
+            clbDevices.Items.Clear();
+
+            if (_config == null || _config.Factories == null || _config.Factories.Count == 0)
+                return;
+
+            string selectedArea = cmbFactory.SelectedItem as string;
+            bool isCasting = (selectedArea == "鑄造廠");
+
+            // 篩選廠域：鑄造廠 = Id==CASTING_FACTORY_ID，其他廠域 = Id!=CASTING_FACTORY_ID
+            var filteredFactories = isCasting
+                ? _config.Factories.Where(f => f.Id == CASTING_FACTORY_ID).ToList()
+                : _config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).ToList();
+
+            // 其他廠域時加入固定項目 CO-29
+            if (!isCasting)
+            {
+                clbDevices.Items.Add("CO-29 - 裝配一廠", true);
+                _allDeviceNames.Add("CO-29");
+            }
+
+            foreach (var factory in filteredFactories)
             {
                 if (factory == null) continue;
                 var compressors = factory.GetDevicesByType(DeviceType.Compressor);

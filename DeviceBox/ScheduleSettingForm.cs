@@ -16,6 +16,7 @@ namespace DeviceBox
         private static readonly string ConfigFileName = "config.xml";
         private int _modeId;
         private string _modeName;
+        private HashSet<int> _factoryIdFilter;
 
         // 顏色定義
         private readonly Color BackgroundColor = Color.FromArgb(30, 30, 30);
@@ -28,14 +29,15 @@ namespace DeviceBox
         private readonly Color TextSecondaryColor = Color.FromArgb(180, 180, 180);
         private readonly Color DangerColor = Color.FromArgb(255, 59, 48);
 
-        public ScheduleSettingForm() : this(0, "")
+        public ScheduleSettingForm() : this(0, "", null)
         {
         }
 
-        public ScheduleSettingForm(int modeId, string modeName)
+        public ScheduleSettingForm(int modeId, string modeName, HashSet<int> factoryIdFilter = null)
         {
             _modeId = modeId;
             _modeName = modeName;
+            _factoryIdFilter = factoryIdFilter;
             InitializeComponent();
             LoadConfiguration();
             SetupUI();
@@ -73,6 +75,12 @@ namespace DeviceBox
                             Days = new List<DayOfWeek>(schedule.Days)
                         });
                     }
+                    // 依工廠篩選
+                    if (_factoryIdFilter != null)
+                    {
+                        _scheduleItems = _scheduleItems.Where(s => _factoryIdFilter.Contains(s.FactoryId)).ToList();
+                    }
+                    _scheduleItems = _scheduleItems.OrderBy(s => s.DeviceName).ToList();
                     return;
                 }
             }
@@ -312,11 +320,12 @@ namespace DeviceBox
 
         private void AddButton_Click(object sender, EventArgs e)
         {
-            using (var editForm = new ScheduleEditForm(_config, null))
+            using (var editForm = new ScheduleEditForm(_config, null, _factoryIdFilter))
             {
                 if (editForm.ShowDialog() == DialogResult.OK)
                 {
                     _scheduleItems.Add(editForm.ScheduleItem);
+                    _scheduleItems = _scheduleItems.OrderBy(s => s.DeviceName).ToList();
                     RefreshScheduleList();
                 }
             }
@@ -327,7 +336,7 @@ namespace DeviceBox
             Button btn = sender as Button;
             ScheduleItem item = btn.Tag as ScheduleItem;
 
-            using (var editForm = new ScheduleEditForm(_config, item))
+            using (var editForm = new ScheduleEditForm(_config, item, _factoryIdFilter))
             {
                 if (editForm.ShowDialog() == DialogResult.OK)
                 {
@@ -336,6 +345,7 @@ namespace DeviceBox
                     {
                         _scheduleItems[index] = editForm.ScheduleItem;
                     }
+                    _scheduleItems = _scheduleItems.OrderBy(s => s.DeviceName).ToList();
                     RefreshScheduleList();
                 }
             }
@@ -393,8 +403,16 @@ namespace DeviceBox
                 return;
             }
 
-            // 清除舊的排程，加入新的
-            mode.Schedules.Clear();
+            // 保留其他廠域的排程，只更新目前篩選廠域的排程
+            if (_factoryIdFilter != null)
+            {
+                mode.Schedules.RemoveAll(s => _factoryIdFilter.Contains(s.FactoryId));
+            }
+            else
+            {
+                mode.Schedules.Clear();
+            }
+
             foreach (var item in _scheduleItems)
             {
                 mode.Schedules.Add(new ModeScheduleItem

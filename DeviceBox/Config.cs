@@ -54,25 +54,28 @@ namespace DeviceBox
         /// </summary>
         public bool IsInRange(TimeSpan time, DayOfWeek day)
         {
+            // EndTime 精確到分鐘，將結束時間延伸至該分鐘的最後一秒 (EndTime + 59秒)
+            TimeSpan effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
+
             // 不跨午夜的排程 (例如 08:00~17:00)
             if (StartTime <= EndTime)
             {
                 if (Days.Count > 0 && !Days.Contains(day))
                     return false;
-                return time >= StartTime && time <= EndTime;
+                return time >= StartTime && time <= effectiveEnd;
             }
             else
             {
                 // 跨午夜的排程 (例如 20:00~08:00)
-                // 午夜前的部分 (20:00~23:59): 檢查當天是否在排程日
+                // 午夜前的部分 (20:00~23:59:59): 檢查當天是否在排程日
                 if (time >= StartTime)
                 {
                     if (Days.Count > 0 && !Days.Contains(day))
                         return false;
                     return true;
                 }
-                // 午夜後的部分 (00:00~08:00): 檢查前一天是否在排程日
-                if (time <= EndTime)
+                // 午夜後的部分 (00:00~08:00:59): 檢查前一天是否在排程日
+                if (time <= effectiveEnd)
                 {
                     DayOfWeek previousDay = (day == DayOfWeek.Sunday) ? DayOfWeek.Saturday : (DayOfWeek)((int)day - 1);
                     if (Days.Count > 0 && !Days.Contains(previousDay))
@@ -88,10 +91,13 @@ namespace DeviceBox
         /// </summary>
         public bool IsInRange(TimeSpan time)
         {
+            // EndTime 精確到分鐘，將結束時間延伸至該分鐘的最後一秒 (EndTime + 59秒)
+            TimeSpan effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
+
             if (StartTime <= EndTime)
-                return time >= StartTime && time <= EndTime;
+                return time >= StartTime && time <= effectiveEnd;
             else
-                return time >= StartTime || time <= EndTime;
+                return time >= StartTime || time <= effectiveEnd;
         }
 
         /// <summary>

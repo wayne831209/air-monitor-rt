@@ -44,6 +44,7 @@ namespace DeviceBox
             this.dateTimePickerStart = new System.Windows.Forms.DateTimePicker();
             this.labelStart = new System.Windows.Forms.Label();
             this.labelTimeSection = new System.Windows.Forms.Label();
+            this.checkBox24Hours = new System.Windows.Forms.CheckBox();
             this.panelDays = new System.Windows.Forms.Panel();
             this.labelDaysSection = new System.Windows.Forms.Label();
             this.buttonCancel = new System.Windows.Forms.Button();
@@ -161,9 +162,10 @@ namespace DeviceBox
             this.panelTime.Controls.Add(this.dateTimePickerStart);
             this.panelTime.Controls.Add(this.labelStart);
             this.panelTime.Controls.Add(this.labelTimeSection);
+            this.panelTime.Controls.Add(this.checkBox24Hours);
             this.panelTime.Location = new System.Drawing.Point(20, 250);
             this.panelTime.Name = "panelTime";
-            this.panelTime.Size = new System.Drawing.Size(360, 110);
+            this.panelTime.Size = new System.Drawing.Size(360, 140);
             this.panelTime.TabIndex = 3;
             // 
             // labelDuration
@@ -176,6 +178,19 @@ namespace DeviceBox
             this.labelDuration.TabIndex = 5;
             this.labelDuration.Text = "運轉 9.0 小時";
             this.labelDuration.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // checkBox24Hours
+            // 
+            this.checkBox24Hours.AutoSize = true;
+            this.checkBox24Hours.Font = new System.Drawing.Font("\u5fae\u8edf\u6b63\u9ed1\u9ad4", 10F);
+            this.checkBox24Hours.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(180)))), ((int)(((byte)(180)))), ((int)(((byte)(180)))));
+            this.checkBox24Hours.Location = new System.Drawing.Point(15, 108);
+            this.checkBox24Hours.Name = "checkBox24Hours";
+            this.checkBox24Hours.Size = new System.Drawing.Size(120, 21);
+            this.checkBox24Hours.TabIndex = 6;
+            this.checkBox24Hours.Text = "全天 (00:00 - 24:00)";
+            this.checkBox24Hours.UseVisualStyleBackColor = false;
+            this.checkBox24Hours.BackColor = System.Drawing.Color.Transparent;
             // 
             // dateTimePickerEnd
             // 
@@ -235,7 +250,7 @@ namespace DeviceBox
             // 
             this.panelDays.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.panelDays.Controls.Add(this.labelDaysSection);
-            this.panelDays.Location = new System.Drawing.Point(20, 370);
+            this.panelDays.Location = new System.Drawing.Point(20, 400);
             this.panelDays.Name = "panelDays";
             this.panelDays.Size = new System.Drawing.Size(360, 90);
             this.panelDays.TabIndex = 4;
@@ -258,7 +273,7 @@ namespace DeviceBox
             this.buttonCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonCancel.Font = new System.Drawing.Font("微軟正黑體", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.buttonCancel.ForeColor = System.Drawing.Color.White;
-            this.buttonCancel.Location = new System.Drawing.Point(20, 480);
+            this.buttonCancel.Location = new System.Drawing.Point(20, 510);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(170, 45);
             this.buttonCancel.TabIndex = 5;
@@ -273,7 +288,7 @@ namespace DeviceBox
             this.buttonConfirm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonConfirm.Font = new System.Drawing.Font("微軟正黑體", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.buttonConfirm.ForeColor = System.Drawing.Color.White;
-            this.buttonConfirm.Location = new System.Drawing.Point(210, 480);
+            this.buttonConfirm.Location = new System.Drawing.Point(210, 510);
             this.buttonConfirm.Name = "buttonConfirm";
             this.buttonConfirm.Size = new System.Drawing.Size(170, 45);
             this.buttonConfirm.TabIndex = 6;
@@ -285,7 +300,7 @@ namespace DeviceBox
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.ClientSize = new System.Drawing.Size(400, 550);
+            this.ClientSize = new System.Drawing.Size(400, 580);
             this.Controls.Add(this.buttonConfirm);
             this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.panelDays);
@@ -329,5 +344,6 @@ namespace DeviceBox
         private System.Windows.Forms.Label labelDaysSection;
         private System.Windows.Forms.Button buttonCancel;
         private System.Windows.Forms.Button buttonConfirm;
+        private System.Windows.Forms.CheckBox checkBox24Hours;
     }
 }

@@ -37,6 +37,7 @@ namespace DeviceBox
             this.panelCharts = new System.Windows.Forms.Panel();
             this.chartCombined = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.panelDeviceFilter = new System.Windows.Forms.Panel();
+            this.cmbFactory = new System.Windows.Forms.ComboBox();
             this.clbDevices = new System.Windows.Forms.CheckedListBox();
             this.panelAlarmLimits = new System.Windows.Forms.Panel();
             this.clbAlarmLimits = new System.Windows.Forms.CheckedListBox();
@@ -109,6 +110,7 @@ namespace DeviceBox
             // 
             this.panelDeviceFilter.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(50)))));
             this.panelDeviceFilter.Controls.Add(this.clbDevices);
+            this.panelDeviceFilter.Controls.Add(this.cmbFactory);
             this.panelDeviceFilter.Controls.Add(this.panelAlarmLimits);
             this.panelDeviceFilter.Controls.Add(this.btnDeselectAll);
             this.panelDeviceFilter.Controls.Add(this.btnSelectAll);
@@ -119,6 +121,21 @@ namespace DeviceBox
             this.panelDeviceFilter.Size = new System.Drawing.Size(180, 640);
             this.panelDeviceFilter.TabIndex = 1;
             // 
+            // cmbFactory
+            // 
+            this.cmbFactory.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(55)))));
+            this.cmbFactory.Dock = System.Windows.Forms.DockStyle.Top;
+            this.cmbFactory.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbFactory.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbFactory.Font = new System.Drawing.Font("微軟正黑體", 10.5F);
+            this.cmbFactory.ForeColor = System.Drawing.Color.White;
+            this.cmbFactory.FormattingEnabled = true;
+            this.cmbFactory.Location = new System.Drawing.Point(0, 100);
+            this.cmbFactory.Name = "cmbFactory";
+            this.cmbFactory.Size = new System.Drawing.Size(180, 28);
+            this.cmbFactory.TabIndex = 5;
+            this.cmbFactory.SelectedIndexChanged += new System.EventHandler(this.cmbFactory_SelectedIndexChanged);
+            // 
             // clbDevices
             // 
             this.clbDevices.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(55)))));
@@ -128,9 +145,9 @@ namespace DeviceBox
             this.clbDevices.Font = new System.Drawing.Font("微軟正黑體", 10.5F);
             this.clbDevices.ForeColor = System.Drawing.Color.White;
             this.clbDevices.FormattingEnabled = true;
-            this.clbDevices.Location = new System.Drawing.Point(0, 100);
+            this.clbDevices.Location = new System.Drawing.Point(0, 128);
             this.clbDevices.Name = "clbDevices";
-            this.clbDevices.Size = new System.Drawing.Size(180, 340);
+            this.clbDevices.Size = new System.Drawing.Size(180, 312);
             this.clbDevices.TabIndex = 3;
             // 
             // panelAlarmLimits
@@ -373,5 +390,6 @@ namespace DeviceBox
         private System.Windows.Forms.Panel panelAlarmLimits;
         private System.Windows.Forms.CheckedListBox clbAlarmLimits;
         private System.Windows.Forms.Label labelAlarmLimits;
+        private System.Windows.Forms.ComboBox cmbFactory;
     }
 }

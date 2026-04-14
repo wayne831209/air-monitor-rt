@@ -578,6 +578,7 @@
             this.status_col5.TabIndex = 15;
             this.status_col5.Text = "停止";
             this.status_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.status_col5.Click += new System.EventHandler(this.StatusCol_Click);
             // 
             // status_col4
             // 
@@ -592,6 +593,7 @@
             this.status_col4.TabIndex = 14;
             this.status_col4.Text = "停止";
             this.status_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.status_col4.Click += new System.EventHandler(this.StatusCol_Click);
             // 
             // status_col3
             // 
@@ -606,6 +608,7 @@
             this.status_col3.TabIndex = 13;
             this.status_col3.Text = "停止";
             this.status_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.status_col3.Click += new System.EventHandler(this.StatusCol_Click);
             // 
             // status_col2
             // 
@@ -620,6 +623,7 @@
             this.status_col2.TabIndex = 12;
             this.status_col2.Text = "停止";
             this.status_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.status_col2.Click += new System.EventHandler(this.StatusCol_Click);
             // 
             // status_col1
             // 
@@ -634,6 +638,7 @@
             this.status_col1.TabIndex = 11;
             this.status_col1.Text = "停止";
             this.status_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.status_col1.Click += new System.EventHandler(this.StatusCol_Click);
             // 
             // panel8
             // 

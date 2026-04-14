@@ -114,6 +114,9 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="ManualCompressorSelectForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="ModeSelectForm.cs">
       <SubType>Form</SubType>
     </Compile>

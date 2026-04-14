@@ -41,19 +41,23 @@ namespace DeviceBox
             _scheduleItems = scheduleItems;
             _modeName = modeName;
             InitializeComponent();
+            if (!string.IsNullOrEmpty(_modeName))
+            {
+                this.Text = "週排程檢視 - " + _modeName;
+            }
             SetupUI();
         }
 
         private void InitializeComponent()
         {
             this.SuspendLayout();
-            this.BackColor = BackgroundColor;
-            this.ClientSize = new Size(1100, 700);
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
+            this.ClientSize = new System.Drawing.Size(1100, 700);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.StartPosition = FormStartPosition.CenterParent;
-            this.Text = $"週排程檢視 - {_modeName}";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
+            this.Text = "週排程檢視";
             this.ResumeLayout(false);
         }
 
@@ -192,10 +196,17 @@ namespace DeviceBox
 
             foreach (var device in devices)
             {
-                // 設備標題
+                // 計算排程時數
+                double weeklyTotalHours;
+                Dictionary<DayOfWeek, double> dailyHours;
+                CalculateWeeklyScheduledHours(device.Schedules, out weeklyTotalHours, out dailyHours);
+
+                // 設備標題（含週排程總時數）
+                string titleText = device.FactoryName + " - " + device.DeviceName
+                    + "    排程總時數: " + weeklyTotalHours.ToString("F1") + " 小時";
                 Label deviceLabel = new Label
                 {
-                    Text = $"{device.FactoryName} - {device.DeviceName}",
+                    Text = titleText,
                     Location = new Point(10, yOffset),
                     Size = new Size(panelContent.Width - 40, 30),
                     Font = new Font("微軟正黑體", 12F, FontStyle.Bold),
@@ -208,7 +219,13 @@ namespace DeviceBox
                 Panel schedulePanel = CreateDeviceSchedulePanel(device.Schedules);
                 schedulePanel.Location = new Point(10, yOffset);
                 panelContent.Controls.Add(schedulePanel);
-                yOffset += schedulePanel.Height + 20;
+                yOffset += schedulePanel.Height + 5;
+
+                // 每日排程時數摘要
+                Panel summaryPanel = CreateDailySummaryPanel(dailyHours, weeklyTotalHours);
+                summaryPanel.Location = new Point(10, yOffset);
+                panelContent.Controls.Add(summaryPanel);
+                yOffset += summaryPanel.Height + 20;
             }
         }
 
@@ -349,6 +366,115 @@ namespace DeviceBox
             // 添加滑鼠懸停效果
             panel.MouseEnter += (s, e) => panel.BackColor = Color.FromArgb(100, 220, 120);
             panel.MouseLeave += (s, e) => panel.BackColor = ScheduleActiveColor;
+        }
+
+        /// <summary>
+        /// 計算設備的每日排程時數及週排程總時數
+        /// 使用分鐘陣列合併重疊時段，確保計算準確
+        /// </summary>
+        private void CalculateWeeklyScheduledHours(
+            List<ScheduleItem> deviceSchedules,
+            out double weeklyTotalHours,
+            out Dictionary<DayOfWeek, double> dailyHours)
+        {
+            dailyHours = new Dictionary<DayOfWeek, double>();
+            for (int d = 0; d < 7; d++)
+                dailyHours[(DayOfWeek)d] = 0;
+
+            weeklyTotalHours = 0;
+
+            // 每天用 1440 分鐘的 bool 陣列標記已排程的分鐘，自動合併重疊
+            foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
+            {
+                bool[] minutes = new bool[1440]; // 00:00 ~ 23:59
+
+                foreach (var schedule in deviceSchedules.Where(s => s.Enabled))
+                {
+                    bool isActiveOnDay = schedule.Days.Count == 0 ||
+                                         schedule.Days.Count == 7 ||
+                                         schedule.Days.Contains(day);
+                    if (!isActiveOnDay)
+                        continue;
+
+                    int startMin = (int)schedule.StartTime.TotalMinutes;
+                    int endMin = (int)schedule.EndTime.TotalMinutes;
+
+                    if (schedule.EndTime < schedule.StartTime)
+                    {
+                        // 跨午夜：startMin ~ 1439, 0 ~ endMin-1
+                        for (int m = startMin; m < 1440; m++)
+                            minutes[m] = true;
+                        for (int m = 0; m < endMin; m++)
+                            minutes[m] = true;
+                    }
+                    else
+                    {
+                        for (int m = startMin; m < endMin; m++)
+                            minutes[m] = true;
+                    }
+                }
+
+                int totalMinutes = 0;
+                for (int m = 0; m < 1440; m++)
+                {
+                    if (minutes[m]) totalMinutes++;
+                }
+
+                double hours = totalMinutes / 60.0;
+                dailyHours[day] = hours;
+                weeklyTotalHours += hours;
+            }
+        }
+
+        /// <summary>
+        /// 建立每日排程時數摘要面板
+        /// </summary>
+        private Panel CreateDailySummaryPanel(Dictionary<DayOfWeek, double> dailyHours, double weeklyTotalHours)
+        {
+            int totalWidth = DAY_LABEL_WIDTH + (END_HOUR - START_HOUR) * HOUR_WIDTH + 20;
+            Panel panel = new Panel
+            {
+                Size = new Size(totalWidth, 30),
+                BackColor = Color.FromArgb(38, 38, 42)
+            };
+
+            string[] dayNames = { "日", "一", "二", "三", "四", "五", "六" };
+            int[] dayOrder = { 1, 2, 3, 4, 5, 6, 0 }; // 週一到週日
+
+            int xOffset = 10;
+
+            for (int i = 0; i < 7; i++)
+            {
+                DayOfWeek day = (DayOfWeek)dayOrder[i];
+                double hours = dailyHours[day];
+                string text = dayNames[dayOrder[i]] + ":" + hours.ToString("F1") + "h";
+
+                Label lbl = new Label
+                {
+                    Text = text,
+                    Location = new Point(xOffset, 5),
+                    AutoSize = true,
+                    Font = new Font("微軟正黑體", 9F),
+                    ForeColor = hours > 0 ? ScheduleActiveColor : TextSecondaryColor,
+                    BackColor = Color.Transparent
+                };
+                panel.Controls.Add(lbl);
+                xOffset += 105;
+            }
+
+            // 週總計
+            Label totalLabel = new Label
+            {
+                Text = "合計: " + weeklyTotalHours.ToString("F1") + " 小時",
+                Location = new Point(xOffset + 10, 5),
+                AutoSize = true,
+                Font = new Font("微軟正黑體", 9F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(255, 200, 60),
+                BackColor = Color.Transparent
+            };
+            panel.Controls.Add(totalLabel);
+
+            return panel;
         }
     }
 }

@@ -10,6 +10,7 @@ namespace DeviceBox
     public partial class ScheduleEditForm : Form
     {
         private Config _config;
+        private HashSet<int> _factoryIdFilter;
         public ScheduleItem ScheduleItem { get; private set; }
 
         // 控制項
@@ -26,9 +27,10 @@ namespace DeviceBox
         private readonly Color TextPrimaryColor = Color.White;
         private readonly Color TextSecondaryColor = Color.FromArgb(180, 180, 180);
 
-        public ScheduleEditForm(Config config, ScheduleItem existingItem)
+        public ScheduleEditForm(Config config, ScheduleItem existingItem, HashSet<int> factoryIdFilter = null)
         {
             _config = config;
+            _factoryIdFilter = factoryIdFilter;
             ScheduleItem = existingItem != null ? CloneScheduleItem(existingItem) : new ScheduleItem
             {
                 Enabled = true,
@@ -68,9 +70,11 @@ namespace DeviceBox
             labelFormTitle.Text = ScheduleItem.DeviceName == null ? "新增排程" : "編輯排程";
             this.Text = labelFormTitle.Text;
 
-            // 載入工廠下拉選單
+            // 載入工廠下拉選單（依篩選條件）
             foreach (var factory in _config.Factories)
             {
+                if (_factoryIdFilter != null && !_factoryIdFilter.Contains(factory.Id))
+                    continue;
                 comboBoxFactory.Items.Add(new ComboBoxItem { Text = factory.Name, Value = factory });
             }
             comboBoxFactory.SelectedIndexChanged += ComboBoxFactory_SelectedIndexChanged;
@@ -80,6 +84,20 @@ namespace DeviceBox
             dateTimePickerEnd.Value = DateTime.Today.Add(ScheduleItem.EndTime);
             dateTimePickerStart.ValueChanged += (s, e) => UpdateDurationLabel();
             dateTimePickerEnd.ValueChanged += (s, e) => UpdateDurationLabel();
+
+            // 設定全天 CheckBox
+            checkBox24Hours.CheckedChanged += (s, e) =>
+            {
+                bool is24 = checkBox24Hours.Checked;
+                dateTimePickerStart.Enabled = !is24;
+                dateTimePickerEnd.Enabled = !is24;
+                if (is24)
+                {
+                    dateTimePickerStart.Value = DateTime.Today;
+                    dateTimePickerEnd.Value = DateTime.Today.AddHours(23).AddMinutes(59);
+                }
+                UpdateDurationLabel();
+            };
 
             // 設定開關
             SetupToggleSwitch();
@@ -266,6 +284,12 @@ namespace DeviceBox
             // 設定時間
             dateTimePickerStart.Value = DateTime.Today.Add(ScheduleItem.StartTime);
             dateTimePickerEnd.Value = DateTime.Today.Add(ScheduleItem.EndTime);
+
+            // 如果開始為 00:00、結束為 23:59 則自動勾選全天
+            if (ScheduleItem.StartTime == TimeSpan.Zero && ScheduleItem.EndTime == new TimeSpan(23, 59, 0))
+            {
+                checkBox24Hours.Checked = true;
+            }
         }
 
         private void ConfirmButton_Click(object sender, EventArgs e)

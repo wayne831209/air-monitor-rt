@@ -37,10 +37,15 @@ namespace DeviceBox
         private List<ModBus_List> modbusList;
         private Config config;
         private ScheduleMode currentMode;  // 當前選擇的模式
+        private bool isManualMode = false;    // 是否為手動模式
 
         // 記錄每個設備上次寫入的 DO 狀態，避免重複寫入
         // Key: "FactoryId_MachineNo", Value: last written DO value (1=on, 0=off)
         private Dictionary<string, ushort> lastDOStates = new Dictionary<string, ushort>();
+
+        // 手動模式下，記錄每個設備的手動 DO 狀態
+        // Key: "FactoryId_MachineNo", Value: manual DO value (1=on, 0=off)
+        private Dictionary<string, ushort> manualDOStates = new Dictionary<string, ushort>();
 
         public MainForm()
         {
@@ -572,6 +577,13 @@ namespace DeviceBox
         /// </summary>
         private void UpdateScheduleLabel(Label label, List<DeviceConfig> compressors)
         {
+            // 手動模式下顯示「手動模式」
+            if (isManualMode)
+            {
+                UpdateLabelWithBackground(label, "手動模式", TextNormal, Color.FromArgb(0, 122, 204));
+                return;
+            }
+
             bool hasActiveSchedule = compressors.Any(c => c.Schedule.Enabled && c.Schedule.IsInSchedule());
             bool hasAnySchedule = compressors.Any(c => c.Schedule.Enabled);
 
@@ -623,9 +635,13 @@ namespace DeviceBox
         /// 排程控制 - 根據排程時間自動控制 DO 輸出
         /// 當目前時間在排程內 → DO=1 (啟動)
         /// 當目前時間不在排程內 → DO=0 (停止)
+        /// 手動模式下不執行自動排程控制
         /// </summary>
         private void ExecuteScheduleControl()
         {
+            // 手動模式下不執行自動排程控制
+            if (isManualMode) return;
+
             for (int i = 0; i < config.Factories.Count; i++)
             {
                 var factory = config.Factories[i];
@@ -817,7 +833,11 @@ namespace DeviceBox
             string modeName = currentMode != null ? currentMode.Name : label3.Text;
             int modeId = currentMode != null ? currentMode.Id : 0;
             
-            ScheduleSettingForm scheduleForm = new ScheduleSettingForm(modeId, modeName);
+            // 依目前廠域篩選工廠清單
+            var factories = GetCurrentViewFactories();
+            var factoryIds = new HashSet<int>(factories.Select(f => f.Id));
+
+            ScheduleSettingForm scheduleForm = new ScheduleSettingForm(modeId, modeName, factoryIds);
             scheduleForm.ShowDialog();
 
             // 重新載入設定
@@ -839,6 +859,17 @@ namespace DeviceBox
                     // 儲存當前選擇的模式
                     currentMode = selectedMode;
                     
+                    // 判斷是否為手動模式（模式名稱包含「手動」）
+                    bool wasManual = isManualMode;
+                    isManualMode = selectedMode.Name.Contains("手動");
+                    
+                    // 切換到手動模式時，清除手動 DO 狀態
+                    if (isManualMode && !wasManual)
+                    {
+                        manualDOStates.Clear();
+                        lastDOStates.Clear();
+                    }
+                    
                     // 更新 label3 顯示模式名稱
                     label3.Text = selectedMode.Name;
                     
@@ -851,6 +882,7 @@ namespace DeviceBox
                     // 重新載入設定（因為模式切換時已套用排程到設備）
                     config.LoadConfig();
                     RefreshFactoryDisplay();
+                    UpdateStatusLabelCursors();
                 }
             }
         }
@@ -888,11 +920,12 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// pressure_col1 ~ pressure_col5 點選事件 - 設定空壓上下限（全部設備）
+        /// pressure_col1 ~ pressure_col5 點選事件 - 設定空壓上下限（依目前廠域）
         /// </summary>
         private void PressureCol_Click(object sender, EventArgs e)
         {
-            using (var form = new AlarmLimitSettingForm(config.Factories, "Pressure"))
+            var factories = GetCurrentViewFactories();
+            using (var form = new AlarmLimitSettingForm(factories, "Pressure"))
             {
                 if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
@@ -905,11 +938,12 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// temp_col1 ~ temp_col5 點選事件 - 設定溫度上下限（全部設備）
+        /// temp_col1 ~ temp_col5 點選事件 - 設定溫度上下限（依目前廠域）
         /// </summary>
         private void TempCol_Click(object sender, EventArgs e)
         {
-            using (var form = new AlarmLimitSettingForm(config.Factories, "Temp"))
+            var factories = GetCurrentViewFactories();
+            using (var form = new AlarmLimitSettingForm(factories, "Temp"))
             {
                 if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
@@ -918,6 +952,21 @@ namespace DeviceBox
                         config.SaveAlarmLimits(kvp.Key, kvp.Value);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// 根據目前的 ViewMode 取得對應的工廠清單
+        /// </summary>
+        private List<FactoryConfig> GetCurrentViewFactories()
+        {
+            if (currentViewMode == ViewMode.CastingFactory)
+            {
+                return config.Factories.Where(f => f.Id == CASTING_FACTORY_ID).ToList();
+            }
+            else
+            {
+                return config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).ToList();
             }
         }
 
@@ -1019,6 +1068,138 @@ namespace DeviceBox
             // TODO: 在此實作溫度超限推播通知
             // 例如：發送 Line Notify、Email、簡訊通知相關人員
             // System.Diagnostics.Debug.WriteLine($"[推播] 溫度超限! 來源={source}, 數值={currentValue}, 上限={limits.TempUpperLimit}, 下限={limits.TempLowerLimit}");
+        }
+
+        /// <summary>
+        /// 更新 status_col 的游標樣式（手動模式下顯示手型游標）
+        /// </summary>
+        private void UpdateStatusLabelCursors()
+        {
+            Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
+            foreach (var label in statusLabels)
+            {
+                label.Cursor = isManualMode ? Cursors.Hand : Cursors.Default;
+            }
+        }
+
+        /// <summary>
+        /// status_col1 ~ status_col5 點選事件 - 手動模式下切換空壓機啟動/停止
+        /// </summary>
+        private void StatusCol_Click(object sender, EventArgs e)
+        {
+            if (!isManualMode) return;
+
+            Label clickedLabel = sender as Label;
+            if (clickedLabel == null) return;
+
+            Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
+            int colIndex = -1;
+            for (int i = 0; i < statusLabels.Length; i++)
+            {
+                if (clickedLabel == statusLabels[i])
+                {
+                    colIndex = i;
+                    break;
+                }
+            }
+            if (colIndex < 0) return;
+
+            if (currentViewMode == ViewMode.CastingFactory)
+            {
+                // 鑄造廠模式：每欄一台壓縮機
+                var castingFactory = config.Factories.FirstOrDefault(f => f.Id == CASTING_FACTORY_ID);
+                if (castingFactory == null) return;
+
+                int modbusIndex = config.Factories.IndexOf(castingFactory);
+                if (modbusIndex >= modbusList.Count) return;
+
+                var modbus = modbusList[modbusIndex];
+                var compressors = castingFactory.GetDevicesByType(DeviceType.Compressor).OrderBy(c => c.MachineNo).ToList();
+                if (colIndex >= compressors.Count) return;
+
+                var compressor = compressors[colIndex];
+                ToggleCompressorManual(castingFactory, compressor, modbus);
+            }
+            else
+            {
+                // 其它廠域模式：每欄一個工廠
+                var otherFactories = config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).Take(5).ToList();
+                if (colIndex >= otherFactories.Count) return;
+
+                var factory = otherFactories[colIndex];
+                int modbusIndex = config.Factories.IndexOf(factory);
+                if (modbusIndex >= modbusList.Count) return;
+
+                var modbus = modbusList[modbusIndex];
+                var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+
+                if (compressors.Count == 1)
+                {
+                    ToggleCompressorManual(factory, compressors[0], modbus);
+                }
+                else if (compressors.Count > 1)
+                {
+                    // 多台壓縮機時，彈出選擇視窗
+                    using (var selectForm = new ManualCompressorSelectForm(factory, compressors, manualDOStates))
+                    {
+                        if (selectForm.ShowDialog() == DialogResult.OK && selectForm.SelectedCompressor != null)
+                        {
+                            ToggleCompressorManual(factory, selectForm.SelectedCompressor, modbus);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 手動切換壓縮機的啟動/停止
+        /// </summary>
+        private void ToggleCompressorManual(FactoryConfig factory, DeviceConfig compressor, ModBus_List modbus)
+        {
+            if (compressor.IO.ControlDO < 0)
+            {
+                MessageBox.Show($"{compressor.Name} 未設定控制 DO，無法手動控制", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (!modbus.ConnectState)
+            {
+                MessageBox.Show($"{factory.Name} 通訊中斷，無法控制", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string key = factory.Id + "_" + compressor.MachineNo;
+
+            // 取得目前手動狀態，預設為停止(0)
+            ushort currentState;
+            if (!manualDOStates.TryGetValue(key, out currentState))
+                currentState = 0;
+
+            // 切換狀態
+            ushort newState = currentState == 1 ? (ushort)0 : (ushort)1;
+            string actionText = newState == 1 ? "啟動" : "停止";
+
+            var result = MessageBox.Show(
+                $"確定要{actionText} {factory.Name} - {compressor.Name} 嗎？",
+                "手動控制確認",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result == DialogResult.Yes)
+            {
+                bool success = modbus.WriteDO(compressor.IO.ControlDO, newState);
+                if (success)
+                {
+                    manualDOStates[key] = newState;
+                    lastDOStates[key] = newState;
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[手動控制] {factory.Name} {compressor.Name} DO_{compressor.IO.ControlDO} = {newState} ({actionText})");
+                }
+                else
+                {
+                    MessageBox.Show($"控制指令發送失敗", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         private void MainForm_Load(object sender, EventArgs e)
