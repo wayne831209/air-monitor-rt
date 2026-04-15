@@ -239,7 +239,7 @@ namespace DeviceBox
             {
                 // DO_0 對應 holding register 30, DO_1=31, DO_2=32 ...
                 ushort registerAddress = (ushort)(30 + doNumber);
-                master_tcp.WriteSingleRegister(1, registerAddress, value);
+                //master_tcp.WriteSingleRegister(1, registerAddress, value);
                 System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO: DO_{doNumber} (register {registerAddress}) = {value}");
                 return true;
             }

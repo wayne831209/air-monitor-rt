@@ -844,6 +844,7 @@ namespace DeviceBox
             if (scheduleForm.DialogResult == DialogResult.OK)
             {
                 config.LoadConfig();
+                lastDOStates.Clear();
                 RefreshFactoryDisplay();
             }
         }

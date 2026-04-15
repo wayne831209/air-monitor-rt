@@ -431,8 +431,12 @@ namespace DeviceBox
             // 儲存模式排程
             ModeSelectForm.SaveModeSchedules(mode);
 
-            // 同時套用到設備設定
-            ApplySchedulesToDevices();
+            // 重新讀取完整模式（含所有廠域排程），再套用到設備設定
+            var fullMode = ModeSelectForm.GetModeById(_modeId);
+            if (fullMode != null)
+            {
+                ModeSelectForm.ApplyModeSchedulesToConfig(fullMode);
+            }
         }
 
         /// <summary>
