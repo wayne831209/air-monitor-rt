@@ -232,7 +232,7 @@ namespace DeviceBox
         private Panel CreateDeviceSchedulePanel(List<ScheduleItem> deviceSchedules)
         {
             int totalWidth = DAY_LABEL_WIDTH + (END_HOUR - START_HOUR) * HOUR_WIDTH + 20;
-            int totalHeight = 30 + 7 * ROW_HEIGHT + 10; // 標題行 + 7天
+            int totalHeight = 30 + 7 * ROW_HEIGHT + 10;
 
             Panel panel = new Panel
             {
@@ -255,11 +255,8 @@ namespace DeviceBox
                 panel.Controls.Add(hourLabel);
             }
 
-            // 繪製每一天
             string[] dayNames = { "週日", "週一", "週二", "週三", "週四", "週五", "週六" };
-            
-            // 調整順序：週一到週日
-            int[] dayOrder = { 1, 2, 3, 4, 5, 6, 0 }; // 週一=1, 週二=2, ..., 週六=6, 週日=0
+            int[] dayOrder = { 1, 2, 3, 4, 5, 6, 0 };
 
             for (int i = 0; i < 7; i++)
             {
@@ -267,7 +264,6 @@ namespace DeviceBox
                 DayOfWeek day = (DayOfWeek)dayIndex;
                 int rowY = 30 + i * ROW_HEIGHT;
 
-                // 星期標籤
                 Label dayLabel = new Label
                 {
                     Text = dayNames[dayIndex],
@@ -279,7 +275,6 @@ namespace DeviceBox
                 };
                 panel.Controls.Add(dayLabel);
 
-                // 時間軸背景
                 Panel timelinePanel = new Panel
                 {
                     Location = new Point(DAY_LABEL_WIDTH, rowY),
@@ -287,7 +282,6 @@ namespace DeviceBox
                     BackColor = ScheduleInactiveColor
                 };
 
-                // 繪製格線
                 timelinePanel.Paint += (s, e) =>
                 {
                     using (Pen pen = new Pen(GridLineColor, 1))
@@ -300,54 +294,24 @@ namespace DeviceBox
                     }
                 };
 
-                // 繪製排程時段
+                // 繪製排程時段 - 使用連續週排程邏輯
                 foreach (var schedule in deviceSchedules.Where(s => s.Enabled))
                 {
-                    // 檢查這個排程是否在這一天執行
-                    bool isActiveOnDay = schedule.Days.Count == 0 || // 每天
-                                         schedule.Days.Count == 7 || // 每天
-                                         schedule.Days.Contains(day);
-
-                    if (isActiveOnDay)
+                    double dayStartHour, dayEndHour;
+                    if (GetDayActiveRange(schedule, day, out dayStartHour, out dayEndHour))
                     {
-                        int startX = (int)((schedule.StartTime.TotalHours - START_HOUR) * HOUR_WIDTH);
-                        int endX = (int)((schedule.EndTime.TotalHours - START_HOUR) * HOUR_WIDTH);
-                        
-                        // 處理跨午夜的情況
-                        if (schedule.EndTime < schedule.StartTime)
-                        {
-                            // 第一段：開始到午夜
-                            Panel slot1 = new Panel
-                            {
-                                Location = new Point(startX, 5),
-                                Size = new Size((END_HOUR - START_HOUR) * HOUR_WIDTH - startX, ROW_HEIGHT - 15),
-                                BackColor = ScheduleActiveColor
-                            };
-                            AddTimeSlotTooltip(slot1, schedule);
-                            timelinePanel.Controls.Add(slot1);
+                        int startX = (int)((dayStartHour - START_HOUR) * HOUR_WIDTH);
+                        int endX = (int)((dayEndHour - START_HOUR) * HOUR_WIDTH);
+                        int width = Math.Max(endX - startX, 3);
 
-                            // 第二段：午夜到結束
-                            Panel slot2 = new Panel
-                            {
-                                Location = new Point(0, 5),
-                                Size = new Size(endX, ROW_HEIGHT - 15),
-                                BackColor = ScheduleActiveColor
-                            };
-                            AddTimeSlotTooltip(slot2, schedule);
-                            timelinePanel.Controls.Add(slot2);
-                        }
-                        else
+                        Panel timeSlot = new Panel
                         {
-                            int width = Math.Max(endX - startX, 5);
-                            Panel timeSlot = new Panel
-                            {
-                                Location = new Point(startX, 5),
-                                Size = new Size(width, ROW_HEIGHT - 15),
-                                BackColor = ScheduleActiveColor
-                            };
-                            AddTimeSlotTooltip(timeSlot, schedule);
-                            timelinePanel.Controls.Add(timeSlot);
-                        }
+                            Location = new Point(startX, 5),
+                            Size = new Size(width, ROW_HEIGHT - 15),
+                            BackColor = ScheduleActiveColor
+                        };
+                        AddTimeSlotTooltip(timeSlot, schedule);
+                        timelinePanel.Controls.Add(timeSlot);
                     }
                 }
 
@@ -357,20 +321,97 @@ namespace DeviceBox
             return panel;
         }
 
+        /// <summary>
+        /// 判斷某一天在排程中的運轉時段
+        /// 支援跨日模式和重複模式
+        /// </summary>
+        private bool GetDayActiveRange(ScheduleItem schedule, DayOfWeek day, out double startHour, out double endHour)
+        {
+            startHour = 0;
+            endHour = 0;
+
+            if (!schedule.IsSpanMode)
+            {
+                // 重複模式：檢查該天是否在 RepeatDays 中
+                bool isActive = schedule.RepeatDays == null || schedule.RepeatDays.Count == 0 ||
+                                schedule.RepeatDays.Contains(day);
+                if (!isActive) return false;
+
+                startHour = schedule.StartTime.TotalHours;
+                endHour = schedule.EndTime.TotalHours;
+                if (endHour <= startHour) endHour = 24; // 跨午夜時在當天顯示到24
+                return endHour > startHour;
+            }
+
+            // 跨日模式
+            int sd = (int)schedule.StartDay;
+            int ed = (int)schedule.EndDay;
+            int d = (int)day;
+
+            bool isDayInSpan;
+            if (sd <= ed)
+            {
+                isDayInSpan = d >= sd && d <= ed;
+            }
+            else
+            {
+                isDayInSpan = d >= sd || d <= ed;
+            }
+
+            if (!isDayInSpan)
+                return false;
+
+            bool isStartDay = d == sd;
+            bool isEndDay = d == ed;
+
+            if (isStartDay && isEndDay)
+            {
+                // 同一天開始和結束
+                if (sd <= ed)
+                {
+                    startHour = schedule.StartTime.TotalHours;
+                    endHour = schedule.EndTime.TotalHours;
+                }
+                else
+                {
+                    // 跨週且同一天：例如 Wed 20:00 ~ Wed 08:00 (運轉6奩24小時+這天的部分)
+                    startHour = 0;
+                    endHour = 24;
+                }
+            }
+            else if (isStartDay)
+            {
+                startHour = schedule.StartTime.TotalHours;
+                endHour = 24;
+            }
+            else if (isEndDay)
+            {
+                startHour = 0;
+                endHour = schedule.EndTime.TotalHours;
+            }
+            else
+            {
+                // 中間的天 → 全天24小時
+                startHour = 0;
+                endHour = 24;
+            }
+
+            return endHour > startHour;
+        }
+
         private void AddTimeSlotTooltip(Panel panel, ScheduleItem schedule)
         {
             ToolTip tooltip = new ToolTip();
-            string timeText = $"{schedule.StartTime:hh\\:mm} - {schedule.EndTime:hh\\:mm}";
+            string timeText = schedule.GetTimeDisplayText();
             tooltip.SetToolTip(panel, timeText);
-            
-            // 添加滑鼠懸停效果
+
             panel.MouseEnter += (s, e) => panel.BackColor = Color.FromArgb(100, 220, 120);
             panel.MouseLeave += (s, e) => panel.BackColor = ScheduleActiveColor;
         }
 
         /// <summary>
         /// 計算設備的每日排程時數及週排程總時數
-        /// 使用分鐘陣列合併重疊時段，確保計算準確
+        /// 使用連續週排程模型 (StartDay+StartTime → EndDay+EndTime)
         /// </summary>
         private void CalculateWeeklyScheduledHours(
             List<ScheduleItem> deviceSchedules,
@@ -383,32 +424,17 @@ namespace DeviceBox
 
             weeklyTotalHours = 0;
 
-            // 每天用 1440 分鐘的 bool 陣列標記已排程的分鐘，自動合併重疊
             foreach (DayOfWeek day in Enum.GetValues(typeof(DayOfWeek)))
             {
-                bool[] minutes = new bool[1440]; // 00:00 ~ 23:59
+                bool[] minutes = new bool[1440];
 
                 foreach (var schedule in deviceSchedules.Where(s => s.Enabled))
                 {
-                    bool isActiveOnDay = schedule.Days.Count == 0 ||
-                                         schedule.Days.Count == 7 ||
-                                         schedule.Days.Contains(day);
-                    if (!isActiveOnDay)
-                        continue;
-
-                    int startMin = (int)schedule.StartTime.TotalMinutes;
-                    int endMin = (int)schedule.EndTime.TotalMinutes;
-
-                    if (schedule.EndTime < schedule.StartTime)
+                    double startHour, endHour;
+                    if (GetDayActiveRange(schedule, day, out startHour, out endHour))
                     {
-                        // 跨午夜：startMin ~ 1439, 0 ~ endMin-1
-                        for (int m = startMin; m < 1440; m++)
-                            minutes[m] = true;
-                        for (int m = 0; m < endMin; m++)
-                            minutes[m] = true;
-                    }
-                    else
-                    {
+                        int startMin = (int)(startHour * 60);
+                        int endMin = Math.Min((int)(endHour * 60), 1440);
                         for (int m = startMin; m < endMin; m++)
                             minutes[m] = true;
                     }

@@ -70,9 +70,12 @@ namespace DeviceBox
                             DeviceType = DeviceType.Compressor,
                             MachineNo = schedule.MachineNo,
                             Enabled = schedule.Enabled,
+                            IsSpanMode = schedule.IsSpanMode,
+                            StartDay = schedule.StartDay,
                             StartTime = schedule.StartTime,
+                            EndDay = schedule.EndDay,
                             EndTime = schedule.EndTime,
-                            Days = new List<DayOfWeek>(schedule.Days)
+                            RepeatDays = new List<DayOfWeek>(schedule.RepeatDays ?? new List<DayOfWeek>())
                         });
                     }
                     // 依工廠篩選
@@ -160,8 +163,8 @@ namespace DeviceBox
             {
                 Text = item.GetTimeDisplayText(),
                 Location = new Point(15, 15),
-                Size = new Size(250, 35),
-                Font = new Font("微軟正黑體", 20F, FontStyle.Bold),
+                Size = new Size(card.Width - 80, 35),
+                Font = new Font("微軟正黑體", 14F, FontStyle.Bold),
                 ForeColor = item.Enabled ? TextPrimaryColor : DisabledColor,
                 BackColor = Color.Transparent
             };
@@ -185,9 +188,22 @@ namespace DeviceBox
             card.Controls.Add(deviceLabel);
 
             // 星期顯示
+            string[] dayNamesZh = { "週日", "週一", "週二", "週三", "週四", "週五", "週六" };
+            string daysText;
+            if (item.IsSpanMode)
+            {
+                daysText = $"跨日: {dayNamesZh[(int)item.StartDay]} ~ {dayNamesZh[(int)item.EndDay]}";
+            }
+            else
+            {
+                if (item.RepeatDays == null || item.RepeatDays.Count == 0)
+                    daysText = "重複: 每天";
+                else
+                    daysText = "重複: " + string.Join(", ", item.RepeatDays.OrderBy(d => (int)d).Select(d => dayNamesZh[(int)d]));
+            }
             Label daysLabel = new Label
             {
-                Text = GetDaysDisplayText(item.Days),
+                Text = daysText,
                 Location = new Point(15, 85),
                 Size = new Size(card.Width - 140, 25),
                 Font = new Font("微軟正黑體", 9F, FontStyle.Regular),
@@ -422,9 +438,12 @@ namespace DeviceBox
                     DeviceName = item.DeviceName,
                     MachineNo = item.MachineNo,
                     Enabled = item.Enabled,
+                    IsSpanMode = item.IsSpanMode,
+                    StartDay = item.StartDay,
                     StartTime = item.StartTime,
+                    EndDay = item.EndDay,
                     EndTime = item.EndTime,
-                    Days = new List<DayOfWeek>(item.Days)
+                    RepeatDays = new List<DayOfWeek>(item.RepeatDays ?? new List<DayOfWeek>())
                 });
             }
 
@@ -488,7 +507,9 @@ namespace DeviceBox
                         foreach (var item in group)
                         {
                             var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("startDay", item.StartDay.ToString());
                             rangeElement.SetAttributeValue("start", item.StartTime.ToString(@"hh\:mm"));
+                            rangeElement.SetAttributeValue("endDay", item.EndDay.ToString());
                             rangeElement.SetAttributeValue("end", item.EndTime.ToString(@"hh\:mm"));
 
                             if (item.Days != null && item.Days.Count > 0 && item.Days.Count < 7)
@@ -551,7 +572,9 @@ namespace DeviceBox
                         foreach (var item in group.Where(i => i.Enabled))
                         {
                             var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("startDay", item.StartDay.ToString());
                             rangeElement.SetAttributeValue("start", item.StartTime.ToString(@"hh\:mm"));
+                            rangeElement.SetAttributeValue("endDay", item.EndDay.ToString());
                             rangeElement.SetAttributeValue("end", item.EndTime.ToString(@"hh\:mm"));
 
                             // 儲存 days
@@ -577,22 +600,68 @@ namespace DeviceBox
     /// </summary>
     public class ScheduleItem
     {
+        private static readonly string[] DayNamesZh = { "週日", "週一", "週二", "週三", "週四", "週五", "週六" };
+
         public int FactoryId { get; set; }
         public string FactoryName { get; set; }
         public string DeviceName { get; set; }
         public DeviceType DeviceType { get; set; }
         public int MachineNo { get; set; }
         public bool Enabled { get; set; }
+
+        /// <summary>true=跨日連續模式, false=重複模式</summary>
+        public bool IsSpanMode { get; set; } = true;
+
+        // 跨日模式用
+        public DayOfWeek StartDay { get; set; } = DayOfWeek.Monday;
+        public DayOfWeek EndDay { get; set; } = DayOfWeek.Friday;
+
+        // 重複模式用
+        public List<DayOfWeek> RepeatDays { get; set; } = new List<DayOfWeek>();
+
+        // 共用
         public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
         public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(17);
-        public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek>();
 
         /// <summary>
-        /// 取得時間顯示文字
+        /// 向後相容：涵蓋的星期清單
         /// </summary>
+        public List<DayOfWeek> Days
+        {
+            get
+            {
+                if (!IsSpanMode)
+                    return RepeatDays != null && RepeatDays.Count > 0 ? new List<DayOfWeek>(RepeatDays) : new List<DayOfWeek>();
+
+                var list = new List<DayOfWeek>();
+                int s = (int)StartDay;
+                int e = (int)EndDay;
+                if (s <= e)
+                {
+                    for (int d = s; d <= e; d++)
+                        list.Add((DayOfWeek)d);
+                }
+                else
+                {
+                    for (int d = s; d <= 6; d++)
+                        list.Add((DayOfWeek)d);
+                    for (int d = 0; d <= e; d++)
+                        list.Add((DayOfWeek)d);
+                }
+                return list;
+            }
+            set { }
+        }
+
         public string GetTimeDisplayText()
         {
-            return $"{StartTime:hh\\:mm} - {EndTime:hh\\:mm}";
+            if (IsSpanMode)
+                return $"{DayNamesZh[(int)StartDay]} {StartTime:hh\\:mm} - {DayNamesZh[(int)EndDay]} {EndTime:hh\\:mm}";
+
+            string daysText = RepeatDays != null && RepeatDays.Count > 0
+                ? string.Join(",", RepeatDays.OrderBy(d => (int)d).Select(d => DayNamesZh[(int)d]))
+                : "每天";
+            return $"{StartTime:hh\\:mm} - {EndTime:hh\\:mm} ({daysText})";
         }
     }
 }

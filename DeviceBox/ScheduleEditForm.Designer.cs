@@ -172,9 +172,9 @@ namespace DeviceBox
             // 
             this.labelDuration.Font = new System.Drawing.Font("微軟正黑體", 10F);
             this.labelDuration.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(52)))), ((int)(((byte)(199)))), ((int)(((byte)(89)))));
-            this.labelDuration.Location = new System.Drawing.Point(220, 50);
+            this.labelDuration.Location = new System.Drawing.Point(210, 100);
             this.labelDuration.Name = "labelDuration";
-            this.labelDuration.Size = new System.Drawing.Size(120, 30);
+            this.labelDuration.Size = new System.Drawing.Size(140, 30);
             this.labelDuration.TabIndex = 5;
             this.labelDuration.Text = "運轉 9.0 小時";
             this.labelDuration.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -201,7 +201,7 @@ namespace DeviceBox
             this.dateTimePickerEnd.Location = new System.Drawing.Point(80, 68);
             this.dateTimePickerEnd.Name = "dateTimePickerEnd";
             this.dateTimePickerEnd.ShowUpDown = true;
-            this.dateTimePickerEnd.Size = new System.Drawing.Size(120, 33);
+            this.dateTimePickerEnd.Size = new System.Drawing.Size(120, 29);
             this.dateTimePickerEnd.TabIndex = 4;
             // 
             // labelEnd
@@ -252,8 +252,9 @@ namespace DeviceBox
             this.panelDays.Controls.Add(this.labelDaysSection);
             this.panelDays.Location = new System.Drawing.Point(20, 400);
             this.panelDays.Name = "panelDays";
-            this.panelDays.Size = new System.Drawing.Size(360, 90);
+            this.panelDays.Size = new System.Drawing.Size(360, 0);
             this.panelDays.TabIndex = 4;
+            this.panelDays.Visible = false;
             // 
             // labelDaysSection
             // 
@@ -273,7 +274,7 @@ namespace DeviceBox
             this.buttonCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonCancel.Font = new System.Drawing.Font("微軟正黑體", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.buttonCancel.ForeColor = System.Drawing.Color.White;
-            this.buttonCancel.Location = new System.Drawing.Point(20, 510);
+            this.buttonCancel.Location = new System.Drawing.Point(20, 410);
             this.buttonCancel.Name = "buttonCancel";
             this.buttonCancel.Size = new System.Drawing.Size(170, 45);
             this.buttonCancel.TabIndex = 5;
@@ -288,7 +289,7 @@ namespace DeviceBox
             this.buttonConfirm.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.buttonConfirm.Font = new System.Drawing.Font("微軟正黑體", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.buttonConfirm.ForeColor = System.Drawing.Color.White;
-            this.buttonConfirm.Location = new System.Drawing.Point(210, 510);
+            this.buttonConfirm.Location = new System.Drawing.Point(210, 410);
             this.buttonConfirm.Name = "buttonConfirm";
             this.buttonConfirm.Size = new System.Drawing.Size(170, 45);
             this.buttonConfirm.TabIndex = 6;
@@ -300,7 +301,7 @@ namespace DeviceBox
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.ClientSize = new System.Drawing.Size(400, 580);
+            this.ClientSize = new System.Drawing.Size(400, 480);
             this.Controls.Add(this.buttonConfirm);
             this.Controls.Add(this.buttonCancel);
             this.Controls.Add(this.panelDays);

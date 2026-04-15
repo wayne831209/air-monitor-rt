@@ -26,11 +26,16 @@ namespace DeviceBox
     }
 
     /// <summary>
-    /// Schedule Time Range - 單一時間段
+    /// Schedule Time Range - 以一週為週期的連續時間段
+    /// 例如：週一 08:00 ~ 週五 17:00 表示從週一早上8點持續運轉到週五下午5點
     /// </summary>
     public class ScheduleTimeRange
     {
+        private static readonly string[] DayNamesZh = { "週日", "週一", "週二", "週三", "週四", "週五", "週六" };
+
+        public DayOfWeek StartDay { get; set; } = DayOfWeek.Monday;
         public TimeSpan StartTime { get; set; } = TimeSpan.Zero;
+        public DayOfWeek EndDay { get; set; } = DayOfWeek.Friday;
         public TimeSpan EndTime { get; set; } = TimeSpan.Zero;
         public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek>();
 
@@ -50,48 +55,55 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// Check if specified time and day is within this range
+        /// 將星期+時間轉換為一週內的分鐘偏移量 (0 = Sunday 00:00, 最大 = Saturday 23:59 = 10079)
+        /// </summary>
+        private static int ToWeeklyMinutes(DayOfWeek day, TimeSpan time)
+        {
+            return (int)day * 1440 + (int)time.TotalMinutes;
+        }
+
+        /// <summary>
+        /// 檢查指定的星期+時間是否在此排程範圍內
+        /// 支援兩種模式：
+        /// 1. 跨日模式（Days為空或由StartDay/EndDay計算）：使用週分鐘連續區間
+        /// 2. 重複模式（Days有值）：檢查當天是否在Days中，且時間在StartTime~EndTime之間
         /// </summary>
         public bool IsInRange(TimeSpan time, DayOfWeek day)
         {
-            // EndTime 精確到分鐘，將結束時間延伸至該分鐘的最後一秒 (EndTime + 59秒)
-            TimeSpan effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
-
-            // 不跨午夜的排程 (例如 08:00~17:00)
-            if (StartTime <= EndTime)
+            // 重複模式：Days 有值時，用每天的 StartTime~EndTime 檢查
+            if (Days != null && Days.Count > 0)
             {
-                if (Days.Count > 0 && !Days.Contains(day))
+                if (!Days.Contains(day))
                     return false;
-                return time >= StartTime && time <= effectiveEnd;
+                TimeSpan effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
+                if (StartTime <= EndTime)
+                    return time >= StartTime && time <= effectiveEnd;
+                else
+                    return time >= StartTime || time <= effectiveEnd;
+            }
+
+            // 跨日模式：使用週分鐘連續區間
+            int current = ToWeeklyMinutes(day, time);
+            int start = ToWeeklyMinutes(StartDay, StartTime);
+            int end = ToWeeklyMinutes(EndDay, EndTime) + 1;
+
+            if (start <= end)
+            {
+                // 不跨週：例如 週一 08:00 ~ 週五 17:00
+                return current >= start && current <= end;
             }
             else
             {
-                // 跨午夜的排程 (例如 20:00~08:00)
-                // 午夜前的部分 (20:00~23:59:59): 檢查當天是否在排程日
-                if (time >= StartTime)
-                {
-                    if (Days.Count > 0 && !Days.Contains(day))
-                        return false;
-                    return true;
-                }
-                // 午夜後的部分 (00:00~08:00:59): 檢查前一天是否在排程日
-                if (time <= effectiveEnd)
-                {
-                    DayOfWeek previousDay = (day == DayOfWeek.Sunday) ? DayOfWeek.Saturday : (DayOfWeek)((int)day - 1);
-                    if (Days.Count > 0 && !Days.Contains(previousDay))
-                        return false;
-                    return true;
-                }
-                return false;
+                // 跨週：例如 週五 20:00 ~ 週一 08:00
+                return current >= start || current <= end;
             }
         }
 
         /// <summary>
-        /// Check if specified time is within this range (ignore day)
+        /// Check if specified time is within this range (ignore day, 向後相容)
         /// </summary>
         public bool IsInRange(TimeSpan time)
         {
-            // EndTime 精確到分鐘，將結束時間延伸至該分鐘的最後一秒 (EndTime + 59秒)
             TimeSpan effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
 
             if (StartTime <= EndTime)
@@ -105,7 +117,8 @@ namespace DeviceBox
         /// </summary>
         public string GetDisplayText()
         {
-            return StartTime.ToString(@"hh\:mm") + "-" + EndTime.ToString(@"hh\:mm");
+            return DayNamesZh[(int)StartDay] + " " + StartTime.ToString(@"hh\:mm") + " - " +
+                   DayNamesZh[(int)EndDay] + " " + EndTime.ToString(@"hh\:mm");
         }
 
         /// <summary>
@@ -113,7 +126,11 @@ namespace DeviceBox
         /// </summary>
         public ScheduleTimeRange Clone()
         {
-            return new ScheduleTimeRange(StartTime, EndTime, Days);
+            return new ScheduleTimeRange(StartTime, EndTime, Days)
+            {
+                StartDay = this.StartDay,
+                EndDay = this.EndDay
+            };
         }
     }
 
@@ -497,8 +514,20 @@ namespace DeviceBox
                 foreach (var rangeElement in timeRangeElements)
                 {
                     var range = new ScheduleTimeRange();
+                    if (rangeElement.Attribute("startDay") != null)
+                    {
+                        DayOfWeek sd;
+                        if (Enum.TryParse(rangeElement.Attribute("startDay").Value, out sd))
+                            range.StartDay = sd;
+                    }
                     if (rangeElement.Attribute("start") != null)
                         range.StartTime = TimeSpan.Parse(rangeElement.Attribute("start").Value);
+                    if (rangeElement.Attribute("endDay") != null)
+                    {
+                        DayOfWeek ed;
+                        if (Enum.TryParse(rangeElement.Attribute("endDay").Value, out ed))
+                            range.EndDay = ed;
+                    }
                     if (rangeElement.Attribute("end") != null)
                         range.EndTime = TimeSpan.Parse(rangeElement.Attribute("end").Value);
 
@@ -532,6 +561,20 @@ namespace DeviceBox
                         StartTime = TimeSpan.Parse(element.Attribute("start").Value),
                         EndTime = TimeSpan.Parse(element.Attribute("end").Value)
                     };
+
+                    // 舊格式讀取 startDay/endDay
+                    if (element.Attribute("startDay") != null)
+                    {
+                        DayOfWeek sd;
+                        if (Enum.TryParse(element.Attribute("startDay").Value, out sd))
+                            range.StartDay = sd;
+                    }
+                    if (element.Attribute("endDay") != null)
+                    {
+                        DayOfWeek ed;
+                        if (Enum.TryParse(element.Attribute("endDay").Value, out ed))
+                            range.EndDay = ed;
+                    }
 
                     // 解析舊格式的 days 屬性
                     if (element.Attribute("days") != null)

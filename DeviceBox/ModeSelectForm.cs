@@ -169,7 +169,10 @@ namespace DeviceBox
                                 DeviceName = scheduleElement.Attribute("deviceName")?.Value ?? "",
                                 MachineNo = int.Parse(scheduleElement.Attribute("machineNo")?.Value ?? "1"),
                                 Enabled = bool.Parse(scheduleElement.Attribute("enabled")?.Value ?? "true"),
+                                IsSpanMode = bool.Parse(scheduleElement.Attribute("isSpanMode")?.Value ?? "true"),
+                                StartDay = Enum.TryParse(scheduleElement.Attribute("startDay")?.Value, out DayOfWeek sd0) ? sd0 : DayOfWeek.Monday,
                                 StartTime = TimeSpan.Parse(scheduleElement.Attribute("start")?.Value ?? "08:00"),
+                                EndDay = Enum.TryParse(scheduleElement.Attribute("endDay")?.Value, out DayOfWeek ed0) ? ed0 : DayOfWeek.Friday,
                                 EndTime = TimeSpan.Parse(scheduleElement.Attribute("end")?.Value ?? "17:00")
                             };
 
@@ -183,6 +186,16 @@ namespace DeviceBox
                                     {
                                         schedule.Days.Add((DayOfWeek)d);
                                     }
+                                }
+                            }
+
+                            string repeatDaysStr = scheduleElement.Attribute("repeatDays")?.Value;
+                            if (!string.IsNullOrEmpty(repeatDaysStr))
+                            {
+                                foreach (var dayNum in repeatDaysStr.Split(','))
+                                {
+                                    if (int.TryParse(dayNum.Trim(), out int d))
+                                        schedule.RepeatDays.Add((DayOfWeek)d);
                                 }
                             }
 
@@ -468,7 +481,9 @@ namespace DeviceBox
                             scheduleElement.SetAttributeValue("enabled", "true");
 
                             var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
                             rangeElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
+                            rangeElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
                             rangeElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
 
                             if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
@@ -528,13 +543,22 @@ namespace DeviceBox
                         scheduleElement.SetAttributeValue("deviceName", schedule.DeviceName);
                         scheduleElement.SetAttributeValue("machineNo", schedule.MachineNo);
                         scheduleElement.SetAttributeValue("enabled", schedule.Enabled.ToString().ToLower());
+                        scheduleElement.SetAttributeValue("isSpanMode", schedule.IsSpanMode.ToString().ToLower());
+                        scheduleElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
                         scheduleElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
+                        scheduleElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
                         scheduleElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
 
                         if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
                         {
                             string daysStr = string.Join(",", schedule.Days.Select(d => (int)d));
                             scheduleElement.SetAttributeValue("days", daysStr);
+                        }
+
+                        if (schedule.RepeatDays != null && schedule.RepeatDays.Count > 0)
+                        {
+                            string repeatDaysStr = string.Join(",", schedule.RepeatDays.Select(d => (int)d));
+                            scheduleElement.SetAttributeValue("repeatDays", repeatDaysStr);
                         }
 
                         modeElement.Add(scheduleElement);
@@ -585,7 +609,10 @@ namespace DeviceBox
                             DeviceName = scheduleElement.Attribute("deviceName")?.Value ?? "",
                             MachineNo = int.Parse(scheduleElement.Attribute("machineNo")?.Value ?? "1"),
                             Enabled = bool.Parse(scheduleElement.Attribute("enabled")?.Value ?? "true"),
+                            IsSpanMode = bool.Parse(scheduleElement.Attribute("isSpanMode")?.Value ?? "true"),
+                            StartDay = Enum.TryParse(scheduleElement.Attribute("startDay")?.Value, out DayOfWeek sd3) ? sd3 : DayOfWeek.Monday,
                             StartTime = TimeSpan.Parse(scheduleElement.Attribute("start")?.Value ?? "08:00"),
+                            EndDay = Enum.TryParse(scheduleElement.Attribute("endDay")?.Value, out DayOfWeek ed3) ? ed3 : DayOfWeek.Friday,
                             EndTime = TimeSpan.Parse(scheduleElement.Attribute("end")?.Value ?? "17:00")
                         };
 
@@ -596,6 +623,16 @@ namespace DeviceBox
                             {
                                 if (int.TryParse(dayNum.Trim(), out int d))
                                     schedule.Days.Add((DayOfWeek)d);
+                            }
+                        }
+
+                        string repeatDaysStr2 = scheduleElement.Attribute("repeatDays")?.Value;
+                        if (!string.IsNullOrEmpty(repeatDaysStr2))
+                        {
+                            foreach (var dayNum in repeatDaysStr2.Split(','))
+                            {
+                                if (int.TryParse(dayNum.Trim(), out int d))
+                                    schedule.RepeatDays.Add((DayOfWeek)d);
                             }
                         }
 
@@ -689,7 +726,9 @@ namespace DeviceBox
                             scheduleElement.SetAttributeValue("enabled", "true");
 
                             var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
                             rangeElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
+                            rangeElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
                             rangeElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
 
                             if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
@@ -738,7 +777,9 @@ namespace DeviceBox
                         scheduleElement.SetAttributeValue("deviceName", schedule.DeviceName);
                         scheduleElement.SetAttributeValue("machineNo", schedule.MachineNo);
                         scheduleElement.SetAttributeValue("enabled", schedule.Enabled.ToString().ToLower());
+                        scheduleElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
                         scheduleElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
+                        scheduleElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
                         scheduleElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
 
                         if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
@@ -777,34 +818,61 @@ namespace DeviceBox
     /// </summary>
     public class ModeScheduleItem
     {
+        private static readonly string[] DayNamesZh = { "週日", "週一", "週二", "週三", "週四", "週五", "週六" };
+
         public int FactoryId { get; set; }
         public string FactoryName { get; set; }
         public string DeviceName { get; set; }
         public int MachineNo { get; set; }
         public bool Enabled { get; set; } = true;
+        public bool IsSpanMode { get; set; } = true;
+        public DayOfWeek StartDay { get; set; } = DayOfWeek.Monday;
         public TimeSpan StartTime { get; set; } = TimeSpan.FromHours(8);
+        public DayOfWeek EndDay { get; set; } = DayOfWeek.Friday;
         public TimeSpan EndTime { get; set; } = TimeSpan.FromHours(17);
-        public List<DayOfWeek> Days { get; set; } = new List<DayOfWeek>();
+        public List<DayOfWeek> RepeatDays { get; set; } = new List<DayOfWeek>();
+
+        public List<DayOfWeek> Days
+        {
+            get
+            {
+                if (!IsSpanMode)
+                    return RepeatDays != null && RepeatDays.Count > 0 ? new List<DayOfWeek>(RepeatDays) : new List<DayOfWeek>();
+
+                var list = new List<DayOfWeek>();
+                int s = (int)StartDay;
+                int e = (int)EndDay;
+                if (s <= e)
+                    for (int d = s; d <= e; d++) list.Add((DayOfWeek)d);
+                else
+                {
+                    for (int d = s; d <= 6; d++) list.Add((DayOfWeek)d);
+                    for (int d = 0; d <= e; d++) list.Add((DayOfWeek)d);
+                }
+                return list;
+            }
+            set { }
+        }
 
         public string GetTimeDisplayText()
         {
-            return $"{StartTime:hh\\:mm} - {EndTime:hh\\:mm}";
+            if (IsSpanMode)
+                return $"{DayNamesZh[(int)StartDay]} {StartTime:hh\\:mm} - {DayNamesZh[(int)EndDay]} {EndTime:hh\\:mm}";
+
+            string daysText = RepeatDays != null && RepeatDays.Count > 0
+                ? string.Join(",", RepeatDays.OrderBy(d => (int)d).Select(d => DayNamesZh[(int)d]))
+                : "每天";
+            return $"{StartTime:hh\\:mm} - {EndTime:hh\\:mm} ({daysText})";
         }
 
         public string GetDaysDisplayText()
         {
-            if (Days == null || Days.Count == 0 || Days.Count == 7)
+            if (IsSpanMode)
+                return $"{DayNamesZh[(int)StartDay]} ~ {DayNamesZh[(int)EndDay]}";
+
+            if (RepeatDays == null || RepeatDays.Count == 0 || RepeatDays.Count == 7)
                 return "每天";
-
-            if (Days.Count == 5 && !Days.Contains(DayOfWeek.Saturday) && !Days.Contains(DayOfWeek.Sunday))
-                return "平日";
-
-            if (Days.Count == 2 && Days.Contains(DayOfWeek.Saturday) && Days.Contains(DayOfWeek.Sunday))
-                return "週末";
-
-            string[] dayNames = { "日", "一", "二", "三", "四", "五", "六" };
-            var sortedDays = Days.OrderBy(d => (int)d).Select(d => "週" + dayNames[(int)d]);
-            return string.Join(", ", sortedDays);
+            return string.Join(", ", RepeatDays.OrderBy(d => (int)d).Select(d => DayNamesZh[(int)d]));
         }
     }
 

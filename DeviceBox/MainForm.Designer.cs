@@ -29,12 +29,20 @@
         private void InitializeComponent()
         {
             this.panel1 = new System.Windows.Forms.Panel();
+            this.panel15 = new System.Windows.Forms.Panel();
+            this.power_col5 = new System.Windows.Forms.Label();
+            this.power_col4 = new System.Windows.Forms.Label();
+            this.power_col3 = new System.Windows.Forms.Label();
+            this.power_col2 = new System.Windows.Forms.Label();
+            this.power_col1 = new System.Windows.Forms.Label();
             this.panel14 = new System.Windows.Forms.Panel();
+            this.temp_col5 = new System.Windows.Forms.Label();
             this.temp_col4 = new System.Windows.Forms.Label();
             this.temp_col3 = new System.Windows.Forms.Label();
             this.temp_col2 = new System.Windows.Forms.Label();
             this.temp_col1 = new System.Windows.Forms.Label();
             this.panel13 = new System.Windows.Forms.Panel();
+            this.pressure_col5 = new System.Windows.Forms.Label();
             this.pressure_col4 = new System.Windows.Forms.Label();
             this.pressure_col3 = new System.Windows.Forms.Label();
             this.pressure_col2 = new System.Windows.Forms.Label();
@@ -82,6 +90,7 @@
             this.factory_col2 = new System.Windows.Forms.Label();
             this.factory_col1 = new System.Windows.Forms.Label();
             this.panel5 = new System.Windows.Forms.Panel();
+            this.label1 = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
             this.label14 = new System.Windows.Forms.Label();
@@ -96,16 +105,8 @@
             this.label3 = new System.Windows.Forms.Label();
             this.panel3 = new System.Windows.Forms.Panel();
             this.Factory = new System.Windows.Forms.Label();
-            this.label1 = new System.Windows.Forms.Label();
-            this.pressure_col5 = new System.Windows.Forms.Label();
-            this.temp_col5 = new System.Windows.Forms.Label();
-            this.panel15 = new System.Windows.Forms.Panel();
-            this.power_col4 = new System.Windows.Forms.Label();
-            this.power_col3 = new System.Windows.Forms.Label();
-            this.power_col2 = new System.Windows.Forms.Label();
-            this.power_col1 = new System.Windows.Forms.Label();
-            this.power_col5 = new System.Windows.Forms.Label();
             this.panel1.SuspendLayout();
+            this.panel15.SuspendLayout();
             this.panel14.SuspendLayout();
             this.panel13.SuspendLayout();
             this.panel12.SuspendLayout();
@@ -119,7 +120,6 @@
             this.panel2.SuspendLayout();
             this.panel4.SuspendLayout();
             this.panel3.SuspendLayout();
-            this.panel15.SuspendLayout();
             this.SuspendLayout();
             // 
             // panel1
@@ -143,6 +143,95 @@
             this.panel1.Size = new System.Drawing.Size(1008, 755);
             this.panel1.TabIndex = 0;
             // 
+            // panel15
+            // 
+            this.panel15.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
+            this.panel15.Controls.Add(this.power_col5);
+            this.panel15.Controls.Add(this.power_col4);
+            this.panel15.Controls.Add(this.power_col3);
+            this.panel15.Controls.Add(this.power_col2);
+            this.panel15.Controls.Add(this.power_col1);
+            this.panel15.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel15.Location = new System.Drawing.Point(200, 688);
+            this.panel15.Name = "panel15";
+            this.panel15.Size = new System.Drawing.Size(808, 64);
+            this.panel15.TabIndex = 13;
+            // 
+            // power_col5
+            // 
+            this.power_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.power_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.power_col5.Cursor = System.Windows.Forms.Cursors.Default;
+            this.power_col5.Dock = System.Windows.Forms.DockStyle.Left;
+            this.power_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.power_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.power_col5.Location = new System.Drawing.Point(644, 0);
+            this.power_col5.Name = "power_col5";
+            this.power_col5.Size = new System.Drawing.Size(164, 64);
+            this.power_col5.TabIndex = 21;
+            this.power_col5.Text = "0";
+            this.power_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // power_col4
+            // 
+            this.power_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.power_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.power_col4.Cursor = System.Windows.Forms.Cursors.Default;
+            this.power_col4.Dock = System.Windows.Forms.DockStyle.Left;
+            this.power_col4.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.power_col4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.power_col4.Location = new System.Drawing.Point(483, 0);
+            this.power_col4.Name = "power_col4";
+            this.power_col4.Size = new System.Drawing.Size(161, 64);
+            this.power_col4.TabIndex = 19;
+            this.power_col4.Text = "0";
+            this.power_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // power_col3
+            // 
+            this.power_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.power_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.power_col3.Cursor = System.Windows.Forms.Cursors.Default;
+            this.power_col3.Dock = System.Windows.Forms.DockStyle.Left;
+            this.power_col3.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.power_col3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.power_col3.Location = new System.Drawing.Point(322, 0);
+            this.power_col3.Name = "power_col3";
+            this.power_col3.Size = new System.Drawing.Size(161, 64);
+            this.power_col3.TabIndex = 18;
+            this.power_col3.Text = "0";
+            this.power_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // power_col2
+            // 
+            this.power_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.power_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.power_col2.Cursor = System.Windows.Forms.Cursors.Default;
+            this.power_col2.Dock = System.Windows.Forms.DockStyle.Left;
+            this.power_col2.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.power_col2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.power_col2.Location = new System.Drawing.Point(161, 0);
+            this.power_col2.Name = "power_col2";
+            this.power_col2.Size = new System.Drawing.Size(161, 64);
+            this.power_col2.TabIndex = 17;
+            this.power_col2.Text = "0";
+            this.power_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // power_col1
+            // 
+            this.power_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.power_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.power_col1.Cursor = System.Windows.Forms.Cursors.Default;
+            this.power_col1.Dock = System.Windows.Forms.DockStyle.Left;
+            this.power_col1.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.power_col1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.power_col1.Location = new System.Drawing.Point(0, 0);
+            this.power_col1.Name = "power_col1";
+            this.power_col1.Size = new System.Drawing.Size(161, 64);
+            this.power_col1.TabIndex = 16;
+            this.power_col1.Text = "0";
+            this.power_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // panel14
             // 
             this.panel14.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
@@ -156,6 +245,22 @@
             this.panel14.Name = "panel14";
             this.panel14.Size = new System.Drawing.Size(808, 64);
             this.panel14.TabIndex = 12;
+            // 
+            // temp_col5
+            // 
+            this.temp_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.temp_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.temp_col5.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.temp_col5.Dock = System.Windows.Forms.DockStyle.Left;
+            this.temp_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.temp_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.temp_col5.Location = new System.Drawing.Point(644, 0);
+            this.temp_col5.Name = "temp_col5";
+            this.temp_col5.Size = new System.Drawing.Size(164, 64);
+            this.temp_col5.TabIndex = 20;
+            this.temp_col5.Text = "0";
+            this.temp_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.temp_col5.Click += new System.EventHandler(this.TempCol_Click);
             // 
             // temp_col4
             // 
@@ -234,6 +339,22 @@
             this.panel13.Name = "panel13";
             this.panel13.Size = new System.Drawing.Size(808, 64);
             this.panel13.TabIndex = 11;
+            // 
+            // pressure_col5
+            // 
+            this.pressure_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.pressure_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pressure_col5.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.pressure_col5.Dock = System.Windows.Forms.DockStyle.Left;
+            this.pressure_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.pressure_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.pressure_col5.Location = new System.Drawing.Point(644, 0);
+            this.pressure_col5.Name = "pressure_col5";
+            this.pressure_col5.Size = new System.Drawing.Size(164, 64);
+            this.pressure_col5.TabIndex = 15;
+            this.pressure_col5.Text = "0";
+            this.pressure_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.pressure_col5.Click += new System.EventHandler(this.PressureCol_Click);
             // 
             // pressure_col4
             // 
@@ -919,6 +1040,20 @@
             this.panel5.Size = new System.Drawing.Size(200, 655);
             this.panel5.TabIndex = 1;
             // 
+            // label1
+            // 
+            this.label1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
+            this.label1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.label1.Dock = System.Windows.Forms.DockStyle.Top;
+            this.label1.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+            this.label1.Location = new System.Drawing.Point(0, 588);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(200, 64);
+            this.label1.TabIndex = 4;
+            this.label1.Text = "功率(kW)";
+            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // label16
             // 
             this.label16.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
@@ -1110,141 +1245,6 @@
             this.Factory.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.Factory.Click += new System.EventHandler(this.Factory_Click);
             // 
-            // label1
-            // 
-            this.label1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
-            this.label1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.label1.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label1.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.label1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label1.Location = new System.Drawing.Point(0, 588);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(200, 64);
-            this.label1.TabIndex = 4;
-            this.label1.Text = "功率(kW)";
-            this.label1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // pressure_col5
-            // 
-            this.pressure_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
-            this.pressure_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pressure_col5.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.pressure_col5.Dock = System.Windows.Forms.DockStyle.Left;
-            this.pressure_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.pressure_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
-            this.pressure_col5.Location = new System.Drawing.Point(644, 0);
-            this.pressure_col5.Name = "pressure_col5";
-            this.pressure_col5.Size = new System.Drawing.Size(164, 64);
-            this.pressure_col5.TabIndex = 15;
-            this.pressure_col5.Text = "0";
-            this.pressure_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.pressure_col5.Click += new System.EventHandler(this.PressureCol_Click);
-            // 
-            // temp_col5
-            // 
-            this.temp_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
-            this.temp_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.temp_col5.Cursor = System.Windows.Forms.Cursors.Hand;
-            this.temp_col5.Dock = System.Windows.Forms.DockStyle.Left;
-            this.temp_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.temp_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
-            this.temp_col5.Location = new System.Drawing.Point(644, 0);
-            this.temp_col5.Name = "temp_col5";
-            this.temp_col5.Size = new System.Drawing.Size(164, 64);
-            this.temp_col5.TabIndex = 20;
-            this.temp_col5.Text = "0";
-            this.temp_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.temp_col5.Click += new System.EventHandler(this.TempCol_Click);
-            // 
-            // panel15
-            // 
-            this.panel15.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.panel15.Controls.Add(this.power_col5);
-            this.panel15.Controls.Add(this.power_col4);
-            this.panel15.Controls.Add(this.power_col3);
-            this.panel15.Controls.Add(this.power_col2);
-            this.panel15.Controls.Add(this.power_col1);
-            this.panel15.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel15.Location = new System.Drawing.Point(200, 688);
-            this.panel15.Name = "panel15";
-            this.panel15.Size = new System.Drawing.Size(808, 64);
-            this.panel15.TabIndex = 13;
-            // 
-            // power_col4
-            // 
-            this.power_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
-            this.power_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.power_col4.Cursor = System.Windows.Forms.Cursors.Default;
-            this.power_col4.Dock = System.Windows.Forms.DockStyle.Left;
-            this.power_col4.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.power_col4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
-            this.power_col4.Location = new System.Drawing.Point(483, 0);
-            this.power_col4.Name = "power_col4";
-            this.power_col4.Size = new System.Drawing.Size(161, 64);
-            this.power_col4.TabIndex = 19;
-            this.power_col4.Text = "0";
-            this.power_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // power_col3
-            // 
-            this.power_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
-            this.power_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.power_col3.Cursor = System.Windows.Forms.Cursors.Default;
-            this.power_col3.Dock = System.Windows.Forms.DockStyle.Left;
-            this.power_col3.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.power_col3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
-            this.power_col3.Location = new System.Drawing.Point(322, 0);
-            this.power_col3.Name = "power_col3";
-            this.power_col3.Size = new System.Drawing.Size(161, 64);
-            this.power_col3.TabIndex = 18;
-            this.power_col3.Text = "0";
-            this.power_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // power_col2
-            // 
-            this.power_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
-            this.power_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.power_col2.Cursor = System.Windows.Forms.Cursors.Default;
-            this.power_col2.Dock = System.Windows.Forms.DockStyle.Left;
-            this.power_col2.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.power_col2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
-            this.power_col2.Location = new System.Drawing.Point(161, 0);
-            this.power_col2.Name = "power_col2";
-            this.power_col2.Size = new System.Drawing.Size(161, 64);
-            this.power_col2.TabIndex = 17;
-            this.power_col2.Text = "0";
-            this.power_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // power_col1
-            // 
-            this.power_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
-            this.power_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.power_col1.Cursor = System.Windows.Forms.Cursors.Default;
-            this.power_col1.Dock = System.Windows.Forms.DockStyle.Left;
-            this.power_col1.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.power_col1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
-            this.power_col1.Location = new System.Drawing.Point(0, 0);
-            this.power_col1.Name = "power_col1";
-            this.power_col1.Size = new System.Drawing.Size(161, 64);
-            this.power_col1.TabIndex = 16;
-            this.power_col1.Text = "0";
-            this.power_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
-            // power_col5
-            // 
-            this.power_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
-            this.power_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.power_col5.Cursor = System.Windows.Forms.Cursors.Default;
-            this.power_col5.Dock = System.Windows.Forms.DockStyle.Left;
-            this.power_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
-            this.power_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
-            this.power_col5.Location = new System.Drawing.Point(644, 0);
-            this.power_col5.Name = "power_col5";
-            this.power_col5.Size = new System.Drawing.Size(164, 64);
-            this.power_col5.TabIndex = 21;
-            this.power_col5.Text = "0";
-            this.power_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -1259,6 +1259,7 @@
             this.Text = "空壓系統即時狀態監控";
             this.Load += new System.EventHandler(this.MainForm_Load);
             this.panel1.ResumeLayout(false);
+            this.panel15.ResumeLayout(false);
             this.panel14.ResumeLayout(false);
             this.panel13.ResumeLayout(false);
             this.panel12.ResumeLayout(false);
@@ -1272,7 +1273,6 @@
             this.panel2.ResumeLayout(false);
             this.panel4.ResumeLayout(false);
             this.panel3.ResumeLayout(false);
-            this.panel15.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
