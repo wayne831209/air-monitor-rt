@@ -33,6 +33,8 @@ namespace DeviceBox
     {
         private static readonly string[] DayNamesZh = { "週日", "週一", "週二", "週三", "週四", "週五", "週六" };
 
+        /// <summary>true=跨日連續模式, false=重複模式（每個勾選的日各自 StartTime~EndTime）</summary>
+        public bool IsSpanMode { get; set; } = true;
         public DayOfWeek StartDay { get; set; } = DayOfWeek.Monday;
         public TimeSpan StartTime { get; set; } = TimeSpan.Zero;
         public DayOfWeek EndDay { get; set; } = DayOfWeek.Friday;
@@ -70,10 +72,10 @@ namespace DeviceBox
         /// </summary>
         public bool IsInRange(TimeSpan time, DayOfWeek day)
         {
-            // 重複模式：Days 有值時，用每天的 StartTime~EndTime 檢查
-            if (Days != null && Days.Count > 0)
+            // 重複模式：檢查當天是否在 Days 中，且時間在 StartTime~EndTime 之間
+            if (!IsSpanMode)
             {
-                if (!Days.Contains(day))
+                if (Days != null && Days.Count > 0 && !Days.Contains(day))
                     return false;
                 TimeSpan effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
                 if (StartTime <= EndTime)
@@ -117,8 +119,18 @@ namespace DeviceBox
         /// </summary>
         public string GetDisplayText()
         {
-            return DayNamesZh[(int)StartDay] + " " + StartTime.ToString(@"hh\:mm") + " - " +
-                   DayNamesZh[(int)EndDay] + " " + EndTime.ToString(@"hh\:mm");
+            if (IsSpanMode)
+            {
+                return DayNamesZh[(int)StartDay] + " " + StartTime.ToString(@"hh\:mm") + " - " +
+                       DayNamesZh[(int)EndDay] + " " + EndTime.ToString(@"hh\:mm");
+            }
+            else
+            {
+                string daysText = Days != null && Days.Count > 0
+                    ? string.Join(",", Days.OrderBy(d => (int)d).Select(d => DayNamesZh[(int)d]))
+                    : "每天";
+                return StartTime.ToString(@"hh\:mm") + "-" + EndTime.ToString(@"hh\:mm") + " (" + daysText + ")";
+            }
         }
 
         /// <summary>
@@ -128,6 +140,7 @@ namespace DeviceBox
         {
             return new ScheduleTimeRange(StartTime, EndTime, Days)
             {
+                IsSpanMode = this.IsSpanMode,
                 StartDay = this.StartDay,
                 EndDay = this.EndDay
             };
@@ -514,6 +527,12 @@ namespace DeviceBox
                 foreach (var rangeElement in timeRangeElements)
                 {
                     var range = new ScheduleTimeRange();
+                    if (rangeElement.Attribute("isSpanMode") != null)
+                    {
+                        bool sm;
+                        if (bool.TryParse(rangeElement.Attribute("isSpanMode").Value, out sm))
+                            range.IsSpanMode = sm;
+                    }
                     if (rangeElement.Attribute("startDay") != null)
                     {
                         DayOfWeek sd;

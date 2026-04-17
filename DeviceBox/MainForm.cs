@@ -890,7 +890,9 @@ namespace DeviceBox
 
         private void label4_Click(object sender, EventArgs e)
         {
-            TrendChart trendChart = new TrendChart();
+            var factories = GetCurrentViewFactories();
+            var factoryIds = new HashSet<int>(factories.Select(f => f.Id));
+            TrendChart trendChart = new TrendChart(factoryIds);
             trendChart.Show();
         }
 

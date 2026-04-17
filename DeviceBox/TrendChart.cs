@@ -16,6 +16,7 @@ namespace DeviceBox
         private Config _config;
         private Timer _currentTimeTimer;
         private List<GanttRowInfo> _ganttRows = new List<GanttRowInfo>();
+        private HashSet<int> _factoryIdFilter = null;  // null = show all
 
         // 設計常數
         private const int ROW_HEIGHT = 45;
@@ -36,6 +37,17 @@ namespace DeviceBox
             LoadConfiguration();
             InitializeGanttChart();
             StartCurrentTimeTimer();
+        }
+
+        /// <summary>
+        /// 建構子：可傳入要顯示的工廠 ID 集合，null 表示顯示全部
+        /// </summary>
+        public TrendChart(HashSet<int> factoryIdFilter) : this()
+        {
+            _factoryIdFilter = factoryIdFilter;
+            BuildGanttData();
+            PopulateDeviceLabels();
+            panelGanttChart?.Invalidate();
         }
 
         private void LoadConfiguration()
@@ -63,6 +75,10 @@ namespace DeviceBox
 
             foreach (var factory in _config.Factories)
             {
+                // 如果有設定篩選條件，只顯示符合的工廠
+                if (_factoryIdFilter != null && !_factoryIdFilter.Contains(factory.Id))
+                    continue;
+
                 // 取得該工廠所有有排程的壓縮機
                 var compressorsWithSchedule = factory.Devices
                     .Where(d => d.Type == DeviceType.Compressor && d.Enabled && d.Schedule != null && d.Schedule.Enabled)
@@ -228,42 +244,123 @@ namespace DeviceBox
 
             if (device.Schedule != null && device.Schedule.Enabled && device.Schedule.TimeRanges != null)
             {
-                // 取得今天是星期幾
                 DayOfWeek today = DateTime.Now.DayOfWeek;
 
                 using (Brush runBrush = new SolidBrush(RunningColor))
                 {
-                    // 繪製每一個時間段
                     foreach (var range in device.Schedule.TimeRanges)
                     {
-                        // 檢查今天是否在該時間段的星期設定中
-                        if (range.Days != null && range.Days.Count > 0 && !range.Days.Contains(today))
-                            continue;
-
-                        TimeSpan startTime = range.StartTime;
-                        TimeSpan endTime = range.EndTime;
-
-                        float startX = (float)(startTime.TotalHours * hourWidth);
-                        float endX = (float)(endTime.TotalHours * hourWidth);
-
-                        if (startTime <= endTime)
+                        double dayStartHour, dayEndHour;
+                        if (GetTodayActiveRange(range, today, out dayStartHour, out dayEndHour))
                         {
-                            // 正常情況
+                            float startX = (float)(dayStartHour * hourWidth);
+                            float endX = (float)(dayEndHour * hourWidth);
                             float barWidth = endX - startX;
-                            g.FillRectangle(runBrush, startX + 2, y + 8, barWidth - 2, ROW_HEIGHT - 16);
 
-                            // 時間標籤
-                            DrawTimeLabel(g, startTime, endTime, startX, y, barWidth);
-                        }
-                        else
-                        {
-                            // 跨午夜
-                            g.FillRectangle(runBrush, startX + 2, y + 8, chartWidth - startX - 2, ROW_HEIGHT - 16);
-                            g.FillRectangle(runBrush, 2, y + 8, endX - 2, ROW_HEIGHT - 16);
+                            if (barWidth > 0)
+                            {
+                                g.FillRectangle(runBrush, startX + 2, y + 8, barWidth - 2, ROW_HEIGHT - 16);
+
+                                // 時間標籤
+                                TimeSpan displayStart = TimeSpan.FromHours(dayStartHour);
+                                TimeSpan displayEnd = TimeSpan.FromHours(Math.Min(dayEndHour, 23.983)); // 23:59
+                                DrawTimeLabel(g, displayStart, displayEnd, startX, y, barWidth);
+                            }
                         }
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 判斷今天在某個 ScheduleTimeRange 中的實際運轉時段
+        /// 支援跨日模式（StartDay/EndDay）和重複模式（Days 清單）
+        /// 
+        /// 跨日模式範例：StartDay=Monday 08:00, EndDay=Wednesday 17:00
+        ///   Monday    → 08:00~24:00
+        ///   Tuesday   → 00:00~24:00（全天）
+        ///   Wednesday → 00:00~17:00
+        ///   其他天    → 不運轉
+        /// 
+        /// 重複模式範例：Days=[Monday,Tuesday], StartTime=08:00, EndTime=17:00
+        ///   Monday    → 08:00~17:00
+        ///   Tuesday   → 08:00~17:00
+        ///   其他天    → 不運轉
+        /// </summary>
+        private bool GetTodayActiveRange(ScheduleTimeRange range, DayOfWeek today, out double startHour, out double endHour)
+        {
+            startHour = 0;
+            endHour = 0;
+
+            // 重複模式：用 IsSpanMode 判斷，而非 Days.Count
+            if (!range.IsSpanMode)
+            {
+                if (range.Days != null && range.Days.Count > 0 && !range.Days.Contains(today))
+                    return false;
+
+                startHour = range.StartTime.TotalHours;
+                endHour = range.EndTime.TotalHours;
+
+                // 處理跨午夜（例如 22:00~06:00）：當天只顯示到24點
+                if (endHour <= startHour)
+                    endHour = 24;
+
+                return endHour > startHour;
+            }
+
+            // 跨日模式：根據 StartDay/EndDay 判斷今天的運轉區間
+            int sd = (int)range.StartDay;
+            int ed = (int)range.EndDay;
+            int d = (int)today;
+
+            // 判斷今天是否在跨日範圍內
+            bool isDayInSpan;
+            if (sd <= ed)
+                isDayInSpan = d >= sd && d <= ed;
+            else
+                isDayInSpan = d >= sd || d <= ed;
+
+            if (!isDayInSpan)
+                return false;
+
+            bool isStartDay = d == sd;
+            bool isEndDay = d == ed;
+
+            if (isStartDay && isEndDay)
+            {
+                // 同一天開始和結束
+                if (sd <= ed)
+                {
+                    startHour = range.StartTime.TotalHours;
+                    endHour = range.EndTime.TotalHours;
+                }
+                else
+                {
+                    // 跨週且同一天（例如 Wed 20:00 ~ Wed 08:00，運轉6天24小時+這天的部分）
+                    startHour = 0;
+                    endHour = 24;
+                }
+            }
+            else if (isStartDay)
+            {
+                // 開始日：從 StartTime 到 24:00
+                startHour = range.StartTime.TotalHours;
+                endHour = 24;
+            }
+            else if (isEndDay)
+            {
+                // 結束日：從 00:00 到 EndTime
+                startHour = 0;
+                endHour = range.EndTime.TotalHours;
+            }
+            else
+            {
+                // 中間日：全天 00:00~24:00
+                startHour = 0;
+                endHour = 24;
+            }
+
+            return endHour > startHour;
         }
 
         private void DrawTimeLabel(Graphics g, TimeSpan startTime, TimeSpan endTime, float x, int y, float width)

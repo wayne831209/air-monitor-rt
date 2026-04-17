@@ -481,14 +481,16 @@ namespace DeviceBox
                             scheduleElement.SetAttributeValue("enabled", "true");
 
                             var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("isSpanMode", schedule.IsSpanMode.ToString().ToLower());
                             rangeElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
                             rangeElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
                             rangeElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
                             rangeElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
 
-                            if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
+                            // 只有重複模式才寫 days
+                            if (!schedule.IsSpanMode && schedule.RepeatDays != null && schedule.RepeatDays.Count > 0)
                             {
-                                string daysStr = string.Join(",", schedule.Days.Select(d => (int)d));
+                                string daysStr = string.Join(",", schedule.RepeatDays.Select(d => (int)d));
                                 rangeElement.SetAttributeValue("days", daysStr);
                             }
 
@@ -726,14 +728,16 @@ namespace DeviceBox
                             scheduleElement.SetAttributeValue("enabled", "true");
 
                             var rangeElement = new XElement("TimeRange");
+                            rangeElement.SetAttributeValue("isSpanMode", schedule.IsSpanMode.ToString().ToLower());
                             rangeElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
                             rangeElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
                             rangeElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
                             rangeElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
 
-                            if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
+                            // 只有重複模式才寫 days
+                            if (!schedule.IsSpanMode && schedule.RepeatDays != null && schedule.RepeatDays.Count > 0)
                             {
-                                string daysStr = string.Join(",", schedule.Days.Select(d => (int)d));
+                                string daysStr = string.Join(",", schedule.RepeatDays.Select(d => (int)d));
                                 rangeElement.SetAttributeValue("days", daysStr);
                             }
 
@@ -777,15 +781,17 @@ namespace DeviceBox
                         scheduleElement.SetAttributeValue("deviceName", schedule.DeviceName);
                         scheduleElement.SetAttributeValue("machineNo", schedule.MachineNo);
                         scheduleElement.SetAttributeValue("enabled", schedule.Enabled.ToString().ToLower());
+                        scheduleElement.SetAttributeValue("isSpanMode", schedule.IsSpanMode.ToString().ToLower());
                         scheduleElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
                         scheduleElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
                         scheduleElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
                         scheduleElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
 
-                        if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
+                        if (!schedule.IsSpanMode && schedule.RepeatDays != null && schedule.RepeatDays.Count > 0)
                         {
-                            string daysStr = string.Join(",", schedule.Days.Select(d => (int)d));
+                            string daysStr = string.Join(",", schedule.RepeatDays.Select(d => (int)d));
                             scheduleElement.SetAttributeValue("days", daysStr);
+                            scheduleElement.SetAttributeValue("repeatDays", daysStr);
                         }
 
                         modeElement.Add(scheduleElement);
