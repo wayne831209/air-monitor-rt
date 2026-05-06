@@ -225,6 +225,7 @@ namespace DeviceBox
             Label[] deviceNameLabels = { device_col1, device_col2, device_col3, device_col4, device_col5 };
             Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
             Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
+            Label[] readyRemoteLabels = { ready_remote_col1, ready_remote_col2, ready_remote_col3, ready_remote_col4, ready_remote_col5 };
             Label[] precoolerLabels = { precooler_col1, precooler_col2, precooler_col3, precooler_col4, precooler_col5 };
             Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
             Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
@@ -282,6 +283,15 @@ namespace DeviceBox
                     UpdateLabel(statusLabels[colIndex], status.Text, status.Color);
                     UpdateScheduleLabel(scheduleLabels[colIndex], new List<DeviceConfig> { compressor });
 
+                    // 備妥 / 遠端 (從 config IO 設定讀取)
+                    bool isReady = GetDIValue(modbus, 15 + compressor.IO.IsReadyDI);
+                    bool isRemote = GetDIValue(modbus, 15 + compressor.IO.IsRemoteDI);
+                    string readyText = isReady ? "ON" : "OFF";
+                    string remoteText = isRemote ? "ON" : "OFF";
+                    Color readyColor = isReady ? StatusRunning : StatusStopped;
+                    Color remoteColor = isRemote ? StatusRunning : StatusStopped;
+                    UpdateLabel(readyRemoteLabels[colIndex], "備妥:" + readyText + "\n遠端:" + remoteText, isReady && isRemote ? StatusRunning : (isReady || isRemote ? Color.Yellow : StatusStopped));
+
                     // Common devices - show same values in all compressor columns
                     UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
                     UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
@@ -336,6 +346,17 @@ namespace DeviceBox
                         }
 
                         UpdateScheduleLabel(scheduleLabels[colIndex], compressors);
+
+                        // 備妥 / 遠端 (從 config IO 設定讀取)
+                        var firstCompressor = compressors.FirstOrDefault();
+                        int readyDI = firstCompressor != null && firstCompressor.IO.IsReadyDI >= 0 ? 15 + firstCompressor.IO.IsReadyDI : -1;
+                        int remoteDI = firstCompressor != null && firstCompressor.IO.IsRemoteDI >= 0 ? 15 + firstCompressor.IO.IsRemoteDI : -1;
+                        bool isReady = GetDIValue(modbus, readyDI);
+                        bool isRemote = GetDIValue(modbus, remoteDI);
+                        string readyText = isReady ? "OFF" : "ON";
+                        string remoteText = isRemote ? "OFF" : "ON";
+                        UpdateLabel(readyRemoteLabels[colIndex], "備妥:" + readyText + "\n遠端:" + remoteText, !isReady && !isRemote ? StatusRunning : (!isReady || !isRemote ? Color.Yellow : StatusStopped));
+
                         UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
                         UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
                         UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
@@ -451,6 +472,12 @@ namespace DeviceBox
                 case 13: return modbus.address_val.Address_4051_DI_13 == "1";
                 case 14: return modbus.address_val.Address_4051_DI_14 == "1";
                 case 15: return modbus.address_val.Address_4051_DI_15 == "1";
+                case 16: return modbus.address_val.Address_4050_DI_1 == "1";
+                case 17: return modbus.address_val.Address_4050_DI_2 == "1";
+                case 18: return modbus.address_val.Address_4050_DI_3 == "1";
+                case 19: return modbus.address_val.Address_4050_DI_4 == "1";
+                case 20: return modbus.address_val.Address_4050_DI_5 == "1";
+                case 21: return modbus.address_val.Address_4050_DI_6 == "1";
                 default: return false;
             }
         }
@@ -735,6 +762,7 @@ namespace DeviceBox
             Label[] deviceNameLabels = { device_col1, device_col2, device_col3, device_col4, device_col5 };
             Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
             Label[] statusLabels = { status_col1, status_col2, status_col3, status_col4, status_col5 };
+            Label[] readyRemoteLabels = { ready_remote_col1, ready_remote_col2, ready_remote_col3, ready_remote_col4, ready_remote_col5 };
             Label[] precoolerLabels = { precooler_col1, precooler_col2, precooler_col3, precooler_col4, precooler_col5 };
             Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
             Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
@@ -774,6 +802,7 @@ namespace DeviceBox
                             UpdateLabel(deviceNameLabels[i], "--", StatusDisabled);
                             UpdateLabelWithBackground(scheduleLabels[i], "--", TextNormal, StatusDisabled);
                             UpdateLabel(statusLabels[i], "--", StatusDisabled);
+                            UpdateLabel(readyRemoteLabels[i], "--", StatusDisabled);
                             UpdateLabel(precoolerLabels[i], "--", StatusDisabled);
                             UpdateLabel(dryerLabels[i], "--", StatusDisabled);
                             UpdateLabel(fanLabels[i], "--", StatusDisabled);

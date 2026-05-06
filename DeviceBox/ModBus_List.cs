@@ -103,7 +103,7 @@ namespace DeviceBox
                     ushort[] holding_register = null;
                     if (ConnectState)
                     {
-                        holding_register = master_tcp.ReadHoldingRegisters(1, 0, 50);
+                        holding_register = master_tcp.ReadHoldingRegisters(1, 1000, 50);
 
                         address_val.Address_4051_DI_0 = holding_register[3].ToString();
                         address_val.Address_4051_DI_1 = holding_register[4].ToString();
@@ -237,9 +237,9 @@ namespace DeviceBox
 
             try
             {
-                // DO_0 對應 holding register 30, DO_1=31, DO_2=32 ...
-                ushort registerAddress = (ushort)(30 + doNumber);
-                //master_tcp.WriteSingleRegister(1, registerAddress, value);
+                // DO_0 對應 holding register 1030, DO_1=1031, DO_2=1032 ...
+                ushort registerAddress = (ushort)(1030 + doNumber);
+                master_tcp.WriteSingleRegister(1, registerAddress, value);
                 System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO: DO_{doNumber} (register {registerAddress}) = {value}");
                 return true;
             }

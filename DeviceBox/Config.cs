@@ -77,7 +77,10 @@ namespace DeviceBox
             {
                 if (Days != null && Days.Count > 0 && !Days.Contains(day))
                     return false;
-                TimeSpan effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
+                TimeSpan effectiveEnd = EndTime;
+                if (EndTime.Minutes == 59)
+                    effectiveEnd = EndTime.Add(TimeSpan.FromSeconds(59));
+
                 if (StartTime <= EndTime)
                     return time >= StartTime && time <= effectiveEnd;
                 else
@@ -226,6 +229,8 @@ namespace DeviceBox
         public int OffDI { get; set; } = -1;      // Off DI (Other devices)
         public int ReadyDI { get; set; } = -1;    // Ready DI
         public int ControlDO { get; set; } = -1;  // Control DO (排程控制輸出)
+        public int IsReadyDI { get; set; } = -1;   // IsReady DI
+        public int IsRemoteDI { get; set; } = -1;  // IsRemote DI
         public string Adam { get; set; } = "4051"; // ADAM Module
     }
 
@@ -504,6 +509,10 @@ namespace DeviceBox
                 io.ReadyDI = int.Parse(element.Attribute("readyDI").Value);
             if (element.Attribute("controlDO") != null)
                 io.ControlDO = int.Parse(element.Attribute("controlDO").Value);
+            if (element.Attribute("isReady") != null)
+                io.IsReadyDI = int.Parse(element.Attribute("isReady").Value);
+            if (element.Attribute("isRemote") != null)
+                io.IsRemoteDI = int.Parse(element.Attribute("isRemote").Value);
             if (element.Attribute("adam") != null)
                 io.Adam = element.Attribute("adam").Value;
 

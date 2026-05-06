@@ -77,6 +77,12 @@
             this.schedule_col3 = new System.Windows.Forms.Label();
             this.schedule_col2 = new System.Windows.Forms.Label();
             this.schedule_col1 = new System.Windows.Forms.Label();
+            this.panel16 = new System.Windows.Forms.Panel();
+            this.ready_remote_col5 = new System.Windows.Forms.Label();
+            this.ready_remote_col4 = new System.Windows.Forms.Label();
+            this.ready_remote_col3 = new System.Windows.Forms.Label();
+            this.ready_remote_col2 = new System.Windows.Forms.Label();
+            this.ready_remote_col1 = new System.Windows.Forms.Label();
             this.panel7 = new System.Windows.Forms.Panel();
             this.device_col5 = new System.Windows.Forms.Label();
             this.device_col4 = new System.Windows.Forms.Label();
@@ -114,6 +120,7 @@
             this.panel10.SuspendLayout();
             this.panel9.SuspendLayout();
             this.panel8.SuspendLayout();
+            this.panel16.SuspendLayout();
             this.panel7.SuspendLayout();
             this.panel11.SuspendLayout();
             this.panel5.SuspendLayout();
@@ -133,6 +140,7 @@
             this.panel1.Controls.Add(this.panel10);
             this.panel1.Controls.Add(this.panel9);
             this.panel1.Controls.Add(this.panel8);
+            this.panel1.Controls.Add(this.panel16);
             this.panel1.Controls.Add(this.panel7);
             this.panel1.Controls.Add(this.panel11);
             this.panel1.Controls.Add(this.panel5);
@@ -140,7 +148,7 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1008, 755);
+            this.panel1.Size = new System.Drawing.Size(1008, 809);
             this.panel1.TabIndex = 0;
             // 
             // panel15
@@ -152,7 +160,7 @@
             this.panel15.Controls.Add(this.power_col2);
             this.panel15.Controls.Add(this.power_col1);
             this.panel15.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel15.Location = new System.Drawing.Point(200, 688);
+            this.panel15.Location = new System.Drawing.Point(200, 738);
             this.panel15.Name = "panel15";
             this.panel15.Size = new System.Drawing.Size(808, 64);
             this.panel15.TabIndex = 13;
@@ -241,7 +249,7 @@
             this.panel14.Controls.Add(this.temp_col2);
             this.panel14.Controls.Add(this.temp_col1);
             this.panel14.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel14.Location = new System.Drawing.Point(200, 624);
+            this.panel14.Location = new System.Drawing.Point(200, 674);
             this.panel14.Name = "panel14";
             this.panel14.Size = new System.Drawing.Size(808, 64);
             this.panel14.TabIndex = 12;
@@ -335,7 +343,7 @@
             this.panel13.Controls.Add(this.pressure_col2);
             this.panel13.Controls.Add(this.pressure_col1);
             this.panel13.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel13.Location = new System.Drawing.Point(200, 560);
+            this.panel13.Location = new System.Drawing.Point(200, 610);
             this.panel13.Name = "panel13";
             this.panel13.Size = new System.Drawing.Size(808, 64);
             this.panel13.TabIndex = 11;
@@ -429,7 +437,7 @@
             this.panel12.Controls.Add(this.fan_col2);
             this.panel12.Controls.Add(this.fan_col1);
             this.panel12.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel12.Location = new System.Drawing.Point(200, 496);
+            this.panel12.Location = new System.Drawing.Point(200, 546);
             this.panel12.Name = "panel12";
             this.panel12.Size = new System.Drawing.Size(808, 64);
             this.panel12.TabIndex = 10;
@@ -513,7 +521,7 @@
             this.panel6.Controls.Add(this.dryer_col2);
             this.panel6.Controls.Add(this.dryer_col1);
             this.panel6.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel6.Location = new System.Drawing.Point(200, 432);
+            this.panel6.Location = new System.Drawing.Point(200, 482);
             this.panel6.Name = "panel6";
             this.panel6.Size = new System.Drawing.Size(808, 64);
             this.panel6.TabIndex = 9;
@@ -597,7 +605,7 @@
             this.panel10.Controls.Add(this.precooler_col2);
             this.panel10.Controls.Add(this.precooler_col1);
             this.panel10.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel10.Location = new System.Drawing.Point(200, 368);
+            this.panel10.Location = new System.Drawing.Point(200, 418);
             this.panel10.Name = "panel10";
             this.panel10.Size = new System.Drawing.Size(808, 64);
             this.panel10.TabIndex = 8;
@@ -681,7 +689,7 @@
             this.panel9.Controls.Add(this.status_col2);
             this.panel9.Controls.Add(this.status_col1);
             this.panel9.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel9.Location = new System.Drawing.Point(200, 300);
+            this.panel9.Location = new System.Drawing.Point(200, 350);
             this.panel9.Name = "panel9";
             this.panel9.Size = new System.Drawing.Size(808, 68);
             this.panel9.TabIndex = 7;
@@ -770,7 +778,7 @@
             this.panel8.Controls.Add(this.schedule_col2);
             this.panel8.Controls.Add(this.schedule_col1);
             this.panel8.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel8.Location = new System.Drawing.Point(200, 232);
+            this.panel8.Location = new System.Drawing.Point(200, 282);
             this.panel8.Name = "panel8";
             this.panel8.Size = new System.Drawing.Size(808, 68);
             this.panel8.TabIndex = 6;
@@ -844,6 +852,90 @@
             this.schedule_col1.TabIndex = 11;
             this.schedule_col1.Text = "時間排程";
             this.schedule_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // panel16
+            // 
+            this.panel16.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.panel16.Controls.Add(this.ready_remote_col5);
+            this.panel16.Controls.Add(this.ready_remote_col4);
+            this.panel16.Controls.Add(this.ready_remote_col3);
+            this.panel16.Controls.Add(this.ready_remote_col2);
+            this.panel16.Controls.Add(this.ready_remote_col1);
+            this.panel16.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel16.Location = new System.Drawing.Point(200, 232);
+            this.panel16.Name = "panel16";
+            this.panel16.Size = new System.Drawing.Size(808, 50);
+            this.panel16.TabIndex = 14;
+            // 
+            // ready_remote_col5
+            // 
+            this.ready_remote_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.ready_remote_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.ready_remote_col5.Dock = System.Windows.Forms.DockStyle.Left;
+            this.ready_remote_col5.Font = new System.Drawing.Font("微軟正黑體", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.ready_remote_col5.ForeColor = System.Drawing.Color.White;
+            this.ready_remote_col5.Location = new System.Drawing.Point(644, 0);
+            this.ready_remote_col5.Name = "ready_remote_col5";
+            this.ready_remote_col5.Size = new System.Drawing.Size(164, 50);
+            this.ready_remote_col5.TabIndex = 4;
+            this.ready_remote_col5.Text = "備妥:-- / 遠端:--";
+            this.ready_remote_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // ready_remote_col4
+            // 
+            this.ready_remote_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.ready_remote_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.ready_remote_col4.Dock = System.Windows.Forms.DockStyle.Left;
+            this.ready_remote_col4.Font = new System.Drawing.Font("微軟正黑體", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.ready_remote_col4.ForeColor = System.Drawing.Color.White;
+            this.ready_remote_col4.Location = new System.Drawing.Point(483, 0);
+            this.ready_remote_col4.Name = "ready_remote_col4";
+            this.ready_remote_col4.Size = new System.Drawing.Size(161, 50);
+            this.ready_remote_col4.TabIndex = 3;
+            this.ready_remote_col4.Text = "備妥:-- / 遠端:--";
+            this.ready_remote_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // ready_remote_col3
+            // 
+            this.ready_remote_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.ready_remote_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.ready_remote_col3.Dock = System.Windows.Forms.DockStyle.Left;
+            this.ready_remote_col3.Font = new System.Drawing.Font("微軟正黑體", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.ready_remote_col3.ForeColor = System.Drawing.Color.White;
+            this.ready_remote_col3.Location = new System.Drawing.Point(322, 0);
+            this.ready_remote_col3.Name = "ready_remote_col3";
+            this.ready_remote_col3.Size = new System.Drawing.Size(161, 50);
+            this.ready_remote_col3.TabIndex = 2;
+            this.ready_remote_col3.Text = "備妥:-- / 遠端:--";
+            this.ready_remote_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // ready_remote_col2
+            // 
+            this.ready_remote_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.ready_remote_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.ready_remote_col2.Dock = System.Windows.Forms.DockStyle.Left;
+            this.ready_remote_col2.Font = new System.Drawing.Font("微軟正黑體", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.ready_remote_col2.ForeColor = System.Drawing.Color.White;
+            this.ready_remote_col2.Location = new System.Drawing.Point(161, 0);
+            this.ready_remote_col2.Name = "ready_remote_col2";
+            this.ready_remote_col2.Size = new System.Drawing.Size(161, 50);
+            this.ready_remote_col2.TabIndex = 1;
+            this.ready_remote_col2.Text = "備妥:-- / 遠端:--";
+            this.ready_remote_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // ready_remote_col1
+            // 
+            this.ready_remote_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.ready_remote_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.ready_remote_col1.Dock = System.Windows.Forms.DockStyle.Left;
+            this.ready_remote_col1.Font = new System.Drawing.Font("微軟正黑體", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.ready_remote_col1.ForeColor = System.Drawing.Color.White;
+            this.ready_remote_col1.Location = new System.Drawing.Point(0, 0);
+            this.ready_remote_col1.Name = "ready_remote_col1";
+            this.ready_remote_col1.Size = new System.Drawing.Size(161, 50);
+            this.ready_remote_col1.TabIndex = 0;
+            this.ready_remote_col1.Text = "備妥:-- / 遠端:--";
+            this.ready_remote_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // panel7
             // 
@@ -1037,7 +1129,7 @@
             this.panel5.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel5.Location = new System.Drawing.Point(0, 100);
             this.panel5.Name = "panel5";
-            this.panel5.Size = new System.Drawing.Size(200, 655);
+            this.panel5.Size = new System.Drawing.Size(200, 709);
             this.panel5.TabIndex = 1;
             // 
             // label1
@@ -1047,7 +1139,7 @@
             this.label1.Dock = System.Windows.Forms.DockStyle.Top;
             this.label1.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label1.Location = new System.Drawing.Point(0, 588);
+            this.label1.Location = new System.Drawing.Point(0, 638);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(200, 64);
             this.label1.TabIndex = 4;
@@ -1061,7 +1153,7 @@
             this.label16.Dock = System.Windows.Forms.DockStyle.Top;
             this.label16.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label16.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label16.Location = new System.Drawing.Point(0, 524);
+            this.label16.Location = new System.Drawing.Point(0, 574);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(200, 64);
             this.label16.TabIndex = 3;
@@ -1075,7 +1167,7 @@
             this.label15.Dock = System.Windows.Forms.DockStyle.Top;
             this.label15.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label15.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label15.Location = new System.Drawing.Point(0, 460);
+            this.label15.Location = new System.Drawing.Point(0, 510);
             this.label15.Name = "label15";
             this.label15.Size = new System.Drawing.Size(200, 64);
             this.label15.TabIndex = 2;
@@ -1089,7 +1181,7 @@
             this.label14.Dock = System.Windows.Forms.DockStyle.Top;
             this.label14.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label14.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label14.Location = new System.Drawing.Point(0, 396);
+            this.label14.Location = new System.Drawing.Point(0, 446);
             this.label14.Name = "label14";
             this.label14.Size = new System.Drawing.Size(200, 64);
             this.label14.TabIndex = 2;
@@ -1103,7 +1195,7 @@
             this.label13.Dock = System.Windows.Forms.DockStyle.Top;
             this.label13.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label13.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label13.Location = new System.Drawing.Point(0, 332);
+            this.label13.Location = new System.Drawing.Point(0, 382);
             this.label13.Name = "label13";
             this.label13.Size = new System.Drawing.Size(200, 64);
             this.label13.TabIndex = 2;
@@ -1117,7 +1209,7 @@
             this.label12.Dock = System.Windows.Forms.DockStyle.Top;
             this.label12.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label12.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label12.Location = new System.Drawing.Point(0, 268);
+            this.label12.Location = new System.Drawing.Point(0, 318);
             this.label12.Name = "label12";
             this.label12.Size = new System.Drawing.Size(200, 64);
             this.label12.TabIndex = 1;
@@ -1133,7 +1225,7 @@
             this.label11.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.label11.Location = new System.Drawing.Point(0, 64);
             this.label11.Name = "label11";
-            this.label11.Size = new System.Drawing.Size(200, 204);
+            this.label11.Size = new System.Drawing.Size(200, 254);
             this.label11.TabIndex = 1;
             this.label11.Text = "空壓設備";
             this.label11.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -1250,7 +1342,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.ClientSize = new System.Drawing.Size(1008, 755);
+            this.ClientSize = new System.Drawing.Size(1008, 809);
             this.Controls.Add(this.panel1);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -1267,6 +1359,7 @@
             this.panel10.ResumeLayout(false);
             this.panel9.ResumeLayout(false);
             this.panel8.ResumeLayout(false);
+            this.panel16.ResumeLayout(false);
             this.panel7.ResumeLayout(false);
             this.panel11.ResumeLayout(false);
             this.panel5.ResumeLayout(false);
@@ -1356,5 +1449,11 @@
         private System.Windows.Forms.Label temp_col5;
         private System.Windows.Forms.Label pressure_col5;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Panel panel16;
+        private System.Windows.Forms.Label ready_remote_col1;
+        private System.Windows.Forms.Label ready_remote_col2;
+        private System.Windows.Forms.Label ready_remote_col3;
+        private System.Windows.Forms.Label ready_remote_col4;
+        private System.Windows.Forms.Label ready_remote_col5;
     }
 }
