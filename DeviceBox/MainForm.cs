@@ -284,8 +284,8 @@ namespace DeviceBox
                     UpdateScheduleLabel(scheduleLabels[colIndex], new List<DeviceConfig> { compressor });
 
                     // 備妥 / 遠端 (從 config IO 設定讀取)
-                    bool isReady = GetDIValue(modbus, 15 + compressor.IO.IsReadyDI);
-                    bool isRemote = GetDIValue(modbus, 15 + compressor.IO.IsRemoteDI);
+                    bool isReady = !GetDIValue(modbus, 15 + compressor.IO.IsReadyDI);
+                    bool isRemote = !GetDIValue(modbus, 15 + compressor.IO.IsRemoteDI);
                     string readyText = isReady ? "ON" : "OFF";
                     string remoteText = isRemote ? "ON" : "OFF";
                     Color readyColor = isReady ? StatusRunning : StatusStopped;
@@ -351,11 +351,11 @@ namespace DeviceBox
                         var firstCompressor = compressors.FirstOrDefault();
                         int readyDI = firstCompressor != null && firstCompressor.IO.IsReadyDI >= 0 ? 15 + firstCompressor.IO.IsReadyDI : -1;
                         int remoteDI = firstCompressor != null && firstCompressor.IO.IsRemoteDI >= 0 ? 15 + firstCompressor.IO.IsRemoteDI : -1;
-                        bool isReady = GetDIValue(modbus, readyDI);
-                        bool isRemote = GetDIValue(modbus, remoteDI);
-                        string readyText = isReady ? "OFF" : "ON";
-                        string remoteText = isRemote ? "OFF" : "ON";
-                        UpdateLabel(readyRemoteLabels[colIndex], "備妥:" + readyText + "\n遠端:" + remoteText, !isReady && !isRemote ? StatusRunning : (!isReady || !isRemote ? Color.Yellow : StatusStopped));
+                        bool isReady = !GetDIValue(modbus, readyDI);
+                        bool isRemote = !GetDIValue(modbus, remoteDI);
+                        string readyText = isReady ? "ON" : "OFF";
+                        string remoteText = isRemote ? "ON" : "OFF";
+                        UpdateLabel(readyRemoteLabels[colIndex], "備妥:" + readyText + "\n遠端:" + remoteText, isReady && isRemote ? StatusRunning : (isReady || isRemote ? Color.Yellow : StatusStopped));
 
                         UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
                         UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
