@@ -244,12 +244,10 @@ namespace DeviceBox
         public string Name { get; set; }
         public bool Enabled { get; set; }
         public IOConfig IO { get; set; }
-        public ScheduleConfig Schedule { get; set; }
 
         public DeviceConfig()
         {
             IO = new IOConfig();
-            Schedule = new ScheduleConfig();
         }
     }
 
@@ -477,12 +475,6 @@ namespace DeviceBox
             if (ioElement != null)
             {
                 device.IO = ParseIO(ioElement);
-            }
-
-            var scheduleElement = element.Element("Schedule");
-            if (scheduleElement != null)
-            {
-                device.Schedule = ParseSchedule(scheduleElement);
             }
 
             return device;

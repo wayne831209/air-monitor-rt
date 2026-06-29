@@ -30,14 +30,14 @@ namespace MySQL
         public void insertdata(string Cmd)
         {
             string con_str = "server=" + MYSQL_IP + ";database=" + MYSQL_DB + ";uid=" + MYSQL_user + ";pwd=" + MYSQL_password;
-            MySqlConnection dbcon = new MySqlConnection(con_str);
-            dbcon.Open();
-            MySqlCommand cmd;
-            cmd = new MySqlCommand(Cmd, dbcon);
-            //double val = (double)cmd.ExecuteNonQuery();
-            cmd.ExecuteNonQuery();
-            dbcon.Close();
-
+            using (MySqlConnection dbcon = new MySqlConnection(con_str))
+            {
+                dbcon.Open();
+                using (MySqlCommand cmd = new MySqlCommand(Cmd, dbcon))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
             //return val;
         }
         //db.updatedata("UPDATE tpi_machinedata SET " +
@@ -68,20 +68,21 @@ namespace MySQL
         {
             readdata = new List<string>();
             string con_str = "server=" + MYSQL_IP + ";database=" + MYSQL_DB + ";uid=" + MYSQL_user + ";pwd=" + MYSQL_password;
-            MySqlConnection dbcon = new MySqlConnection(con_str);
-            dbcon.Open();
-            MySqlCommand cmd;
-            cmd = new MySqlCommand(Cmd, dbcon);
-            MySqlDataReader data = cmd.ExecuteReader();
-            while (data.Read())
+            using (MySqlConnection dbcon = new MySqlConnection(con_str))
             {
-
-                for (int i = 0; i < data.FieldCount; i++)
+                dbcon.Open();
+                using (MySqlCommand cmd = new MySqlCommand(Cmd, dbcon))
+                using (MySqlDataReader data = cmd.ExecuteReader())
                 {
-                    readdata.Add(data[i].ToString());
+                    while (data.Read())
+                    {
+                        for (int i = 0; i < data.FieldCount; i++)
+                        {
+                            readdata.Add(data[i].ToString());
+                        }
+                    }
                 }
             }
-            dbcon.Close();
         }
         public DataTable GetMyDataTable(string SqlString)
         {

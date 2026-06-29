@@ -14,6 +14,7 @@ namespace DeviceBox
     public partial class TrendChart : Form
     {
         private Config _config;
+        private ScheduleMode _currentMode;
         private Timer _currentTimeTimer;
         private List<GanttRowInfo> _ganttRows = new List<GanttRowInfo>();
         private HashSet<int> _factoryIdFilter = null;  // null = show all
@@ -35,6 +36,7 @@ namespace DeviceBox
         {
             InitializeComponent();
             LoadConfiguration();
+            LoadCurrentMode();
             InitializeGanttChart();
             StartCurrentTimeTimer();
         }
@@ -50,10 +52,28 @@ namespace DeviceBox
             panelGanttChart?.Invalidate();
         }
 
+        /// <summary>
+        /// 建構子：可傳入當前模式
+        /// </summary>
+        public TrendChart(ScheduleMode currentMode, HashSet<int> factoryIdFilter = null) : this()
+        {
+            _currentMode = currentMode;
+            _factoryIdFilter = factoryIdFilter;
+            BuildGanttData();
+            PopulateDeviceLabels();
+            panelGanttChart?.Invalidate();
+        }
+
         private void LoadConfiguration()
         {
             _config = new Config();
             _config.LoadConfig();
+        }
+
+        private void LoadCurrentMode()
+        {
+            // 載入預設模式
+            _currentMode = ModeSelectForm.GetDefaultMode();
         }
 
         private void InitializeGanttChart()
@@ -79,9 +99,9 @@ namespace DeviceBox
                 if (_factoryIdFilter != null && !_factoryIdFilter.Contains(factory.Id))
                     continue;
 
-                // 取得該工廠所有有排程的壓縮機
+                // 取得該工廠所有有排程的壓縮機（從 currentMode 檢查）
                 var compressorsWithSchedule = factory.Devices
-                    .Where(d => d.Type == DeviceType.Compressor && d.Enabled && d.Schedule != null && d.Schedule.Enabled)
+                    .Where(d => d.Type == DeviceType.Compressor && d.Enabled && HasSchedule(factory, d))
                     .ToList();
 
                 if (compressorsWithSchedule.Count == 0)
@@ -242,16 +262,18 @@ namespace DeviceBox
                 g.FillRectangle(stoppedBrush, 2, y + 8, chartWidth - 4, ROW_HEIGHT - 16);
             }
 
-            if (device.Schedule != null && device.Schedule.Enabled && device.Schedule.TimeRanges != null)
+            // 從 currentMode 獲取該設備的排程
+            var schedules = GetDeviceSchedules(device);
+            if (schedules != null && schedules.Count > 0)
             {
                 DayOfWeek today = DateTime.Now.DayOfWeek;
 
                 using (Brush runBrush = new SolidBrush(RunningColor))
                 {
-                    foreach (var range in device.Schedule.TimeRanges)
+                    foreach (var schedule in schedules.Where(s => s.Enabled))
                     {
                         double dayStartHour, dayEndHour;
-                        if (GetTodayActiveRange(range, today, out dayStartHour, out dayEndHour))
+                        if (GetTodayActiveRangeFromSchedule(schedule, today, out dayStartHour, out dayEndHour))
                         {
                             float startX = (float)(dayStartHour * hourWidth);
                             float endX = (float)(dayEndHour * hourWidth);
@@ -404,6 +426,111 @@ namespace DeviceBox
                 g.FillRectangle(bgBrush, labelX - 2, labelY, textSize.Width + 4, textSize.Height);
                 g.DrawString(currentTimeText, font, textBrush, labelX, labelY);
             }
+        }
+
+        /// <summary>
+        /// 檢查設備是否有排程（從 currentMode）
+        /// </summary>
+        private bool HasSchedule(FactoryConfig factory, DeviceConfig device)
+        {
+            if (_currentMode == null || _currentMode.Schedules == null)
+                return false;
+
+            return _currentMode.Schedules.Any(s =>
+                s.FactoryId == factory.Id &&
+                s.MachineNo == device.MachineNo &&
+                s.DeviceName == device.Name &&
+                s.Enabled);
+        }
+
+        /// <summary>
+        /// 獲取設備的所有排程（從 currentMode）
+        /// </summary>
+        private List<ModeScheduleItem> GetDeviceSchedules(DeviceConfig device)
+        {
+            if (_currentMode == null || _currentMode.Schedules == null)
+                return new List<ModeScheduleItem>();
+
+            // 找出該設備所屬的廠區
+            var factory = _config.Factories.FirstOrDefault(f => f.Devices.Contains(device));
+            if (factory == null)
+                return new List<ModeScheduleItem>();
+
+            return _currentMode.Schedules
+                .Where(s => s.FactoryId == factory.Id &&
+                            s.MachineNo == device.MachineNo &&
+                            s.DeviceName == device.Name)
+                .ToList();
+        }
+
+        /// <summary>
+        /// 從 ModeScheduleItem 計算今天的運轉時間範圍（類似原本的 GetTodayActiveRange）
+        /// </summary>
+        private bool GetTodayActiveRangeFromSchedule(ModeScheduleItem schedule, DayOfWeek today, out double startHour, out double endHour)
+        {
+            startHour = 0;
+            endHour = 0;
+
+            // 重複模式
+            if (!schedule.IsSpanMode)
+            {
+                if (schedule.RepeatDays != null && schedule.RepeatDays.Count > 0 && !schedule.RepeatDays.Contains(today))
+                    return false;
+
+                startHour = schedule.StartTime.TotalHours;
+                endHour = schedule.EndTime.TotalHours;
+
+                // 處理跨午夜（例如 22:00~06:00）：當天只顯示到24點
+                if (endHour <= startHour)
+                    endHour = 24;
+
+                return endHour > startHour;
+            }
+
+            // 跨日模式：根據 StartDay/EndDay 判斷今天的運轉區間
+            int sd = (int)schedule.StartDay;
+            int ed = (int)schedule.EndDay;
+            int d = (int)today;
+
+            // 判斷今天是否在跨日範圍內
+            bool isDayInSpan;
+            if (sd <= ed)
+                isDayInSpan = d >= sd && d <= ed;
+            else
+                isDayInSpan = d >= sd || d <= ed;
+
+            if (!isDayInSpan)
+                return false;
+
+            bool isStartDay = d == sd;
+            bool isEndDay = d == ed;
+
+            if (isStartDay && isEndDay)
+            {
+                // 同一天開始和結束
+                startHour = schedule.StartTime.TotalHours;
+                endHour = schedule.EndTime.TotalHours;
+            }
+            else if (isStartDay)
+            {
+                // 開始那天：從 StartTime 到午夜
+                startHour = schedule.StartTime.TotalHours;
+                endHour = 24;
+            }
+            else if (isEndDay)
+            {
+                // 結束那天：從午夜到 EndTime
+                startHour = 0;
+                endHour = schedule.EndTime.TotalHours;
+            }
+            else
+            {
+                // 中間的天：全天運轉
+                startHour = 0;
+                endHour = 24;
+            }
+
+            return endHour > startHour;
         }
 
         private void StartCurrentTimeTimer()

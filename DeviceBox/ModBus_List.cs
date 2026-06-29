@@ -194,6 +194,8 @@ namespace DeviceBox
                             Address_Val[i] = "0";
                         }
                         TCP_Connect(this.ip);
+                        await Task.Delay(5000); // 連線失敗時多等一會再重試
+                        continue;
                     }
                 }
                 catch
@@ -206,6 +208,8 @@ namespace DeviceBox
                     }
                     //address_val.Address_KVAH_TOTAL = "0";
                     TCP_Connect(this.ip);
+                    await Task.Delay(5000); // 錯誤後延遲重試
+                    continue;
                 }
 
                 await Task.Delay(1000);
@@ -239,7 +243,7 @@ namespace DeviceBox
             {
                 // DO_0 對應 holding register 1030, DO_1=1031, DO_2=1032 ...
                 ushort registerAddress = (ushort)(1030 + doNumber);
-                master_tcp.WriteSingleRegister(1, registerAddress, value);
+                //master_tcp.WriteSingleRegister(1, registerAddress, value);
                 System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO: DO_{doNumber} (register {registerAddress}) = {value}");
                 return true;
             }
@@ -256,6 +260,12 @@ namespace DeviceBox
             {
                 try
                 {
+                    // 釋放舊的 master 和連線
+                    if (master_tcp != null)
+                    {
+                        master_tcp.Dispose();
+                        master_tcp = null;
+                    }
                     TcpClient tcpClient = new TcpClient();
                     IAsyncResult asyncResult = tcpClient.BeginConnect(IP, 502, null, null);
                     asyncResult.AsyncWaitHandle.WaitOne(3000, true); //wait for 3 sec

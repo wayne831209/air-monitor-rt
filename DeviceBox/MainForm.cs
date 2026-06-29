@@ -611,14 +611,30 @@ namespace DeviceBox
                 return;
             }
 
-            bool hasActiveSchedule = compressors.Any(c => c.Schedule.Enabled && c.Schedule.IsInSchedule());
-            bool hasAnySchedule = compressors.Any(c => c.Schedule.Enabled);
+            // 從 currentMode 中獲取排程資訊
+            bool hasActiveSchedule = false;
+            bool hasAnySchedule = false;
+            List<string> scheduleTexts = new List<string>();
+
+            if (currentMode != null && currentMode.Schedules != null)
+            {
+                foreach (var compressor in compressors)
+                {
+                    var schedule = GetDeviceSchedule(compressor);
+                    if (schedule != null && schedule.Enabled)
+                    {
+                        hasAnySchedule = true;
+                        if (IsInSchedule(schedule))
+                        {
+                            hasActiveSchedule = true;
+                        }
+                        scheduleTexts.Add(schedule.GetTimeDisplayText());
+                    }
+                }
+            }
 
             if (hasAnySchedule)
             {
-                var scheduleTexts = compressors
-                    .Where(c => c.Schedule.Enabled)
-                    .Select(c => c.Schedule.GetDisplayText());
                 string scheduleText = string.Join("\n", scheduleTexts.Distinct());
 
                 if (hasActiveSchedule)
@@ -680,11 +696,16 @@ namespace DeviceBox
                 var compressors = factory.GetDevicesByType(DeviceType.Compressor);
                 foreach (var compressor in compressors)
                 {
-                    // 只處理有設定 controlDO 且有啟用排程的設備
-                    if (compressor.IO.ControlDO < 0 || !compressor.Schedule.Enabled)
+                    // 只處理有設定 controlDO 的設備
+                    if (compressor.IO.ControlDO < 0)
                         continue;
 
-                    bool isInSchedule = compressor.Schedule.IsInSchedule();
+                    // 從 currentMode 中獲取該設備的排程
+                    var schedule = GetDeviceSchedule(compressor);
+                    if (schedule == null || !schedule.Enabled)
+                        continue;
+
+                    bool isInSchedule = IsInSchedule(schedule);
                     ushort targetValue = isInSchedule ? (ushort)1 : (ushort)0;
 
                     // 用 FactoryId_MachineNo 作為 key 來追蹤狀態
@@ -704,6 +725,76 @@ namespace DeviceBox
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// 從當前模式中獲取指定設備的排程
+        /// </summary>
+        private ModeScheduleItem GetDeviceSchedule(DeviceConfig device)
+        {
+            if (currentMode == null || currentMode.Schedules == null)
+                return null;
+
+            // 找出該設備所屬的廠區
+            var factory = config.Factories.FirstOrDefault(f => f.Devices.Contains(device));
+            if (factory == null)
+                return null;
+
+            // 在當前模式中查找該設備的排程
+            return currentMode.Schedules.FirstOrDefault(s =>
+                s.FactoryId == factory.Id &&
+                s.MachineNo == device.MachineNo &&
+                s.DeviceName == device.Name);
+        }
+
+        /// <summary>
+        /// 檢查指定排程是否在當前時間範圍內
+        /// </summary>
+        private bool IsInSchedule(ModeScheduleItem schedule)
+        {
+            if (schedule == null || !schedule.Enabled)
+                return false;
+
+            var now = DateTime.Now;
+            var currentTime = now.TimeOfDay;
+            var currentDay = now.DayOfWeek;
+
+            // 重複模式：檢查當天是否在 RepeatDays 中，且時間在 StartTime~EndTime 之間
+            if (!schedule.IsSpanMode)
+            {
+                if (schedule.RepeatDays != null && schedule.RepeatDays.Count > 0 && !schedule.RepeatDays.Contains(currentDay))
+                    return false;
+
+                TimeSpan effectiveEnd = schedule.EndTime;
+                if (schedule.EndTime.Minutes == 59)
+                    effectiveEnd = schedule.EndTime.Add(TimeSpan.FromSeconds(59));
+
+                if (schedule.StartTime <= schedule.EndTime)
+                    return currentTime >= schedule.StartTime && currentTime <= effectiveEnd;
+                else
+                    return currentTime >= schedule.StartTime || currentTime <= effectiveEnd;
+            }
+
+            // 跨日模式：使用週分鐘連續區間
+            int ToWeeklyMinutes(DayOfWeek day, TimeSpan time)
+            {
+                return (int)day * 1440 + (int)time.TotalMinutes;
+            }
+
+            int current = ToWeeklyMinutes(currentDay, currentTime);
+            int start = ToWeeklyMinutes(schedule.StartDay, schedule.StartTime);
+            int end = ToWeeklyMinutes(schedule.EndDay, schedule.EndTime) + 1;
+
+            if (start <= end)
+            {
+                // 不跨週：例如 週一 08:00 ~ 週五 17:00
+                return current >= start && current <= end;
+            }
+            else
+            {
+                // 跨週：例如 週五 20:00 ~ 週一 08:00
+                return current >= start || current <= end;
             }
         }
 

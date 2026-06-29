@@ -682,6 +682,7 @@ namespace DeviceBox
 
         /// <summary>
         /// 靜態方法：將模式排程套用到設備設定（供啟動時使用）
+        /// 註：由於 Device 層級已不再儲存 Schedule，此方法僅用於向後相容
         /// </summary>
         public static void ApplyModeSchedulesToConfig(ScheduleMode mode)
         {
@@ -689,64 +690,9 @@ namespace DeviceBox
 
             try
             {
-                string configPath = Path.Combine(Application.StartupPath, ConfigFileName);
-                XDocument doc = XDocument.Load(configPath);
-
-                // 先清除所有設備的排程
-                foreach (var deviceElement in doc.Descendants("Device"))
-                {
-                    var scheduleElement = deviceElement.Element("Schedule");
-                    if (scheduleElement != null)
-                    {
-                        scheduleElement.SetAttributeValue("enabled", "false");
-                        scheduleElement.Elements("TimeRange").Remove();
-                    }
-                }
-
-                // 套用模式的排程
-                foreach (var schedule in mode.Schedules.Where(s => s.Enabled))
-                {
-                    var factoryElement = doc.Descendants("Factory")
-                        .FirstOrDefault(f => int.Parse(f.Attribute("id")?.Value ?? "0") == schedule.FactoryId);
-
-                    if (factoryElement != null)
-                    {
-                        var deviceElement = factoryElement.Descendants("Device")
-                            .FirstOrDefault(d =>
-                                d.Attribute("name")?.Value == schedule.DeviceName &&
-                                int.Parse(d.Attribute("machineNo")?.Value ?? "0") == schedule.MachineNo);
-
-                        if (deviceElement != null)
-                        {
-                            var scheduleElement = deviceElement.Element("Schedule");
-                            if (scheduleElement == null)
-                            {
-                                scheduleElement = new XElement("Schedule");
-                                deviceElement.Add(scheduleElement);
-                            }
-
-                            scheduleElement.SetAttributeValue("enabled", "true");
-
-                            var rangeElement = new XElement("TimeRange");
-                            rangeElement.SetAttributeValue("isSpanMode", schedule.IsSpanMode.ToString().ToLower());
-                            rangeElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
-                            rangeElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
-                            rangeElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
-                            rangeElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
-
-                            // 只有重複模式才寫 days
-                            if (!schedule.IsSpanMode && schedule.RepeatDays != null && schedule.RepeatDays.Count > 0)
-                            {
-                                string daysStr = string.Join(",", schedule.RepeatDays.Select(d => (int)d));
-                                rangeElement.SetAttributeValue("days", daysStr);
-                            }
-
-                            scheduleElement.Add(rangeElement);
-                        }
-                    }
-                }
-
-                doc.Save(configPath);
+                // 目前不需要做任何事，因為排程直接從 currentMode 讀取
+                // 保留此方法只是為了向後相容，避免影響現有的呼叫
+                System.Diagnostics.Debug.WriteLine($"ApplyModeSchedulesToConfig: Mode '{mode.Name}' loaded with {mode.Schedules.Count} schedules");
             }
             catch (Exception ex)
             {
