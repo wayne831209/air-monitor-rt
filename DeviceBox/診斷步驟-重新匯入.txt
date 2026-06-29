@@ -1,0 +1,53 @@
+## 診斷步驟 - 清空並重新匯入
+
+### 步驟 1: 清空資料庫
+1. 開啟診斷工具（進階診斷工具按鈕）
+2. 點擊 "清空所有資料"
+3. 確認清空
+
+### 步驟 2: 開啟輸出視窗
+1. Visual Studio → Ctrl+Alt+O
+2. 選擇 "偵錯" 分頁
+3. 右鍵 → 清除全部
+
+### 步驟 3: 執行匯入
+1. 回到測試工具
+2. 點擊 "📥 匯入 XML 排程"
+3. **立即切換到輸出視窗**
+
+### 步驟 4: 複製所有 [MigrationTool] 訊息
+找到並複製所有包含以下內容的訊息：
+```
+[MigrationTool] Starting migration
+[MigrationTool] Found X modes
+[MigrationTool] Processing mode: 模式一 with Y schedules
+[MigrationTool] Processing mode: 模式二 with Y schedules  
+[MigrationTool] Processing mode: 手動模式 with Y schedules  ← 重點！
+[MigrationTool] ✓ Migrated mode: XXX (ID=X)
+[MigrationTool] Migration complete: X succeeded, Y failed, Z skipped
+```
+
+### 步驟 5: 再次查看結果
+診斷工具 → "查看 Modes 資料"
+
+---
+
+## 預期看到什麼？
+
+**正常情況**：
+```
+[MigrationTool] Found 3 modes in config.xml
+[MigrationTool] Processing mode: 模式一 with 10 schedules
+[MigrationTool] ✓ Migrated mode: 模式一 (ID=1)
+[MigrationTool] Processing mode: 模式二 with 0 schedules
+[MigrationTool] ✓ Migrated mode: 模式二 (ID=2)
+[MigrationTool] Processing mode: 手動模式 with 0 schedules  ← 應該是 0！
+[MigrationTool] ✓ Migrated mode: 手動模式 (ID=3)
+[MigrationTool] Migration complete: 3 succeeded, 0 failed, 0 skipped
+```
+
+**如果手動模式的 schedules 不是 0**：
+表示 ParseModeFromXml 解析時出錯
+
+**如果 schedules 是 0，但儲存後變成 11**：
+表示 SaveMode 或資料庫邏輯有問題

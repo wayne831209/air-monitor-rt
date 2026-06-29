@@ -16,7 +16,12 @@ namespace DeviceBox
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+
+            // 啟動測試表單（可以選擇測試或直接啟動主程式）
+            //Application.Run(new StartupTestForm());
+
             Application.Run(new MainForm());
+
         }
     }
 }

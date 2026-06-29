@@ -447,8 +447,9 @@ namespace DeviceBox
                 });
             }
 
-            // 儲存模式排程
-            ModeSelectForm.SaveModeSchedules(mode);
+            // 儲存模式排程到資料庫
+            System.Diagnostics.Debug.WriteLine($"[ScheduleSettingForm] Saving schedules for mode ID: {_modeId}");
+            bool saved = ModeSelectForm.SaveModeSchedulesToDatabase(mode);
 
             // 重新讀取完整模式（含所有廠域排程），再套用到設備設定
             var fullMode = ModeSelectForm.GetModeById(_modeId);

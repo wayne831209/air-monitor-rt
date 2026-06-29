@@ -72,8 +72,17 @@ namespace DeviceBox
 
         private void LoadCurrentMode()
         {
-            // 載入預設模式
-            _currentMode = ModeSelectForm.GetDefaultMode();
+            // 載入預設模式（從資料庫）
+            _currentMode = ModeSelectForm.GetDefaultModeFromDatabase();
+
+            if (_currentMode != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[TrendChart] Loaded default mode: {_currentMode.Name}, Schedules count: {_currentMode.Schedules?.Count ?? 0}");
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("[TrendChart] Warning: Could not load default mode from database");
+            }
         }
 
         private void InitializeGanttChart()

@@ -53,14 +53,66 @@ namespace MySQL
         public void updatedata(string Cmd)
         {
             string con_str = "server=" + MYSQL_IP + ";database=" + MYSQL_DB + ";uid=" + MYSQL_user + ";pwd=" + MYSQL_password;
-            MySqlConnection dbcon = new MySqlConnection(con_str);
-            dbcon.Open();
-            MySqlCommand cmd;
-            cmd = new MySqlCommand(Cmd, dbcon);
-            //double val = (double)cmd.ExecuteNonQuery();
-            cmd.ExecuteNonQuery();
-            dbcon.Close();
-            
+            using (MySqlConnection dbcon = new MySqlConnection(con_str))
+            {
+                dbcon.Open();
+                using (MySqlCommand cmd = new MySqlCommand(Cmd, dbcon))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 執行 SQL 指令並傳回影響的列數
+        /// </summary>
+        public int ExecuteNonQuery(string sql)
+        {
+            string con_str = "server=" + MYSQL_IP + ";database=" + MYSQL_DB + ";uid=" + MYSQL_user + ";pwd=" + MYSQL_password;
+            using (MySqlConnection dbcon = new MySqlConnection(con_str))
+            {
+                dbcon.Open();
+                using (MySqlCommand cmd = new MySqlCommand(sql, dbcon))
+                {
+                    return cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 執行查詢並傳回第一行第一列的值
+        /// </summary>
+        public object ExecuteScalar(string sql)
+        {
+            string con_str = "server=" + MYSQL_IP + ";database=" + MYSQL_DB + ";uid=" + MYSQL_user + ";pwd=" + MYSQL_password;
+            using (MySqlConnection dbcon = new MySqlConnection(con_str))
+            {
+                dbcon.Open();
+                using (MySqlCommand cmd = new MySqlCommand(sql, dbcon))
+                {
+                    return cmd.ExecuteScalar();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 測試資料庫連線
+        /// </summary>
+        public bool TestConnection()
+        {
+            try
+            {
+                string con_str = "server=" + MYSQL_IP + ";database=" + MYSQL_DB + ";uid=" + MYSQL_user + ";pwd=" + MYSQL_password;
+                using (MySqlConnection dbcon = new MySqlConnection(con_str))
+                {
+                    dbcon.Open();
+                    return true;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         //energe.selectdata("SELECT MAX(Demand) FROM spindleservice.new_meterdemand where Meter_Name='" + Meter_id + "'&&year(time) = '" + DateTime.Now.Year.ToString() + "' &&month(time) = '" + DateTime.Now.Month.ToString() + "'");

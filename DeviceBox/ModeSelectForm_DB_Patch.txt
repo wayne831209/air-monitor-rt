@@ -1,0 +1,106 @@
+修改說明：ModeSelectForm.cs 需要修改為使用資料庫
+
+1. 已添加 private ScheduleDatabase _scheduleDb; 欄位
+
+2. 需要修改的方法：
+   - LoadModes() - 改從資料庫載入
+   - SaveModes() - 改存到資料庫  
+   - GetModeById() - 改從資料庫讀取
+
+3. 修改步驟：
+
+方法 1: LoadModes() (約在139行)
+替換整個方法為：
+
+private void LoadModes()
+{
+	_modes.Clear();
+	try
+	{
+		if (_scheduleDb == null)
+		{
+			var config = new Config();
+			if (config.LoadConfig())
+			{
+				_scheduleDb = config.GetScheduleDatabase();
+			}
+		}
+
+		if (_scheduleDb != null)
+		{
+			_modes = _scheduleDb.LoadModesFromDatabase();
+			System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] Loaded {_modes.Count} modes from database");
+		}
+
+		if (_modes.Count == 0)
+		{
+			var defaultMode = new ScheduleMode { Id = 0, Name = "Default Mode", Description = "Standard schedule", IsDefault = true };
+			_modes.Add(defaultMode);
+			if (_scheduleDb != null)
+			{
+				_scheduleDb.SaveMode(defaultMode);
+			}
+		}
+	}
+	catch (Exception ex)
+	{
+		System.Diagnostics.Debug.WriteLine("Load modes failed: " + ex.Message);
+		MessageBox.Show($"Load modes failed: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+	}
+}
+
+方法 2: SaveModes() (約在511行)
+替換整個方法為：
+
+private void SaveModes()
+{
+	try
+	{
+		if (_scheduleDb == null)
+		{
+			var config = new Config();
+			if (config.LoadConfig())
+			{
+				_scheduleDb = config.GetScheduleDatabase();
+			}
+		}
+
+		if (_scheduleDb != null)
+		{
+			foreach (var mode in _modes)
+			{
+				_scheduleDb.SaveMode(mode);
+			}
+			System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] Saved {_modes.Count} modes to database");
+		}
+	}
+	catch (Exception ex)
+	{
+		MessageBox.Show($"Save modes failed: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+	}
+}
+
+方法 3: GetModeById() (約在585行) 
+替換整個方法為：
+
+public static ScheduleMode GetModeById(int modeId)
+{
+	try
+	{
+		var config = new Config();
+		if (config.LoadConfig())
+		{
+			var scheduleDb = config.GetScheduleDatabase();
+			if (scheduleDb != null)
+			{
+				var modes = scheduleDb.LoadModesFromDatabase();
+				return modes.FirstOrDefault(m => m.Id == modeId);
+			}
+		}
+	}
+	catch (Exception ex)
+	{
+		System.Diagnostics.Debug.WriteLine($"GetModeById failed: {ex.Message}");
+	}
+	return null;
+}

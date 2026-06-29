@@ -14,6 +14,7 @@ namespace DeviceBox
         private List<ScheduleMode> _modes = new List<ScheduleMode>();
         private ScheduleMode _selectedMode;
         private static readonly string ConfigFileName = "config.xml";
+        private ScheduleDatabase _scheduleDb;
 
         // 顏色定義
         private readonly Color BackgroundColor = Color.FromArgb(30, 30, 30);
@@ -138,87 +139,37 @@ namespace DeviceBox
         private void LoadModes()
         {
             _modes.Clear();
-
             try
             {
-                string configPath = Path.Combine(Application.StartupPath, ConfigFileName);
-                if (!File.Exists(configPath)) return;
-
-                XDocument doc = XDocument.Load(configPath);
-                var modesElement = doc.Root?.Element("Modes");
-
-                if (modesElement != null)
+                if (_scheduleDb == null)
                 {
-                    foreach (var modeElement in modesElement.Elements("Mode"))
+                    var config = new Config();
+                    if (config.LoadConfig())
                     {
-                        var mode = new ScheduleMode
-                        {
-                            Id = int.Parse(modeElement.Attribute("id")?.Value ?? "0"),
-                            Name = modeElement.Attribute("name")?.Value ?? "",
-                            Description = modeElement.Attribute("description")?.Value ?? "",
-                            IsDefault = bool.Parse(modeElement.Attribute("isDefault")?.Value ?? "false")
-                        };
-
-                        // 載入該模式的排程
-                        foreach (var scheduleElement in modeElement.Elements("Schedule"))
-                        {
-                            var schedule = new ModeScheduleItem
-                            {
-                                FactoryId = int.Parse(scheduleElement.Attribute("factoryId")?.Value ?? "0"),
-                                FactoryName = scheduleElement.Attribute("factoryName")?.Value ?? "",
-                                DeviceName = scheduleElement.Attribute("deviceName")?.Value ?? "",
-                                MachineNo = int.Parse(scheduleElement.Attribute("machineNo")?.Value ?? "1"),
-                                Enabled = bool.Parse(scheduleElement.Attribute("enabled")?.Value ?? "true"),
-                                IsSpanMode = bool.Parse(scheduleElement.Attribute("isSpanMode")?.Value ?? "true"),
-                                StartDay = Enum.TryParse(scheduleElement.Attribute("startDay")?.Value, out DayOfWeek sd0) ? sd0 : DayOfWeek.Monday,
-                                StartTime = TimeSpan.Parse(scheduleElement.Attribute("start")?.Value ?? "08:00"),
-                                EndDay = Enum.TryParse(scheduleElement.Attribute("endDay")?.Value, out DayOfWeek ed0) ? ed0 : DayOfWeek.Friday,
-                                EndTime = TimeSpan.Parse(scheduleElement.Attribute("end")?.Value ?? "17:00")
-                            };
-
-                            // 載入星期
-                            string daysStr = scheduleElement.Attribute("days")?.Value;
-                            if (!string.IsNullOrEmpty(daysStr))
-                            {
-                                foreach (var dayNum in daysStr.Split(','))
-                                {
-                                    if (int.TryParse(dayNum.Trim(), out int d))
-                                    {
-                                        schedule.Days.Add((DayOfWeek)d);
-                                    }
-                                }
-                            }
-
-                            string repeatDaysStr = scheduleElement.Attribute("repeatDays")?.Value;
-                            if (!string.IsNullOrEmpty(repeatDaysStr))
-                            {
-                                foreach (var dayNum in repeatDaysStr.Split(','))
-                                {
-                                    if (int.TryParse(dayNum.Trim(), out int d))
-                                        schedule.RepeatDays.Add((DayOfWeek)d);
-                                }
-                            }
-
-                            mode.Schedules.Add(schedule);
-                        }
-
-                        _modes.Add(mode);
+                        _scheduleDb = config.GetScheduleDatabase();
                     }
                 }
 
-                // 如果沒有模式，新增預設模式
+                if (_scheduleDb != null)
+                {
+                    _modes = _scheduleDb.LoadModesFromDatabase();
+                    System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] Loaded {_modes.Count} modes from database");
+                }
+
                 if (_modes.Count == 0)
                 {
-                    _modes.Add(new ScheduleMode { Id = 1, Name = "模式一", Description = "一般模式", IsDefault = true });
-                    _modes.Add(new ScheduleMode { Id = 2, Name = "高負荷", Description = "高負荷運轉模式", IsDefault = false });
-                    SaveModes();
+                    var defaultMode = new ScheduleMode { Id = 0, Name = "Default Mode", Description = "Standard schedule", IsDefault = true };
+                    _modes.Add(defaultMode);
+                    if (_scheduleDb != null)
+                    {
+                        _scheduleDb.SaveMode(defaultMode);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine("Load modes failed: " + ex.Message);
-                _modes.Add(new ScheduleMode { Id = 1, Name = "模式一", Description = "一般模式", IsDefault = true });
-                _modes.Add(new ScheduleMode { Id = 2, Name = "高負荷", Description = "高負荷運轉模式", IsDefault = false });
+                MessageBox.Show($"Load modes failed: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -373,7 +324,9 @@ namespace DeviceBox
                 if (editForm.ShowDialog() == DialogResult.OK)
                 {
                     var newMode = editForm.Mode;
-                    newMode.Id = _modes.Count > 0 ? _modes.Max(m => m.Id) + 1 : 1;
+                    // 新模式 ID 設為 0，讓資料庫自動產生
+                    newMode.Id = 0;
+                    System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] ButtonAdd - Adding new mode: {newMode.Name}");
 
                     // 預設只能有一個：若新模式設為預設，取消其他模式的預設
                     if (newMode.IsDefault)
@@ -384,7 +337,10 @@ namespace DeviceBox
 
                     _modes.Add(newMode);
                     SaveModes();
+                    // 重新載入以獲取資料庫生成的 ID
+                    LoadModes();
                     RefreshModeList();
+                    System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] ButtonAdd - Mode added successfully");
                 }
             }
         }
@@ -511,70 +467,42 @@ namespace DeviceBox
         {
             try
             {
-                string configPath = Path.Combine(Application.StartupPath, ConfigFileName);
-                XDocument doc;
+                System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] SaveModes() called with {_modes.Count} modes");
 
-                if (File.Exists(configPath))
+                if (_scheduleDb == null)
                 {
-                    doc = XDocument.Load(configPath);
+                    System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] _scheduleDb is null, initializing...");
+                    var config = new Config();
+                    if (config.LoadConfig())
+                    {
+                        _scheduleDb = config.GetScheduleDatabase();
+                        System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] _scheduleDb initialized: {(_scheduleDb != null ? "Success" : "Failed")}");
+                    }
+                }
+
+                if (_scheduleDb != null)
+                {
+                    int savedCount = 0;
+                    foreach (var mode in _modes)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] Saving mode: ID={mode.Id}, Name={mode.Name}");
+                        bool result = _scheduleDb.SaveMode(mode);
+                        System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] Save result: {result}, New ID: {mode.Id}");
+                        if (result) savedCount++;
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] Successfully saved {savedCount}/{_modes.Count} modes to database");
                 }
                 else
                 {
-                    doc = new XDocument(new XElement("Setting"));
+                    System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] ERROR: _scheduleDb is null, cannot save!");
+                    MessageBox.Show("無法連接到資料庫，請檢查設定", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-
-                // 移除舊的 Modes 元素
-                doc.Root.Element("Modes")?.Remove();
-
-                // 建立新的 Modes 元素
-                var modesElement = new XElement("Modes");
-                foreach (var mode in _modes)
-                {
-                    var modeElement = new XElement("Mode");
-                    modeElement.SetAttributeValue("id", mode.Id);
-                    modeElement.SetAttributeValue("name", mode.Name);
-                    modeElement.SetAttributeValue("description", mode.Description);
-                    modeElement.SetAttributeValue("isDefault", mode.IsDefault.ToString().ToLower());
-
-                    // 儲存該模式的排程
-                    foreach (var schedule in mode.Schedules)
-                    {
-                        var scheduleElement = new XElement("Schedule");
-                        scheduleElement.SetAttributeValue("factoryId", schedule.FactoryId);
-                        scheduleElement.SetAttributeValue("factoryName", schedule.FactoryName);
-                        scheduleElement.SetAttributeValue("deviceName", schedule.DeviceName);
-                        scheduleElement.SetAttributeValue("machineNo", schedule.MachineNo);
-                        scheduleElement.SetAttributeValue("enabled", schedule.Enabled.ToString().ToLower());
-                        scheduleElement.SetAttributeValue("isSpanMode", schedule.IsSpanMode.ToString().ToLower());
-                        scheduleElement.SetAttributeValue("startDay", schedule.StartDay.ToString());
-                        scheduleElement.SetAttributeValue("start", schedule.StartTime.ToString(@"hh\:mm"));
-                        scheduleElement.SetAttributeValue("endDay", schedule.EndDay.ToString());
-                        scheduleElement.SetAttributeValue("end", schedule.EndTime.ToString(@"hh\:mm"));
-
-                        if (schedule.Days.Count > 0 && schedule.Days.Count < 7)
-                        {
-                            string daysStr = string.Join(",", schedule.Days.Select(d => (int)d));
-                            scheduleElement.SetAttributeValue("days", daysStr);
-                        }
-
-                        if (schedule.RepeatDays != null && schedule.RepeatDays.Count > 0)
-                        {
-                            string repeatDaysStr = string.Join(",", schedule.RepeatDays.Select(d => (int)d));
-                            scheduleElement.SetAttributeValue("repeatDays", repeatDaysStr);
-                        }
-
-                        modeElement.Add(scheduleElement);
-                    }
-
-                    modesElement.Add(modeElement);
-                }
-
-                doc.Root.Add(modesElement);
-                doc.Save(configPath);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"儲存模式失敗：{ex.Message}", "錯誤", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] SaveModes exception: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[ModeSelectForm] Stack trace: {ex.StackTrace}");
+                MessageBox.Show($"Save modes failed: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -585,66 +513,21 @@ namespace DeviceBox
         {
             try
             {
-                string configPath = Path.Combine(Application.StartupPath, ConfigFileName);
-                if (!File.Exists(configPath)) return null;
-
-                XDocument doc = XDocument.Load(configPath);
-                var modeElement = doc.Root?.Element("Modes")?.Elements("Mode")
-                    .FirstOrDefault(m => int.Parse(m.Attribute("id")?.Value ?? "0") == modeId);
-
-                if (modeElement != null)
+                var config = new Config();
+                if (config.LoadConfig())
                 {
-                    var mode = new ScheduleMode
+                    var scheduleDb = config.GetScheduleDatabase();
+                    if (scheduleDb != null)
                     {
-                        Id = int.Parse(modeElement.Attribute("id")?.Value ?? "0"),
-                        Name = modeElement.Attribute("name")?.Value ?? "",
-                        Description = modeElement.Attribute("description")?.Value ?? "",
-                        IsDefault = bool.Parse(modeElement.Attribute("isDefault")?.Value ?? "false")
-                    };
-
-                    foreach (var scheduleElement in modeElement.Elements("Schedule"))
-                    {
-                        var schedule = new ModeScheduleItem
-                        {
-                            FactoryId = int.Parse(scheduleElement.Attribute("factoryId")?.Value ?? "0"),
-                            FactoryName = scheduleElement.Attribute("factoryName")?.Value ?? "",
-                            DeviceName = scheduleElement.Attribute("deviceName")?.Value ?? "",
-                            MachineNo = int.Parse(scheduleElement.Attribute("machineNo")?.Value ?? "1"),
-                            Enabled = bool.Parse(scheduleElement.Attribute("enabled")?.Value ?? "true"),
-                            IsSpanMode = bool.Parse(scheduleElement.Attribute("isSpanMode")?.Value ?? "true"),
-                            StartDay = Enum.TryParse(scheduleElement.Attribute("startDay")?.Value, out DayOfWeek sd3) ? sd3 : DayOfWeek.Monday,
-                            StartTime = TimeSpan.Parse(scheduleElement.Attribute("start")?.Value ?? "08:00"),
-                            EndDay = Enum.TryParse(scheduleElement.Attribute("endDay")?.Value, out DayOfWeek ed3) ? ed3 : DayOfWeek.Friday,
-                            EndTime = TimeSpan.Parse(scheduleElement.Attribute("end")?.Value ?? "17:00")
-                        };
-
-                        string daysStr = scheduleElement.Attribute("days")?.Value;
-                        if (!string.IsNullOrEmpty(daysStr))
-                        {
-                            foreach (var dayNum in daysStr.Split(','))
-                            {
-                                if (int.TryParse(dayNum.Trim(), out int d))
-                                    schedule.Days.Add((DayOfWeek)d);
-                            }
-                        }
-
-                        string repeatDaysStr2 = scheduleElement.Attribute("repeatDays")?.Value;
-                        if (!string.IsNullOrEmpty(repeatDaysStr2))
-                        {
-                            foreach (var dayNum in repeatDaysStr2.Split(','))
-                            {
-                                if (int.TryParse(dayNum.Trim(), out int d))
-                                    schedule.RepeatDays.Add((DayOfWeek)d);
-                            }
-                        }
-
-                        mode.Schedules.Add(schedule);
+                        var modes = scheduleDb.LoadModesFromDatabase();
+                        return modes.FirstOrDefault(m => m.Id == modeId);
                     }
-
-                    return mode;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"GetModeById failed: {ex.Message}");
+            }
             return null;
         }
 

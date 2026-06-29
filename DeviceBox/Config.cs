@@ -322,6 +322,10 @@ namespace DeviceBox
         // Factory Settings
         public List<FactoryConfig> Factories = new List<FactoryConfig>();
 
+        // Schedule Database
+        private ScheduleDatabase _scheduleDatabase;
+        public List<ScheduleMode> Modes = new List<ScheduleMode>();
+
         private static readonly string ConfigFileName = "config.xml";
 
         public Config()
@@ -357,7 +361,10 @@ namespace DeviceBox
                 // Load Factory Settings
                 LoadFactorySettings(root.Element("Factories"));
 
-                System.Diagnostics.Debug.WriteLine("Loaded " + Factories.Count + " factories");
+                // Load Modes from Database
+                LoadModesFromDatabase();
+
+                System.Diagnostics.Debug.WriteLine("Loaded " + Factories.Count + " factories and " + Modes.Count + " modes");
                 return true;
             }
             catch (Exception ex)
@@ -365,6 +372,45 @@ namespace DeviceBox
                 System.Diagnostics.Debug.WriteLine("Load config failed: " + ex.Message);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Load Modes from Database
+        /// </summary>
+        private void LoadModesFromDatabase()
+        {
+            try
+            {
+                // 初始化 ScheduleDatabase
+                if (_scheduleDatabase == null && !string.IsNullOrEmpty(IP))
+                {
+                    _scheduleDatabase = new ScheduleDatabase(IP, DB, USER, Password);
+                }
+
+                if (_scheduleDatabase != null)
+                {
+                    // 從資料庫載入 Modes
+                    Modes = _scheduleDatabase.LoadModesFromDatabase();
+                    System.Diagnostics.Debug.WriteLine($"[Config] Loaded {Modes.Count} modes from database");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Config] LoadModesFromDatabase failed: {ex.Message}");
+                Modes = new List<ScheduleMode>();
+            }
+        }
+
+        /// <summary>
+        /// Get ScheduleDatabase instance
+        /// </summary>
+        public ScheduleDatabase GetScheduleDatabase()
+        {
+            if (_scheduleDatabase == null && !string.IsNullOrEmpty(IP))
+            {
+                _scheduleDatabase = new ScheduleDatabase(IP, DB, USER, Password);
+            }
+            return _scheduleDatabase;
         }
 
         /// <summary>

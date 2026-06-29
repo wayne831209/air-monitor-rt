@@ -176,8 +176,10 @@ namespace DeviceBox
         {
             try
             {
-                // 從 config 載入預設模式（IsDefault=true）
-                var defaultMode = ModeSelectForm.GetDefaultMode();
+                System.Diagnostics.Debug.WriteLine("[MainForm] InitializeDefaultMode() called");
+
+                // 從資料庫載入預設模式（IsDefault=true）
+                var defaultMode = ModeSelectForm.GetDefaultModeFromDatabase();
                 if (defaultMode != null)
                 {
                     currentMode = defaultMode;
@@ -187,17 +189,26 @@ namespace DeviceBox
                         label4.Text = defaultMode.Description;
                     }
 
+                    System.Diagnostics.Debug.WriteLine($"[MainForm] Default mode loaded: {defaultMode.Name} with {defaultMode.Schedules.Count} schedules");
+
                     // 自動套用預設模式的排程到設備
                     ModeSelectForm.ApplyModeSchedulesToConfig(defaultMode);
 
                     // 重新載入設定以反映套用的排程
                     config.LoadConfig();
                     RefreshFactoryDisplay();
+
+                    System.Diagnostics.Debug.WriteLine("[MainForm] Default mode applied successfully");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainForm] WARNING: No default mode found!");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Load default mode failed: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Load default mode failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -963,6 +974,17 @@ namespace DeviceBox
             // 重新載入設定
             if (scheduleForm.DialogResult == DialogResult.OK)
             {
+                // 重新從資料庫載入當前模式的排程資料
+                if (currentMode != null)
+                {
+                    var updatedMode = ModeSelectForm.GetModeById(currentMode.Id);
+                    if (updatedMode != null)
+                    {
+                        currentMode = updatedMode;
+                        ModeSelectForm.ApplyModeSchedulesToConfig(updatedMode);
+                    }
+                }
+
                 config.LoadConfig();
                 lastDOStates.Clear();
                 RefreshFactoryDisplay();
@@ -1012,7 +1034,9 @@ namespace DeviceBox
         {
             var factories = GetCurrentViewFactories();
             var factoryIds = new HashSet<int>(factories.Select(f => f.Id));
-            TrendChart trendChart = new TrendChart(factoryIds);
+
+            // 傳遞當前模式給 TrendChart，確保顯示正確的排程資料
+            TrendChart trendChart = new TrendChart(currentMode, factoryIds);
             trendChart.Show();
         }
 
