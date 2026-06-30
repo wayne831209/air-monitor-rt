@@ -204,6 +204,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="修正說明_多時間區間排程.md" />
     <None Include="匯入排程說明.md" />
     <None Include="匯入診斷指南.md" />
     <None Include="排程儲存修正說明.md" />

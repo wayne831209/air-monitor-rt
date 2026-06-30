@@ -631,15 +631,21 @@ namespace DeviceBox
             {
                 foreach (var compressor in compressors)
                 {
-                    var schedule = GetDeviceSchedule(compressor);
-                    if (schedule != null && schedule.Enabled)
+                    var schedules = GetDeviceSchedules(compressor);
+                    if (schedules != null && schedules.Count > 0)
                     {
-                        hasAnySchedule = true;
-                        if (IsInSchedule(schedule))
+                        foreach (var schedule in schedules)
                         {
-                            hasActiveSchedule = true;
+                            if (schedule.Enabled)
+                            {
+                                hasAnySchedule = true;
+                                if (IsInSchedule(schedule))
+                                {
+                                    hasActiveSchedule = true;
+                                }
+                                scheduleTexts.Add(schedule.GetTimeDisplayText());
+                            }
                         }
-                        scheduleTexts.Add(schedule.GetTimeDisplayText());
                     }
                 }
             }
@@ -711,12 +717,31 @@ namespace DeviceBox
                     if (compressor.IO.ControlDO < 0)
                         continue;
 
-                    // 從 currentMode 中獲取該設備的排程
-                    var schedule = GetDeviceSchedule(compressor);
-                    if (schedule == null || !schedule.Enabled)
+                    // 從 currentMode 中獲取該設備的所有排程
+                    var schedules = GetDeviceSchedules(compressor);
+                    if (schedules == null || schedules.Count == 0)
                         continue;
 
-                    bool isInSchedule = IsInSchedule(schedule);
+                    // 檢查是否有任一個啟用的排程在當前時間範圍內
+                    bool isInSchedule = false;
+                    bool hasEnabledSchedule = false;
+                    foreach (var schedule in schedules)
+                    {
+                        if (schedule.Enabled)
+                        {
+                            hasEnabledSchedule = true;
+                            if (IsInSchedule(schedule))
+                            {
+                                isInSchedule = true;
+                                break; // 只要有一個在範圍內就可以了
+                            }
+                        }
+                    }
+
+                    // 如果沒有啟用的排程，跳過
+                    if (!hasEnabledSchedule)
+                        continue;
+
                     ushort targetValue = isInSchedule ? (ushort)1 : (ushort)0;
 
                     // 用 FactoryId_MachineNo 作為 key 來追蹤狀態
@@ -740,23 +765,42 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 從當前模式中獲取指定設備的排程
+        /// 從當前模式中獲取指定設備的排程（可能有多個時間區間）
         /// </summary>
-        private ModeScheduleItem GetDeviceSchedule(DeviceConfig device)
+        private List<ModeScheduleItem> GetDeviceSchedules(DeviceConfig device)
         {
             if (currentMode == null || currentMode.Schedules == null)
-                return null;
+                return new List<ModeScheduleItem>();
 
             // 找出該設備所屬的廠區
             var factory = config.Factories.FirstOrDefault(f => f.Devices.Contains(device));
             if (factory == null)
-                return null;
+                return new List<ModeScheduleItem>();
 
-            // 在當前模式中查找該設備的排程
-            return currentMode.Schedules.FirstOrDefault(s =>
+            // 在當前模式中查找該設備的所有排程（同一設備可能有多個時間區間）
+            return currentMode.Schedules.Where(s =>
                 s.FactoryId == factory.Id &&
                 s.MachineNo == device.MachineNo &&
-                s.DeviceName == device.Name);
+                s.DeviceName == device.Name).ToList();
+        }
+
+        /// <summary>
+        /// 檢查指定設備是否在任一排程時間範圍內
+        /// </summary>
+        private bool IsDeviceInSchedule(DeviceConfig device)
+        {
+            var schedules = GetDeviceSchedules(device);
+            if (schedules == null || schedules.Count == 0)
+                return false;
+
+            // 只要有任一個排程在當前時間範圍內且啟用，就返回 true
+            foreach (var schedule in schedules)
+            {
+                if (schedule.Enabled && IsInSchedule(schedule))
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>
