@@ -149,6 +149,7 @@
     <Compile Include="StartupTestForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="TeamsNotificationService.cs" />
     <Compile Include="TrendChart.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -194,6 +195,8 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include="config_email_快速參考.md" />
+    <None Include="For迴圈發送模式說明.md" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -204,9 +207,14 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="Teams推播實作總結.md" />
+    <None Include="Teams推播通知設定說明.md" />
+    <None Include="Teams通知Email功能說明.md" />
+    <None Include="Teams通知設定指南.md" />
     <None Include="修正說明_多時間區間排程.md" />
     <None Include="匯入排程說明.md" />
     <None Include="匯入診斷指南.md" />
+    <None Include="多組人員Email設定指南.md" />
     <None Include="排程儲存修正說明.md" />
     <None Include="排程更新修正說明.md" />
     <None Include="測試步驟.md" />
@@ -230,6 +238,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="config.xml" />
+    <Content Include="config_teams_example.xml" />
     <Content Include="Database\cleanup_orphaned_schedules.sql" />
     <Content Include="Database\create_schedule_tables.sql" />
     <Content Include="ModeSelectForm_DB_Patch.txt" />

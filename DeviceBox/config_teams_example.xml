@@ -1,0 +1,92 @@
+<!-- 
+  Microsoft Teams 推播通知配置範例
+  請將此段落加入到 config.xml 的 <Config> 根節點中
+-->
+
+<TeamsNotification>
+  <!-- 
+    啟用/停用 Teams 通知
+    true: 啟用
+    false: 停用
+  -->
+  <Enabled>false</Enabled>
+
+  <!-- 
+    Teams Incoming Webhook URL 或 Power Automate Webhook URL
+
+    方式 1: Teams Incoming Webhook (推薦，較簡單)
+    取得方式：
+    1. 開啟 Teams 頻道
+    2. 點擊「連接器」(Connectors)
+    3. 新增「Incoming Webhook」
+    4. 複製產生的 URL
+
+    範例格式：
+    https://outlook.office.com/webhook/12345678-1234-1234-1234-123456789abc@12345678-1234-1234-1234-123456789abc/IncomingWebhook/1234567890abcdef1234567890abcdef/12345678-1234-1234-1234-123456789abc
+
+    方式 2: Power Automate Webhook
+    範例格式：
+    https://default03259ba3b3ec47e38585f76b24aee3.4b.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/...
+
+    ⚠️ 注意：URL 中的 & 符號必須寫成 &amp;
+    錯誤：?param1=1&param2=2
+    正確：?param1=1&amp;param2=2
+  -->
+  <WebhookUrl></WebhookUrl>
+
+  <!-- 
+    通知聯絡人 Email
+    此 Email 將包含在發送到 Power Automate 的通知中，以 JSON 陣列形式傳送
+    可用於後續的郵件通知或其他自動化流程
+
+    支援格式：
+    1. 單一 Email：
+       <Email>maintenance@company.com</Email>
+
+    2. 多個 Email（用逗號分隔）：
+       <Email>user1@company.com,user2@company.com,user3@company.com</Email>
+
+    3. 多個 Email（用分號分隔）：
+       <Email>user1@company.com;user2@company.com;user3@company.com</Email>
+
+    4. 混合使用逗號和分號：
+       <Email>user1@company.com,user2@company.com;user3@company.com</Email>
+
+    5. 空白（不發送郵件）：
+       <Email></Email>
+
+    在 Power Automate 中，mail 欄位會是 JSON 陣列：
+    - 單一 Email: ["maintenance@company.com"]
+    - 多個 Email: ["user1@company.com", "user2@company.com", "user3@company.com"]
+    - 空白: []
+  -->
+  <Email></Email>
+</TeamsNotification>
+
+<!-- 
+  完整的 config.xml 結構範例：
+
+  <Config>
+    <Database>
+      <mysql_on>1</mysql_on>
+      <IP>192.168.1.100</IP>
+      <DB>ycm_energy</DB>
+      <USER>root</USER>
+      <Password>your_password</Password>
+      ...
+    </Database>
+
+    <Factories>
+      <Factory id="1" name="廠區A" modbusIp="192.168.1.10" modbusPort="502">
+        ...
+      </Factory>
+      ...
+    </Factories>
+
+    <TeamsNotification>
+      <Enabled>true</Enabled>
+      <WebhookUrl>YOUR_WEBHOOK_URL_HERE</WebhookUrl>
+      <Email>user1@company.com,user2@company.com,user3@company.com</Email>
+    </TeamsNotification>
+  </Config>
+-->

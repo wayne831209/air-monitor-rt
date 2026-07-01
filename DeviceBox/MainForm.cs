@@ -47,6 +47,9 @@ namespace DeviceBox
         // Key: "FactoryId_MachineNo", Value: manual DO value (1=on, 0=off)
         private Dictionary<string, ushort> manualDOStates = new Dictionary<string, ushort>();
 
+        // Teams 通知服務
+        private TeamsNotificationService teamsNotificationService;
+
         public MainForm()
         {
             InitializeComponent();
@@ -56,6 +59,7 @@ namespace DeviceBox
             InitializeFactoryHeaders();
             InitializeCompressorNames();
             InitializeDefaultMode();
+            InitializeTeamsNotification();
         }
 
         /// <summary>
@@ -209,6 +213,31 @@ namespace DeviceBox
             {
                 System.Diagnostics.Debug.WriteLine($"[MainForm] Load default mode failed: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"[MainForm] Stack trace: {ex.StackTrace}");
+            }
+        }
+
+        /// <summary>
+        /// 初始化 Teams 通知服務
+        /// </summary>
+        private void InitializeTeamsNotification()
+        {
+            try
+            {
+                if (config.TeamsNotificationEnabled && !string.IsNullOrEmpty(config.TeamsWebhookUrl))
+                {
+                    teamsNotificationService = new TeamsNotificationService(
+                        config.TeamsWebhookUrl, 
+                        config.TeamsNotificationEmail);
+                    System.Diagnostics.Debug.WriteLine("[MainForm] Teams 通知服務已啟用");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainForm] Teams 通知服務未啟用");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Teams 通知服務初始化失敗: {ex.Message}");
             }
         }
 
@@ -1234,31 +1263,73 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 【預留】空壓數值超過上下限時的推播通知函式
-        /// TODO: 實作推播通知邏輯（例如 Line Notify、Email、簡訊等）
+        /// 空壓數值超過上下限時的推播通知函式
+        /// 使用 Microsoft Teams 發送通知
         /// </summary>
         /// <param name="source">來源資訊</param>
         /// <param name="currentValue">目前空壓數值</param>
         /// <param name="limits">設定的上下限</param>
         private void OnPressureOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
-        {
-            // TODO: 在此實作空壓超限推播通知
-            // 例如：發送 Line Notify、Email、簡訊通知相關人員
-            // System.Diagnostics.Debug.WriteLine($"[推播] 空壓超限! 來源={source}, 數值={currentValue}, 上限={limits.PressureUpperLimit}, 下限={limits.PressureLowerLimit}");
+       {
+            // 記錄到 Debug 輸出
+            System.Diagnostics.Debug.WriteLine($"[推播] 空壓超限! 來源={source}, 數值={currentValue}, 上限={limits.PressureUpperLimit}, 下限={limits.PressureLowerLimit}");
+
+            // 如果 Teams 通知服務已啟用，發送通知
+            if (teamsNotificationService != null && config.TeamsNotificationEnabled)
+            {
+                try
+                {
+                    // 使用 Task.Run 避免阻塞 UI 執行緒
+                    Task.Run(async () =>
+                    {
+                        await teamsNotificationService.SendPressureAlertAsync(
+                            source,
+                            currentValue,
+                            limits.PressureUpperLimit,
+                            limits.PressureLowerLimit
+                        );
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播] 發送 Teams 通知失敗: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>
-        /// 【預留】溫度數值超過上下限時的推播通知函式
-        /// TODO: 實作推播通知邏輯（例如 Line Notify、Email、簡訊等）
+        /// 溫度數值超過上下限時的推播通知函式
+        /// 使用 Microsoft Teams 發送通知
         /// </summary>
         /// <param name="source">來源資訊</param>
         /// <param name="currentValue">目前溫度數值</param>
         /// <param name="limits">設定的上下限</param>
         private void OnTempOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
         {
-            // TODO: 在此實作溫度超限推播通知
-            // 例如：發送 Line Notify、Email、簡訊通知相關人員
-            // System.Diagnostics.Debug.WriteLine($"[推播] 溫度超限! 來源={source}, 數值={currentValue}, 上限={limits.TempUpperLimit}, 下限={limits.TempLowerLimit}");
+            // 記錄到 Debug 輸出
+            System.Diagnostics.Debug.WriteLine($"[推播] 溫度超限! 來源={source}, 數值={currentValue}, 上限={limits.TempUpperLimit}, 下限={limits.TempLowerLimit}");
+
+            // 如果 Teams 通知服務已啟用，發送通知
+            if (teamsNotificationService != null && config.TeamsNotificationEnabled)
+            {
+                try
+                {
+                    // 使用 Task.Run 避免阻塞 UI 執行緒
+                    Task.Run(async () =>
+                    {
+                        await teamsNotificationService.SendTemperatureAlertAsync(
+                            source,
+                            currentValue,
+                            limits.TempUpperLimit,
+                            limits.TempLowerLimit
+                        );
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播] 發送 Teams 通知失敗: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>

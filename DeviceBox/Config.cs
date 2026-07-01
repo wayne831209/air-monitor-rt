@@ -326,6 +326,11 @@ namespace DeviceBox
         private ScheduleDatabase _scheduleDatabase;
         public List<ScheduleMode> Modes = new List<ScheduleMode>();
 
+        // Teams Notification Settings
+        public string TeamsWebhookUrl { get; set; } = "";
+        public bool TeamsNotificationEnabled { get; set; } = false;
+        public string TeamsNotificationEmail { get; set; } = ""; // 通知聯絡人 Email
+
         private static readonly string ConfigFileName = "config.xml";
 
         public Config()
@@ -360,6 +365,9 @@ namespace DeviceBox
 
                 // Load Factory Settings
                 LoadFactorySettings(root.Element("Factories"));
+
+                // Load Teams Notification Settings
+                LoadTeamsNotificationSettings(root.Element("TeamsNotification"));
 
                 // Load Modes from Database
                 LoadModesFromDatabase();
@@ -428,6 +436,35 @@ namespace DeviceBox
             machinery_factory_realtime_table1 = dbElement.Element("machinery_factory_realtime_table1")?.Value ?? "";
             machinery_factory_demand_table1 = dbElement.Element("machinery_factory_demand_table1")?.Value ?? "";
             machinery_factory_devicebox_table1 = dbElement.Element("machinery_factory_devicebox_table1")?.Value ?? "";
+        }
+
+        /// <summary>
+        /// Load Teams Notification Settings
+        /// </summary>
+        private void LoadTeamsNotificationSettings(XElement teamsElement)
+        {
+            if (teamsElement == null)
+            {
+                TeamsNotificationEnabled = false;
+                TeamsWebhookUrl = "";
+                TeamsNotificationEmail = "";
+                return;
+            }
+
+            string enabledStr = teamsElement.Element("Enabled")?.Value ?? "false";
+            TeamsNotificationEnabled = bool.Parse(enabledStr);
+            TeamsWebhookUrl = teamsElement.Element("WebhookUrl")?.Value ?? "";
+            TeamsNotificationEmail = teamsElement.Element("Email")?.Value ?? "";
+
+            System.Diagnostics.Debug.WriteLine($"[Config] Teams Notification Enabled: {TeamsNotificationEnabled}");
+            if (!string.IsNullOrEmpty(TeamsWebhookUrl))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Config] Teams Webhook URL: {TeamsWebhookUrl.Substring(0, Math.Min(50, TeamsWebhookUrl.Length))}...");
+            }
+            if (!string.IsNullOrEmpty(TeamsNotificationEmail))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Config] Teams Notification Email: {TeamsNotificationEmail}");
+            }
         }
 
         /// <summary>
