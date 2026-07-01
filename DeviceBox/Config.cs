@@ -324,6 +324,7 @@ namespace DeviceBox
 
         // Schedule Database
         private ScheduleDatabase _scheduleDatabase;
+        private DeviceDatabase _deviceDatabase;
         public List<ScheduleMode> Modes = new List<ScheduleMode>();
 
         // Teams Notification Settings
@@ -363,11 +364,11 @@ namespace DeviceBox
                 // Load Database Settings
                 LoadDatabaseSettings(root.Element("Database"));
 
-                // Load Factory Settings
-                LoadFactorySettings(root.Element("Factories"));
+                // Load Factory Settings from Database
+                LoadFactoriesFromDatabase();
 
-                // Load Teams Notification Settings
-                LoadTeamsNotificationSettings(root.Element("TeamsNotification"));
+                // Load Teams Notification Settings from Database
+                LoadTeamsNotificationSettingsFromDatabase();
 
                 // Load Modes from Database
                 LoadModesFromDatabase();
@@ -439,7 +440,69 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// Load Teams Notification Settings
+        /// <summary>
+        /// Load Teams Notification Settings from Database
+        /// </summary>
+        private void LoadTeamsNotificationSettingsFromDatabase()
+        {
+            try
+            {
+                if (_deviceDatabase == null && !string.IsNullOrEmpty(IP))
+                {
+                    _deviceDatabase = new DeviceDatabase(IP, DB, USER, Password);
+                }
+
+                if (_deviceDatabase != null)
+                {
+                    var settings = _deviceDatabase.LoadNotificationSettings();
+
+                    // Load Teams settings
+                    if (settings.ContainsKey("teams_enabled"))
+                    {
+                        TeamsNotificationEnabled = bool.Parse(settings["teams_enabled"]);
+                    }
+                    else
+                    {
+                        TeamsNotificationEnabled = false;
+                    }
+
+                    TeamsWebhookUrl = settings.ContainsKey("teams_webhook_url") 
+                        ? settings["teams_webhook_url"] 
+                        : string.Empty;
+
+                    TeamsNotificationEmail = settings.ContainsKey("teams_email") 
+                        ? settings["teams_email"] 
+                        : string.Empty;
+
+                    System.Diagnostics.Debug.WriteLine($"[Config] Teams Notification Enabled: {TeamsNotificationEnabled}");
+                    if (!string.IsNullOrEmpty(TeamsWebhookUrl))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Config] Teams Webhook URL: {TeamsWebhookUrl.Substring(0, Math.Min(50, TeamsWebhookUrl.Length))}...");
+                    }
+                    if (!string.IsNullOrEmpty(TeamsNotificationEmail))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[Config] Teams Notification Email: {TeamsNotificationEmail}");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[Config] DeviceDatabase not initialized, cannot load notification settings");
+                    TeamsNotificationEnabled = false;
+                    TeamsWebhookUrl = string.Empty;
+                    TeamsNotificationEmail = string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Config] LoadTeamsNotificationSettingsFromDatabase failed: {ex.Message}");
+                TeamsNotificationEnabled = false;
+                TeamsWebhookUrl = string.Empty;
+                TeamsNotificationEmail = string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Load Teams Notification Settings from XML (for migration tool)
         /// </summary>
         private void LoadTeamsNotificationSettings(XElement teamsElement)
         {
@@ -464,6 +527,59 @@ namespace DeviceBox
             if (!string.IsNullOrEmpty(TeamsNotificationEmail))
             {
                 System.Diagnostics.Debug.WriteLine($"[Config] Teams Notification Email: {TeamsNotificationEmail}");
+            }
+        }
+
+        /// <summary>
+        /// Load Factory Settings from Database
+        /// </summary>
+        private void LoadFactoriesFromDatabase()
+        {
+            try
+            {
+                // 初始化 DeviceDatabase
+                if (_deviceDatabase == null && !string.IsNullOrEmpty(IP))
+                {
+                    _deviceDatabase = new DeviceDatabase(IP, DB, USER, Password);
+                }
+
+                if (_deviceDatabase != null)
+                {
+                    Factories.Clear();
+                    ModBus_IP.Clear();
+                    ModBus_Port.Clear();
+                    ModBus_Name.Clear();
+
+                    // 從資料庫載入工廠
+                    var factories = _deviceDatabase.LoadFactories();
+
+                    foreach (var factory in factories)
+                    {
+                        // 載入設備
+                        factory.Devices = _deviceDatabase.LoadDevices(factory.Id);
+
+                        // 載入警報上下限
+                        factory.AlarmLimits = _deviceDatabase.LoadAlarmLimits(factory.Id);
+
+                        Factories.Add(factory);
+                        ModBus_IP.Add(factory.ModbusIp);
+                        ModBus_Port.Add(factory.ModbusPort);
+                        ModBus_Name.Add(factory.Name);
+
+                        System.Diagnostics.Debug.WriteLine($"[Config] Factory={factory.Name} loaded {factory.Devices.Count} devices from database");
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[Config] Loaded {Factories.Count} factories from database");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[Config] DeviceDatabase not initialized, cannot load factories");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Config] LoadFactoriesFromDatabase failed: {ex.Message}");
+                Factories = new List<FactoryConfig>();
             }
         }
 
@@ -746,41 +862,41 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 儲存指定工廠的警報上下限到 config.xml
+        /// 儲存指定工廠的警報上下限到資料庫
         /// </summary>
         public bool SaveAlarmLimits(int factoryId, AlarmLimitsConfig limits)
         {
             try
             {
-                string configPath = Path.Combine(System.Windows.Forms.Application.StartupPath, ConfigFileName);
-                XDocument doc = XDocument.Load(configPath);
-                var factoryElement = doc.Root.Element("Factories")?.Elements("Factory")
-                    .FirstOrDefault(f => f.Attribute("id")?.Value == factoryId.ToString());
-
-                if (factoryElement == null) return false;
-
-                var alarmElement = factoryElement.Element("AlarmLimits");
-                if (alarmElement == null)
+                // 初始化 DeviceDatabase (如果尚未初始化)
+                if (_deviceDatabase == null && !string.IsNullOrEmpty(IP))
                 {
-                    alarmElement = new XElement("AlarmLimits");
-                    factoryElement.Add(alarmElement);
+                    _deviceDatabase = new DeviceDatabase(IP, DB, USER, Password);
                 }
 
-                alarmElement.SetAttributeValue("pressureUpper", limits.PressureUpperLimit == double.MaxValue ? "" : limits.PressureUpperLimit.ToString());
-                alarmElement.SetAttributeValue("pressureLower", limits.PressureLowerLimit == double.MinValue ? "" : limits.PressureLowerLimit.ToString());
-                alarmElement.SetAttributeValue("tempUpper", limits.TempUpperLimit == double.MaxValue ? "" : limits.TempUpperLimit.ToString());
-                alarmElement.SetAttributeValue("tempLower", limits.TempLowerLimit == double.MinValue ? "" : limits.TempLowerLimit.ToString());
-
-                doc.Save(configPath);
-
-                // 更新記憶體中的設定
-                var factory = GetFactoryById(factoryId);
-                if (factory != null)
+                if (_deviceDatabase != null)
                 {
-                    factory.AlarmLimits = limits;
-                }
+                    bool result = _deviceDatabase.SaveAlarmLimits(factoryId, limits);
 
-                return true;
+                    if (result)
+                    {
+                        // 更新記憶體中的設定
+                        var factory = GetFactoryById(factoryId);
+                        if (factory != null)
+                        {
+                            factory.AlarmLimits = limits;
+                        }
+
+                        System.Diagnostics.Debug.WriteLine($"[Config] Saved alarm limits for factory {factoryId} to database");
+                    }
+
+                    return result;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("[Config] DeviceDatabase not initialized, cannot save alarm limits");
+                    return false;
+                }
             }
             catch (Exception ex)
             {

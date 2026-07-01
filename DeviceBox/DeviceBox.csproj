@@ -108,11 +108,19 @@
     <Compile Include="DatabaseTestForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="DeviceDatabase.cs" />
+    <Compile Include="DeviceMigrationForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DeviceMigrationTool.cs" />
     <Compile Include="DeviceTrendChartForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="DeviceTrendChartForm.Designer.cs">
       <DependentUpon>DeviceTrendChartForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="DiagnosticForm.cs">
+      <SubType>Form</SubType>
     </Compile>
     <Compile Include="File.cs" />
     <Compile Include="Form1.cs">
@@ -195,6 +203,12 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <None Include="0_Quick_Setup_Database.bat" />
+    <None Include="0_快速建表.ps1" />
+    <None Include="2_執行資料遷移.bat" />
+    <None Include="3_快速遷移測試.ps1" />
+    <None Include="4_診斷工具.bat" />
+    <None Include="4_診斷工具.ps1" />
     <None Include="config_email_快速參考.md" />
     <None Include="For迴圈發送模式說明.md" />
     <None Include="packages.config" />
@@ -207,6 +221,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="README_快速建立資料庫.md" />
     <None Include="Teams推播實作總結.md" />
     <None Include="Teams推播通知設定說明.md" />
     <None Include="Teams通知Email功能說明.md" />
@@ -214,12 +229,19 @@
     <None Include="修正說明_多時間區間排程.md" />
     <None Include="匯入排程說明.md" />
     <None Include="匯入診斷指南.md" />
+    <None Include="問題排查指南.md" />
     <None Include="多組人員Email設定指南.md" />
+    <None Include="如何執行診斷工具.md" />
+    <None Include="快速診斷.ps1" />
     <None Include="排程儲存修正說明.md" />
     <None Include="排程更新修正說明.md" />
+    <None Include="檢查資料庫狀態.ps1" />
     <None Include="測試步驟.md" />
+    <None Include="直接測試.ps1" />
     <None Include="自動載入預設模式測試.md" />
     <None Include="診斷步驟.md" />
+    <None Include="通知設定遷移指南.md" />
+    <None Include="遷移指南_XML轉MySQL.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -239,8 +261,13 @@
   <ItemGroup>
     <Content Include="config.xml" />
     <Content Include="config_teams_example.xml" />
+    <Content Include="Database\1_執行資料庫建表.sql" />
     <Content Include="Database\cleanup_orphaned_schedules.sql" />
+    <Content Include="Database\create_device_tables.sql" />
     <Content Include="Database\create_schedule_tables.sql" />
+    <Content Include="Database\完整建表並匯入範例資料.sql" />
+    <Content Include="Database\診斷_檢查資料庫.sql" />
+    <Content Include="Database\診斷_檢查通知設定.sql" />
     <Content Include="ModeSelectForm_DB_Patch.txt" />
     <Content Include="診斷步驟-重新匯入.txt" />
   </ItemGroup>
