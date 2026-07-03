@@ -94,6 +94,26 @@ CREATE TABLE IF NOT EXISTS `notification_settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知設定表';
 
 -- ====================================================
+-- Table: site_config (場域配置表)
+-- 說明:儲存不同場域(其他場域、鑄造廠等)的獨立配置
+-- ====================================================
+CREATE TABLE IF NOT EXISTS `site_config` (
+  `id` INT NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+  `site_id` VARCHAR(50) NOT NULL COMMENT '場域ID (例如: other, foundry)',
+  `site_name` VARCHAR(100) NOT NULL COMMENT '場域名稱 (例如: 其他場域, 鑄造廠)',
+  `current_mode_id` INT NULL COMMENT '當前排程模式ID',
+  `config_data` TEXT NULL COMMENT '其他場域特定配置(JSON格式)',
+  `config_version` INT NOT NULL DEFAULT 1 COMMENT '配置版本號(用於同步)',
+  `last_updated_by` VARCHAR(100) NULL COMMENT '最後更新者(電腦名稱或用戶)',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_site_id` (`site_id`),
+  KEY `idx_config_version` (`config_version`),
+  KEY `idx_updated_at` (`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='場域配置表';
+
+-- ====================================================
 -- 索引優化建議
 -- ====================================================
 -- 如果查詢效能有問題,可考慮新增以下複合索引:
@@ -110,6 +130,24 @@ CREATE TABLE IF NOT EXISTS `notification_settings` (
 -- ORDER BY f.sort_order, d.sort_order;
 
 -- 2. 取得特定工廠的所有 Compressor 設備
+-- SELECT * FROM device_config 
+-- WHERE factory_id = 1 AND device_type = 'Compressor' AND enabled = 1;
+
+-- 3. 取得 Teams 通知設定
+-- SELECT setting_key, setting_value 
+-- FROM notification_settings 
+-- WHERE setting_key IN ('teams_enabled', 'teams_webhook_url', 'teams_email');
+
+-- 4. 取得特定場域的當前排程模式
+-- SELECT sc.site_name, sc.current_mode_id, m.name as mode_name
+-- FROM site_config sc
+-- LEFT JOIN modes m ON sc.current_mode_id = m.id
+-- WHERE sc.site_id = 'other';
+
+-- 5. 檢查場域配置是否有更新(用於同步)
+-- SELECT site_id, config_version, updated_at 
+-- FROM site_config 
+-- WHERE site_id = 'foundry';
 -- SELECT * FROM device_config 
 -- WHERE factory_id = 1 AND device_type = 'Compressor' AND enabled = 1;
 

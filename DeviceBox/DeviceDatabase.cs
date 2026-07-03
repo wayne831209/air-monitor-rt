@@ -480,5 +480,216 @@ namespace DeviceBox
         }
 
         #endregion
+
+        #region Site Config Operations
+
+        /// <summary>
+        /// 載入場域配置
+        /// </summary>
+        public SiteConfig LoadSiteConfig(string siteId)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[DeviceDatabase] LoadSiteConfig called with siteId: '{siteId}'");
+
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string sql = @"
+                        SELECT site_id, site_name, current_mode_id, config_data, 
+                               config_version, last_updated_by, updated_at
+                        FROM site_config
+                        WHERE site_id = @siteId";
+
+                    using (var command = new MySqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@siteId", siteId);
+
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DeviceDatabase] Executing SQL: {sql.Replace(Environment.NewLine, " ")} " +
+                            $"with siteId='{siteId}'");
+
+                        using (var reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                var config = new SiteConfig
+                                {
+                                    SiteId = reader.GetString("site_id"),
+                                    SiteName = reader.GetString("site_name"),
+                                    CurrentModeId = reader.IsDBNull(reader.GetOrdinal("current_mode_id")) 
+                                        ? (int?)null 
+                                        : reader.GetInt32("current_mode_id"),
+                                    ConfigData = reader.IsDBNull(reader.GetOrdinal("config_data"))
+                                        ? null
+                                        : reader.GetString("config_data"),
+                                    ConfigVersion = reader.GetInt32("config_version"),
+                                    LastUpdatedBy = reader.IsDBNull(reader.GetOrdinal("last_updated_by"))
+                                        ? null
+                                        : reader.GetString("last_updated_by"),
+                                    UpdatedAt = reader.GetDateTime("updated_at")
+                                };
+
+                                System.Diagnostics.Debug.WriteLine(
+                                    $"[DeviceDatabase] Loaded site config: SiteId={config.SiteId}, " +
+                                    $"Mode={config.CurrentModeId}, Version={config.ConfigVersion}");
+
+                                return config;
+                            }
+                            else
+                            {
+                                System.Diagnostics.Debug.WriteLine(
+                                    $"[DeviceDatabase] No site config found for siteId: '{siteId}'");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DeviceDatabase] LoadSiteConfig failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[DeviceDatabase] Stack trace: {ex.StackTrace}");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 載入所有可用場域
+        /// </summary>
+        public Dictionary<string, string> LoadAvailableSites()
+        {
+            var sites = new Dictionary<string, string>();
+
+            try
+            {
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string sql = "SELECT site_id, site_name FROM site_config ORDER BY id";
+
+                    using (var command = new MySqlCommand(sql, connection))
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            sites[reader.GetString("site_id")] = reader.GetString("site_name");
+                        }
+                    }
+                }
+
+                System.Diagnostics.Debug.WriteLine($"[DeviceDatabase] Loaded {sites.Count} available sites");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DeviceDatabase] LoadAvailableSites failed: {ex.Message}");
+            }
+
+            return sites;
+        }
+
+        /// <summary>
+        /// 更新場域的排程模式
+        /// </summary>
+        public void UpdateSiteMode(string siteId, int? modeId, string updatedBy)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DeviceDatabase] *** UpdateSiteMode called *** siteId='{siteId}', modeId={modeId}, updatedBy='{updatedBy}'");
+
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string sql = @"
+                        UPDATE site_config 
+                        SET current_mode_id = @modeId,
+                            config_version = config_version + 1,
+                            last_updated_by = @updatedBy,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE site_id = @siteId";
+
+                    using (var command = new MySqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@siteId", siteId);
+                        command.Parameters.AddWithValue("@modeId", modeId.HasValue ? (object)modeId.Value : DBNull.Value);
+                        command.Parameters.AddWithValue("@updatedBy", updatedBy ?? "UNKNOWN");
+
+                        int affected = command.ExecuteNonQuery();
+                        System.Diagnostics.Debug.WriteLine(
+                            $"[DeviceDatabase] *** UpdateSiteMode executed *** " +
+                            $"site='{siteId}', mode={modeId}, rows_affected={affected}");
+
+                        if (affected == 0)
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[DeviceDatabase] WARNING: No rows affected! Site '{siteId}' might not exist.");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[DeviceDatabase] UpdateSiteMode failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[DeviceDatabase] Stack trace: {ex.StackTrace}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 更新場域配置資料
+        /// </summary>
+        public void UpdateSiteConfigData(string siteId, string configData, string updatedBy)
+        {
+            try
+            {
+                using (var connection = new MySqlConnection(connectionString))
+                {
+                    connection.Open();
+                    string sql = @"
+                        UPDATE site_config 
+                        SET config_data = @configData,
+                            config_version = config_version + 1,
+                            last_updated_by = @updatedBy,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE site_id = @siteId";
+
+                    using (var command = new MySqlCommand(sql, connection))
+                    {
+                        command.Parameters.AddWithValue("@siteId", siteId);
+                        command.Parameters.AddWithValue("@configData", configData ?? (object)DBNull.Value);
+                        command.Parameters.AddWithValue("@updatedBy", updatedBy ?? "UNKNOWN");
+
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[DeviceDatabase] UpdateSiteConfigData failed: {ex.Message}");
+                throw;
+            }
+        }
+
+        #endregion
     }
+
+    #region Site Config Class
+
+    /// <summary>
+    /// 場域配置類別
+    /// </summary>
+    public class SiteConfig
+    {
+        public string SiteId { get; set; }
+        public string SiteName { get; set; }
+        public int? CurrentModeId { get; set; }
+        public string ConfigData { get; set; }
+        public int ConfigVersion { get; set; }
+        public string LastUpdatedBy { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    #endregion
 }

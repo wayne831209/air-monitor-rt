@@ -50,16 +50,53 @@ namespace DeviceBox
         // Teams 通知服務
         private TeamsNotificationService teamsNotificationService;
 
+        // 場域配置同步服務
+        private ConfigSyncService syncService;
+
         public MainForm()
         {
+            // 啟用檔案日誌記錄
+            EnableFileLogging();
+
+            System.Diagnostics.Debug.WriteLine("=================================================");
+            System.Diagnostics.Debug.WriteLine($"[MainForm] *** NEW INSTANCE STARTING *** PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
+            System.Diagnostics.Debug.WriteLine($"[MainForm] Start time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            System.Diagnostics.Debug.WriteLine("=================================================");
+
             InitializeComponent();
             InitializeConfig();
+            InitializeSite();  // 新增:場域初始化
             InitializeModbus();
             InitializeTimer();
             InitializeFactoryHeaders();
             InitializeCompressorNames();
             InitializeDefaultMode();
             InitializeTeamsNotification();
+        }
+
+        /// <summary>
+        /// 啟用檔案日誌記錄（用於診斷）
+        /// </summary>
+        private void EnableFileLogging()
+        {
+            try
+            {
+                var pid = System.Diagnostics.Process.GetCurrentProcess().Id;
+                var logPath = System.IO.Path.Combine(
+                    Application.StartupPath,
+                    $"debug_{pid}_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+
+                var fileListener = new System.Diagnostics.TextWriterTraceListener(logPath);
+                System.Diagnostics.Debug.Listeners.Add(fileListener);
+                System.Diagnostics.Debug.AutoFlush = true;
+
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Log file created: {logPath}");
+            }
+            catch (Exception ex)
+            {
+                // 如果日誌建立失敗也不影響程式運行
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to create log file: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -238,6 +275,154 @@ namespace DeviceBox
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[MainForm] Teams 通知服務初始化失敗: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 場域初始化
+        /// </summary>
+        private void InitializeSite()
+        {
+            try
+            {
+                var siteManager = SiteManager.Instance;
+
+                // 檢查是否已設定場域
+                if (!siteManager.IsSiteConfigured())
+                {
+                    // 從資料庫載入可用場域
+                    var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+                    var sites = database.LoadAvailableSites();
+
+                    if (sites.Count == 0)
+                    {
+                        MessageBox.Show("資料庫中沒有可用的場域設定!\n請先執行資料庫建表 SQL。", "錯誤",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Application.Exit();
+                        return;
+                    }
+
+                    // 顯示場域選擇對話框
+                    using (var siteSelectForm = new SiteSelectionForm(sites))
+                    {
+                        if (siteSelectForm.ShowDialog() == DialogResult.OK)
+                        {
+                            siteManager.SaveSiteConfig(
+                                siteSelectForm.SelectedSiteId,
+                                siteSelectForm.SelectedSiteName);
+                        }
+                        else
+                        {
+                            Application.Exit();
+                            return;
+                        }
+                    }
+                }
+
+                // 顯示當前場域
+                this.Text = $"DeviceBox - {siteManager.CurrentSiteName}";
+
+                // 啟動配置同步服務
+                StartConfigSync();
+
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Site initialized: {siteManager.CurrentSiteId}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Site initialization failed: {ex.Message}");
+                MessageBox.Show($"場域初始化失敗: {ex.Message}", "錯誤",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// 啟動配置同步服務
+        /// </summary>
+        private void StartConfigSync()
+        {
+            try
+            {
+                var siteManager = SiteManager.Instance;
+                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] Starting sync service for site: {siteManager.CurrentSiteId} ({siteManager.CurrentSiteName})");
+
+                syncService = new ConfigSyncService(database, siteManager.CurrentSiteId);
+                syncService.ConfigUpdated += SyncService_ConfigUpdated;
+                syncService.Start();
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] Config sync service started for site: {siteManager.CurrentSiteId}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to start sync service: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 配置同步更新事件處理
+        /// </summary>
+        private void SyncService_ConfigUpdated(object sender, ConfigUpdatedEventArgs e)
+        {
+            try
+            {
+                // 在 UI 執行緒上執行
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() => SyncService_ConfigUpdated(sender, e)));
+                    return;
+                }
+
+                // 驗證場域匹配 - 確保只處理當前場域的更新
+                var siteManager = SiteManager.Instance;
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] *** SYNC EVENT RECEIVED *** " +
+                    $"Event SiteId: {e.SiteId}, Current SiteId: {siteManager.CurrentSiteId}, " +
+                    $"Mode: {e.CurrentModeId}, Version: {e.ConfigVersion}");
+
+                if (e.SiteId != siteManager.CurrentSiteId)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[MainForm] *** IGNORING *** Config update from different site. " +
+                        $"Current: {siteManager.CurrentSiteId} ({siteManager.CurrentSiteName}), " +
+                        $"Event: {e.SiteId} ({e.SiteName})");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] *** APPLYING SYNC *** Site: {e.SiteId}, Version: {e.ConfigVersion}, " +
+                    $"Mode: {e.CurrentModeId}, Updated by: {e.UpdatedBy}");
+
+                // 重新載入模式
+                if (e.CurrentModeId.HasValue)
+                {
+                    var updatedMode = ModeSelectForm.GetModeById(e.CurrentModeId.Value);
+                    if (updatedMode != null)
+                    {
+                        currentMode = updatedMode;
+                        label3.Text = updatedMode.Name;
+                        if (!string.IsNullOrEmpty(updatedMode.Description))
+                        {
+                            label4.Text = updatedMode.Description;
+                        }
+
+                        // 判斷是否為手動模式
+                        isManualMode = updatedMode.Name.Contains("手動");
+
+                        ModeSelectForm.ApplyModeSchedulesToConfig(updatedMode);
+                        config.LoadConfig();
+                        RefreshFactoryDisplay();
+
+                        System.Diagnostics.Debug.WriteLine($"[MainForm] *** SYNC COMPLETE *** Mode: {updatedMode.Name}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Config sync error: {ex.Message}");
             }
         }
 
@@ -884,8 +1069,35 @@ namespace DeviceBox
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("=================================================");
+            System.Diagnostics.Debug.WriteLine($"[MainForm] *** INSTANCE CLOSING *** PID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
+            System.Diagnostics.Debug.WriteLine($"[MainForm] Close time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+            System.Diagnostics.Debug.WriteLine("=================================================");
+
             updateTimer?.Stop();
             updateTimer?.Dispose();
+
+            // 停止配置同步服務
+            if (syncService != null)
+            {
+                syncService.ConfigUpdated -= SyncService_ConfigUpdated;
+                syncService.Stop();
+                syncService = null;
+            }
+
+            // 清理場域配置檔案
+            try
+            {
+                SiteManager.Instance.Cleanup();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] SiteManager cleanup error: {ex.Message}");
+            }
+
+            // 刷新並關閉日誌
+            System.Diagnostics.Debug.Flush();
+
             base.OnFormClosing(e);
         }
 
@@ -1099,7 +1311,39 @@ namespace DeviceBox
                     config.LoadConfig();
                     RefreshFactoryDisplay();
                     UpdateStatusLabelCursors();
+
+                    // 儲存到場域配置
+                    SaveModeToSiteConfig(selectedMode);
                 }
+            }
+        }
+
+        /// <summary>
+        /// 儲存模式到場域配置
+        /// </summary>
+        private void SaveModeToSiteConfig(ScheduleMode mode)
+        {
+            try
+            {
+                var siteManager = SiteManager.Instance;
+                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] *** SAVING MODE *** Site: {siteManager.CurrentSiteId} ({siteManager.CurrentSiteName}), " +
+                    $"Mode: {mode.Name} (ID:{mode.Id})");
+
+                database.UpdateSiteMode(
+                    siteManager.CurrentSiteId,
+                    mode.Id,
+                    SiteManager.GetComputerIdentifier());
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] Mode saved successfully to site '{siteManager.CurrentSiteId}'");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] Failed to save mode to site config: {ex.Message}");
             }
         }
 
