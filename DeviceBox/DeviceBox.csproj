@@ -237,6 +237,7 @@
     <None Include="修正說明_多時間區間排程.md" />
     <None Include="全場域背景監控快速參考.md" />
     <None Include="全場域背景監控說明.md" />
+    <None Include="全局計時器推播說明.md" />
     <None Include="分析日誌.ps1" />
     <None Include="匯入排程說明.md" />
     <None Include="匯入診斷指南.md" />
@@ -251,7 +252,9 @@
     <None Include="排程儲存修正說明.md" />
     <None Include="排程更新修正說明.md" />
     <None Include="推播僅針對排程設備說明.md" />
+    <None Include="推播延遲機制說明.md" />
     <None Include="推播設定資料庫化說明.md" />
+    <None Include="推播路徑重構說明.md" />
     <None Include="推播通知快速參考.md" />
     <None Include="推播通知設備名稱改善說明.md" />
     <None Include="檢查資料庫狀態.ps1" />

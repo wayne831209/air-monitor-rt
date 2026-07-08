@@ -59,10 +59,13 @@ namespace DeviceBox
         // Key: "DeviceName", Value: 狀態 ("正常", "警報", "故障")
         private Dictionary<string, string> lastDeviceAlertStates = new Dictionary<string, string>();
 
-        // 記錄異常的開始時間，用於延遲推播
-        // Key: 異常類型字串 (例如 "pressure:CO-32,CO-35" 或 "temp:CO-38")
-        // Value: 異常開始的時間
-        private Dictionary<string, DateTime> abnormalStartTimes = new Dictionary<string, DateTime>();
+        // 記錄異常的全局開始時間，用於延遲推播
+        // 只要有任何設備異常（空壓/溫度超限），就開始計時
+        // 所有設備恢復正常後，計時歸零
+        private DateTime? globalAbnormalStartTime = null;
+
+        // 記錄當前異常的設備列表（用於追蹤）
+        private HashSet<string> currentAbnormalDevices = new HashSet<string>();
 
         // Teams 通知服務
         private TeamsNotificationService teamsNotificationService;
@@ -1609,7 +1612,8 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 更新空壓 Label 並檢查是否超過上下限，超過則變色並呼叫推播函式
+        /// 更新空壓 Label 並檢查是否超過上下限，超過則變色
+        /// 推播通知由背景監控統一處理
         /// </summary>
         private void UpdatePressureLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits, string deviceName = "")
         {
@@ -1621,9 +1625,7 @@ namespace DeviceBox
                 if (overLimit)
                 {
                     UpdateLabel(label, valueText, StatusOverLimit);
-                    // 呼叫推播通知，傳入設備名稱
-                    string source = string.IsNullOrEmpty(deviceName) ? label.FindForm()?.Text : deviceName;
-                    OnPressureOverLimit(source, valueText, limits);
+                    // 推播通知由 MonitorAllDevicesInBackground() 統一處理
                 }
                 else
                 {
@@ -1637,7 +1639,8 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 更新溫度 Label 並檢查是否超過上下限，超過則變色並呼叫推播函式
+        /// 更新溫度 Label 並檢查是否超過上下限，超過則變色
+        /// 推播通知由背景監控統一處理
         /// </summary>
         private void UpdateTempLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits, string deviceName = "")
         {
@@ -1649,9 +1652,7 @@ namespace DeviceBox
                 if (overLimit)
                 {
                     UpdateLabel(label, valueText, StatusOverLimit);
-                    // 呼叫推播通知，傳入設備名稱
-                    string source = string.IsNullOrEmpty(deviceName) ? label.FindForm()?.Text : deviceName;
-                    OnTempOverLimit(source, valueText, limits);
+                    // 推播通知由 MonitorAllDevicesInBackground() 統一處理
                 }
                 else
                 {
@@ -1664,75 +1665,35 @@ namespace DeviceBox
             }
         }
 
-        /// <summary>
-        /// 空壓數值超過上下限時的推播通知函式
-        /// 使用 Microsoft Teams 發送通知
-        /// </summary>
-        /// <param name="source">來源資訊</param>
-        /// <param name="currentValue">目前空壓數值</param>
-        /// <param name="limits">設定的上下限</param>
-        private void OnPressureOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
-       {
-            // 記錄到 Debug 輸出
-            System.Diagnostics.Debug.WriteLine($"[推播] 空壓超限! 來源={source}, 數值={currentValue}, 上限={limits.PressureUpperLimit}, 下限={limits.PressureLowerLimit}");
+        // ========================================
+        // 以下方法已廢棄，推播統一由 MonitorAllDevicesInBackground() 處理
+        // ========================================
 
-            // 如果 Teams 通知服務已啟用，發送通知
-            if (teamsNotificationService != null && config.TeamsNotificationEnabled)
-            {
-                try
-                {
-                    // 使用 Task.Run 避免阻塞 UI 執行緒
-                    Task.Run(async () =>
-                    {
-                        await teamsNotificationService.SendPressureAlertAsync(
-                            source,
-                            currentValue,
-                            limits.PressureUpperLimit,
-                            limits.PressureLowerLimit
-                        );
-                    });
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[推播] 發送 Teams 通知失敗: {ex.Message}");
-                }
-            }
+        /// <summary>
+        /// [已廢棄] 空壓數值超過上下限時的推播通知函式
+        /// 推播已改由 MonitorAllDevicesInBackground() 統一處理，包含排程篩選和延遲機制
+        /// </summary>
+        [Obsolete("推播已改由 MonitorAllDevicesInBackground() 統一處理")]
+        private void OnPressureOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
+        {
+            // 此方法已不再使用，推播統一由背景監控處理
+            System.Diagnostics.Debug.WriteLine($"[警告] OnPressureOverLimit 已廢棄，推播應由 MonitorAllDevicesInBackground() 處理");
         }
 
         /// <summary>
-        /// 溫度數值超過上下限時的推播通知函式
-        /// 使用 Microsoft Teams 發送通知
+        /// [已廢棄] 溫度數值超過上下限時的推播通知函式
+        /// 推播已改由 MonitorAllDevicesInBackground() 統一處理，包含排程篩選和延遲機制
         /// </summary>
-        /// <param name="source">來源資訊</param>
-        /// <param name="currentValue">目前溫度數值</param>
-        /// <param name="limits">設定的上下限</param>
+        [Obsolete("推播已改由 MonitorAllDevicesInBackground() 統一處理")]
         private void OnTempOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
         {
-            // 記錄到 Debug 輸出
-            System.Diagnostics.Debug.WriteLine($"[推播] 溫度超限! 來源={source}, 數值={currentValue}, 上限={limits.TempUpperLimit}, 下限={limits.TempLowerLimit}");
-
-            // 如果 Teams 通知服務已啟用，發送通知
-            if (teamsNotificationService != null && config.TeamsNotificationEnabled)
-            {
-                try
-                {
-                    // 使用 Task.Run 避免阻塞 UI 執行緒
-                    Task.Run(async () =>
-                    {
-                        await teamsNotificationService.SendTemperatureAlertAsync(
-                            source,
-                            currentValue,
-                            limits.TempUpperLimit,
-                            limits.TempLowerLimit
-                        );
-                    });
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[推播] 發送 Teams 通知失敗: {ex.Message}");
-                }
-            }
+            // 此方法已不再使用，推播統一由背景監控處理
+            System.Diagnostics.Debug.WriteLine($"[警告] OnTempOverLimit 已廢棄，推播應由 MonitorAllDevicesInBackground() 處理");
         }
+
+        // ========================================
+        // 背景監控與推播（新版）
+        // ========================================
 
         /// <summary>
         /// 取得工廠中當前有排程運行的空壓機 ID 集合
@@ -1768,7 +1729,10 @@ namespace DeviceBox
         private void MonitorAllDevicesInBackground()
         {
             if (config == null || config.Factories == null || modbusList == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[背景監控] 監控未啟動: config={config != null}, Factories={config?.Factories != null}, modbusList={modbusList != null}");
                 return;
+            }
 
             try
             {
@@ -1778,6 +1742,8 @@ namespace DeviceBox
                 var alarmDevices = new List<string>();
                 var faultDevices = new List<string>();
 
+                System.Diagnostics.Debug.WriteLine($"[背景監控] 開始監控，共 {config.Factories.Count} 個工廠");
+
                 // 遍歷所有工廠
                 for (int factoryIndex = 0; factoryIndex < config.Factories.Count; factoryIndex++)
                 {
@@ -1785,13 +1751,19 @@ namespace DeviceBox
 
                     // 檢查 modbus 連線是否存在
                     if (factoryIndex >= modbusList.Count)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - modbus 索引超出範圍");
                         continue;
+                    }
 
                     var modbus = modbusList[factoryIndex];
 
                     // 檢查連線狀態
                     if (modbus == null || modbus.address_val == null || !modbus.ConnectState)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - modbus 未連線 (modbus={modbus != null}, address_val={modbus?.address_val != null}, ConnectState={modbus?.ConnectState})");
                         continue;
+                    }
 
                     // 取得該工廠當前有排程的空壓機 ID 集合
                     var scheduledCompressorIds = GetScheduledCompressorIds(factory);
@@ -1803,9 +1775,13 @@ namespace DeviceBox
                         continue;
                     }
 
+                    System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 有 {scheduledCompressorIds.Count} 台空壓機在排程中");
+
                     // 取得該工廠的空壓和溫度值
                     string pressure = GetPressureValue(modbus);
                     string temp = GetTempValue(modbus);
+
+                    System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓={pressure}, 溫度={temp}, 上限=[空壓:{factory.AlarmLimits.PressureUpperLimit}, 溫度:{factory.AlarmLimits.TempUpperLimit}], 下限=[空壓:{factory.AlarmLimits.PressureLowerLimit}, 溫度:{factory.AlarmLimits.TempLowerLimit}]");
 
                     // 取得該工廠的所有空壓機
                     var compressors = factory.GetDevicesByType(DeviceType.Compressor);
@@ -1828,6 +1804,7 @@ namespace DeviceBox
 
                             if (pressureOverLimit)
                             {
+                                System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓超限！數值={pressureValue}, 上限={factory.AlarmLimits.PressureUpperLimit}, 下限={factory.AlarmLimits.PressureLowerLimit}");
                                 pressureAbnormalDevices.AddRange(deviceNames);
                             }
                         }
@@ -1841,6 +1818,7 @@ namespace DeviceBox
 
                             if (tempOverLimit)
                             {
+                                System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 溫度超限！數值={tempValue}, 上限={factory.AlarmLimits.TempUpperLimit}, 下限={factory.AlarmLimits.TempLowerLimit}");
                                 tempAbnormalDevices.AddRange(deviceNames);
                             }
                         }
@@ -1886,133 +1864,115 @@ namespace DeviceBox
 
         /// <summary>
         /// 發送合併的異常通知
+        /// 全局計時器邏輯：
+        /// - 只要有任何設備異常（空壓/溫度超限）→ 開始計時
+        /// - 所有設備恢復正常 → 計時歸零
+        /// - 達到延遲時間 → 推播所有當前異常
+        /// - 警報/故障 → 立即推播（不延遲）
         /// </summary>
         private void SendCombinedAbnormalNotification(List<string> pressureAbnormal, List<string> tempAbnormal, List<string> alarmDevices, List<string> faultDevices)
         {
+            System.Diagnostics.Debug.WriteLine($"[推播檢查] 進入推播檢查，空壓異常={pressureAbnormal.Count}, 溫度異常={tempAbnormal.Count}, 警報={alarmDevices.Count}, 故障={faultDevices.Count}");
+            System.Diagnostics.Debug.WriteLine($"[推播檢查] 推播設定: Enabled={config.TeamsNotificationEnabled}, AlarmDelayMinutes={config.AlarmDelayMinutes}, CooldownMinutes={config.NotificationCooldownMinutes}");
+
             // 移除重複設備名稱
             pressureAbnormal = pressureAbnormal.Distinct().ToList();
             tempAbnormal = tempAbnormal.Distinct().ToList();
             alarmDevices = alarmDevices.Distinct().ToList();
             faultDevices = faultDevices.Distinct().ToList();
 
-            // 檢查是否有任何異常
-            bool hasAnyAbnormal = pressureAbnormal.Count > 0 || tempAbnormal.Count > 0 || 
-                                  alarmDevices.Count > 0 || faultDevices.Count > 0;
+            // ========================================
+            // 步驟 1: 檢查是否有空壓/溫度異常
+            // ========================================
+            bool hasPressureTempAbnormal = pressureAbnormal.Count > 0 || tempAbnormal.Count > 0;
 
-            if (!hasAnyAbnormal)
+            // 更新當前異常設備集合
+            currentAbnormalDevices.Clear();
+            currentAbnormalDevices.UnionWith(pressureAbnormal);
+            currentAbnormalDevices.UnionWith(tempAbnormal);
+
+            // ========================================
+            // 步驟 2: 管理全局計時器
+            // ========================================
+            if (hasPressureTempAbnormal)
             {
-                // 沒有異常時清空所有異常開始時間記錄
-                abnormalStartTimes.Clear();
-                return;
+                // 有異常：如果計時器還沒啟動，就啟動它
+                if (!globalAbnormalStartTime.HasValue)
+                {
+                    globalAbnormalStartTime = DateTime.Now;
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 全局計時器啟動，異常設備: {string.Join(", ", currentAbnormalDevices)}");
+                }
+                else
+                {
+                    // 計時器已在運行，顯示當前進度
+                    TimeSpan duration = DateTime.Now - globalAbnormalStartTime.Value;
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 全局計時器運行中，已持續 {duration.TotalMinutes:F1} 分鐘，異常設備: {string.Join(", ", currentAbnormalDevices)}");
+                }
+            }
+            else
+            {
+                // 沒有異常：重置計時器
+                if (globalAbnormalStartTime.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 所有設備恢復正常，計時器歸零");
+                    globalAbnormalStartTime = null;
+                }
             }
 
-            // 建立異常訊息與追蹤 key
+            // ========================================
+            // 步驟 3: 建立推播訊息
+            // ========================================
             var abnormalMessages = new List<string>();
-            var currentAbnormalKeys = new List<string>();
 
-            if (tempAbnormal.Count > 0)
+            // 3.1 檢查空壓/溫度是否達到推播條件
+            if (hasPressureTempAbnormal && globalAbnormalStartTime.HasValue)
             {
-                string key = "temp:" + string.Join(",", tempAbnormal.OrderBy(x => x));
-                currentAbnormalKeys.Add(key);
+                TimeSpan duration = DateTime.Now - globalAbnormalStartTime.Value;
 
-                if (!abnormalStartTimes.ContainsKey(key))
-                {
-                    abnormalStartTimes[key] = DateTime.Now;
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常開始追蹤: {string.Join(", ", tempAbnormal)}");
-                }
-
-                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
                 if (duration.TotalMinutes >= config.AlarmDelayMinutes)
                 {
-                    abnormalMessages.Add($"溫度異常: {string.Join(", ", tempAbnormal)}");
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                    // 達到延遲時間，加入推播訊息
+                    if (tempAbnormal.Count > 0)
+                    {
+                        abnormalMessages.Add($"溫度異常: {string.Join(", ", tempAbnormal)}");
+                        System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                    }
+
+                    if (pressureAbnormal.Count > 0)
+                    {
+                        abnormalMessages.Add($"空壓異常: {string.Join(", ", pressureAbnormal)}");
+                        System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                    }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
+                    // 尚未達到延遲時間
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 異常已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
                 }
             }
 
-            if (pressureAbnormal.Count > 0)
-            {
-                string key = "pressure:" + string.Join(",", pressureAbnormal.OrderBy(x => x));
-                currentAbnormalKeys.Add(key);
-
-                if (!abnormalStartTimes.ContainsKey(key))
-                {
-                    abnormalStartTimes[key] = DateTime.Now;
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常開始追蹤: {string.Join(", ", pressureAbnormal)}");
-                }
-
-                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
-                if (duration.TotalMinutes >= config.AlarmDelayMinutes)
-                {
-                    abnormalMessages.Add($"空壓異常: {string.Join(", ", pressureAbnormal)}");
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
-                }
-            }
-
+            // 3.2 設備警報：立即推播（不延遲）
             if (alarmDevices.Count > 0)
             {
-                string key = "alarm:" + string.Join(",", alarmDevices.OrderBy(x => x));
-                currentAbnormalKeys.Add(key);
-
-                if (!abnormalStartTimes.ContainsKey(key))
-                {
-                    abnormalStartTimes[key] = DateTime.Now;
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備警報開始追蹤: {string.Join(", ", alarmDevices)}");
-                }
-
-                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
-                if (duration.TotalMinutes >= config.AlarmDelayMinutes)
-                {
-                    abnormalMessages.Add($"設備警報: {string.Join(", ", alarmDevices)}");
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備警報已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備警報已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
-                }
+                abnormalMessages.Add($"設備警報: {string.Join(", ", alarmDevices)}");
+                System.Diagnostics.Debug.WriteLine($"[推播] 設備警報偵測到，立即推播: {string.Join(", ", alarmDevices)}");
             }
 
+            // 3.3 設備故障：立即推播（不延遲）
             if (faultDevices.Count > 0)
             {
-                string key = "fault:" + string.Join(",", faultDevices.OrderBy(x => x));
-                currentAbnormalKeys.Add(key);
-
-                if (!abnormalStartTimes.ContainsKey(key))
-                {
-                    abnormalStartTimes[key] = DateTime.Now;
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備故障開始追蹤: {string.Join(", ", faultDevices)}");
-                }
-
-                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
-                if (duration.TotalMinutes >= config.AlarmDelayMinutes)
-                {
-                    abnormalMessages.Add($"設備故障: {string.Join(", ", faultDevices)}");
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備故障已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備故障已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
-                }
+                abnormalMessages.Add($"設備故障: {string.Join(", ", faultDevices)}");
+                System.Diagnostics.Debug.WriteLine($"[推播] 設備故障偵測到，立即推播: {string.Join(", ", faultDevices)}");
             }
 
-            // 清除不再異常的項目
-            var keysToRemove = abnormalStartTimes.Keys.Where(k => !currentAbnormalKeys.Contains(k)).ToList();
-            foreach (var key in keysToRemove)
-            {
-                abnormalStartTimes.Remove(key);
-                System.Diagnostics.Debug.WriteLine($"[推播延遲] 清除已恢復正常的異常記錄: {key}");
-            }
-
-            // 沒有需要推播的訊息
+            // ========================================
+            // 步驟 4: 發送推播
+            // ========================================
             if (abnormalMessages.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine($"[推播] 沒有符合推播條件的異常");
                 return;
+            }
 
             // 記錄到 Debug
             System.Diagnostics.Debug.WriteLine($"[推播] 偵測到符合推播條件的異常:");

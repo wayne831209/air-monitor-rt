@@ -490,7 +490,7 @@ namespace DeviceBox
                 ""sections"": [
                     {{
                         ""activityTitle"": ""{EscapeJson(title)}"",
-                        ""activitySubtitle"": ""空壓設備系統"",
+                        ""activitySubtitle"": """",
                         ""facts"": [{factsJson}],
                         ""markdown"": true
                     }}
@@ -579,7 +579,7 @@ namespace DeviceBox
                             },
                             {
                                 ""type"": ""TextBlock"",
-                                ""text"": ""空壓設備系統"",
+                                ""text"": """",
                                 ""isSubtle"": true,
                                 ""spacing"": ""None""
                             },
@@ -611,7 +611,7 @@ namespace DeviceBox
                         ""sections"": [
                             {
                                 ""activityTitle"": ""✅ Teams 通知測試"",
-                                ""activitySubtitle"": ""空壓設備系統"",
+                                ""activitySubtitle"": """",
                                 ""facts"": [
                                     {
                                         ""name"": ""狀態"",
