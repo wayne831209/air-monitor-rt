@@ -33,6 +33,14 @@ namespace DeviceBox
         private int[] currentDisplayIndices = { 0, 1, 2, 3, 4 };  // Factory indices to display
         private const int CASTING_FACTORY_ID = 6;  // Casting Factory ID in config
 
+        // ===== Log 檔案設定 =====
+        // 是否啟用 log 檔案記錄 (true=啟用, false=停用)
+        private const bool ENABLE_FILE_LOGGING = false;
+
+        // 自動清理舊 log 檔案的天數 (0 = 不自動清理)
+        private const int LOG_RETENTION_DAYS = 7;  // 保留最近 7 天的 log
+        // ======================
+
         private Timer updateTimer;
         private List<ModBus_List> modbusList;
         private Config config;
@@ -46,6 +54,15 @@ namespace DeviceBox
         // 手動模式下，記錄每個設備的手動 DO 狀態
         // Key: "FactoryId_MachineNo", Value: manual DO value (1=on, 0=off)
         private Dictionary<string, ushort> manualDOStates = new Dictionary<string, ushort>();
+
+        // 記錄每個設備的上次警報/故障狀態，避免重複推播
+        // Key: "DeviceName", Value: 狀態 ("正常", "警報", "故障")
+        private Dictionary<string, string> lastDeviceAlertStates = new Dictionary<string, string>();
+
+        // 記錄異常的開始時間，用於延遲推播
+        // Key: 異常類型字串 (例如 "pressure:CO-32,CO-35" 或 "temp:CO-38")
+        // Value: 異常開始的時間
+        private Dictionary<string, DateTime> abnormalStartTimes = new Dictionary<string, DateTime>();
 
         // Teams 通知服務
         private TeamsNotificationService teamsNotificationService;
@@ -65,13 +82,13 @@ namespace DeviceBox
 
             InitializeComponent();
             InitializeConfig();
-            InitializeSite();  // 新增:場域初始化
             InitializeModbus();
             InitializeTimer();
             InitializeFactoryHeaders();
             InitializeCompressorNames();
             InitializeDefaultMode();
             InitializeTeamsNotification();
+            InitializeViewBasedSync();  // 新增：根據視圖的動態同步
         }
 
         /// <summary>
@@ -81,6 +98,19 @@ namespace DeviceBox
         {
             try
             {
+                // 檢查是否啟用 log 功能
+                if (!ENABLE_FILE_LOGGING)
+                {
+                    System.Diagnostics.Debug.WriteLine("[MainForm] File logging is disabled");
+                    return;
+                }
+
+                // 自動清理舊的 log 檔案
+                if (LOG_RETENTION_DAYS > 0)
+                {
+                    CleanOldLogFiles();
+                }
+
                 var pid = System.Diagnostics.Process.GetCurrentProcess().Id;
                 var logPath = System.IO.Path.Combine(
                     Application.StartupPath,
@@ -96,6 +126,46 @@ namespace DeviceBox
             {
                 // 如果日誌建立失敗也不影響程式運行
                 System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to create log file: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清理超過保留天數的舊 log 檔案
+        /// </summary>
+        private void CleanOldLogFiles()
+        {
+            try
+            {
+                var logDirectory = Application.StartupPath;
+                var logFiles = System.IO.Directory.GetFiles(logDirectory, "debug_*.log");
+                var cutoffDate = DateTime.Now.AddDays(-LOG_RETENTION_DAYS);
+                int deletedCount = 0;
+
+                foreach (var logFile in logFiles)
+                {
+                    var fileInfo = new System.IO.FileInfo(logFile);
+                    if (fileInfo.LastWriteTime < cutoffDate)
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(logFile);
+                            deletedCount++;
+                        }
+                        catch
+                        {
+                            // 忽略無法刪除的檔案(可能被其他程序使用)
+                        }
+                    }
+                }
+
+                if (deletedCount > 0)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainForm] Cleaned up {deletedCount} old log file(s) older than {LOG_RETENTION_DAYS} days");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to clean old log files: {ex.Message}");
             }
         }
 
@@ -264,7 +334,8 @@ namespace DeviceBox
                 {
                     teamsNotificationService = new TeamsNotificationService(
                         config.TeamsWebhookUrl, 
-                        config.TeamsNotificationEmail);
+                        config.TeamsNotificationEmail,
+                        config.NotificationCooldownMinutes);
                     System.Diagnostics.Debug.WriteLine("[MainForm] Teams 通知服務已啟用");
                 }
                 else
@@ -279,85 +350,138 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 場域初始化
+        /// 初始化基於視圖的動態同步
         /// </summary>
-        private void InitializeSite()
+        private void InitializeViewBasedSync()
         {
             try
             {
-                var siteManager = SiteManager.Instance;
+                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
 
-                // 檢查是否已設定場域
-                if (!siteManager.IsSiteConfigured())
-                {
-                    // 從資料庫載入可用場域
-                    var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
-                    var sites = database.LoadAvailableSites();
+                // 根據當前視圖決定場域
+                string currentSiteId = GetCurrentSiteId();
 
-                    if (sites.Count == 0)
-                    {
-                        MessageBox.Show("資料庫中沒有可用的場域設定!\n請先執行資料庫建表 SQL。", "錯誤",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        Application.Exit();
-                        return;
-                    }
+                // 載入場域的最新配置
+                LoadAndApplySiteConfig(currentSiteId);
 
-                    // 顯示場域選擇對話框
-                    using (var siteSelectForm = new SiteSelectionForm(sites))
-                    {
-                        if (siteSelectForm.ShowDialog() == DialogResult.OK)
-                        {
-                            siteManager.SaveSiteConfig(
-                                siteSelectForm.SelectedSiteId,
-                                siteSelectForm.SelectedSiteName);
-                        }
-                        else
-                        {
-                            Application.Exit();
-                            return;
-                        }
-                    }
-                }
+                syncService = new ConfigSyncService(database, currentSiteId);
+                syncService.ConfigUpdated += SyncService_ConfigUpdated;
+                syncService.Start();
 
-                // 顯示當前場域
-                this.Text = $"DeviceBox - {siteManager.CurrentSiteName}";
-
-                // 啟動配置同步服務
-                StartConfigSync();
-
-                System.Diagnostics.Debug.WriteLine($"[MainForm] Site initialized: {siteManager.CurrentSiteId}");
+                System.Diagnostics.Debug.WriteLine($"[MainForm] View-based sync initialized for: {currentSiteId} ({currentViewMode})");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainForm] Site initialization failed: {ex.Message}");
-                MessageBox.Show($"場域初始化失敗: {ex.Message}", "錯誤",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to init view-based sync: {ex.Message}");
             }
         }
 
         /// <summary>
-        /// 啟動配置同步服務
+        /// 根據當前視圖模式獲取場域 ID
         /// </summary>
-        private void StartConfigSync()
+        private string GetCurrentSiteId()
+        {
+            return currentViewMode == ViewMode.CastingFactory ? "foundry" : "other";
+        }
+
+        /// <summary>
+        /// 切換同步場域（視圖改變時調用）
+        /// </summary>
+        private void SwitchSyncSite()
         {
             try
             {
-                var siteManager = SiteManager.Instance;
-                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+                string newSiteId = GetCurrentSiteId();
 
                 System.Diagnostics.Debug.WriteLine(
-                    $"[MainForm] Starting sync service for site: {siteManager.CurrentSiteId} ({siteManager.CurrentSiteName})");
+                    $"[MainForm] Switching sync site to: {newSiteId} ({currentViewMode})");
 
-                syncService = new ConfigSyncService(database, siteManager.CurrentSiteId);
+                // 停止舊的同步服務
+                if (syncService != null)
+                {
+                    syncService.ConfigUpdated -= SyncService_ConfigUpdated;
+                    syncService.Stop();
+                }
+
+                // 載入新場域的最新配置
+                LoadAndApplySiteConfig(newSiteId);
+
+                // 啟動新的同步服務
+                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+                syncService = new ConfigSyncService(database, newSiteId);
                 syncService.ConfigUpdated += SyncService_ConfigUpdated;
                 syncService.Start();
 
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MainForm] Config sync service started for site: {siteManager.CurrentSiteId}");
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Sync site switched successfully to: {newSiteId}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to start sync service: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to switch sync site: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 載入並套用場域配置(從資料庫讀取最新設定)
+        /// </summary>
+        private void LoadAndApplySiteConfig(string siteId)
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Loading site config from database for: {siteId}");
+
+                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+                var siteConfig = database.LoadSiteConfig(siteId);
+
+                if (siteConfig == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainForm] No site config found for: {siteId}");
+                    return;
+                }
+
+                System.Diagnostics.Debug.WriteLine(
+                    $"[MainForm] Loaded site config - Site: {siteConfig.SiteName}, " +
+                    $"Mode ID: {siteConfig.CurrentModeId}, Version: {siteConfig.ConfigVersion}");
+
+                // 如果有設定的模式，套用它
+                if (siteConfig.CurrentModeId.HasValue)
+                {
+                    var mode = ModeSelectForm.GetModeById(siteConfig.CurrentModeId.Value);
+                    if (mode != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainForm] Applying mode: {mode.Name} (ID: {mode.Id})");
+
+                        currentMode = mode;
+                        label3.Text = mode.Name;
+
+                        if (!string.IsNullOrEmpty(mode.Description))
+                        {
+                            label4.Text = mode.Description;
+                        }
+
+                        // 判斷是否為手動模式
+                        isManualMode = mode.Name.Contains("手動");
+
+                        // 套用模式的排程到配置
+                        ModeSelectForm.ApplyModeSchedulesToConfig(mode);
+                        config.LoadConfig();
+                        RefreshFactoryDisplay();
+
+                        System.Diagnostics.Debug.WriteLine($"[MainForm] Site config applied successfully");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[MainForm] Mode not found with ID: {siteConfig.CurrentModeId.Value}");
+                    }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainForm] No mode set for site: {siteId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to load site config: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[MainForm] Stack trace: {ex.StackTrace}");
             }
         }
 
@@ -375,20 +499,19 @@ namespace DeviceBox
                     return;
                 }
 
-                // 驗證場域匹配 - 確保只處理當前場域的更新
-                var siteManager = SiteManager.Instance;
+                // 驗證場域匹配 - 根據當前視圖判斷
+                string currentSiteId = GetCurrentSiteId();
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[MainForm] *** SYNC EVENT RECEIVED *** " +
-                    $"Event SiteId: {e.SiteId}, Current SiteId: {siteManager.CurrentSiteId}, " +
+                    $"Event SiteId: {e.SiteId}, Current View Site: {currentSiteId} ({currentViewMode}), " +
                     $"Mode: {e.CurrentModeId}, Version: {e.ConfigVersion}");
 
-                if (e.SiteId != siteManager.CurrentSiteId)
+                if (e.SiteId != currentSiteId)
                 {
                     System.Diagnostics.Debug.WriteLine(
                         $"[MainForm] *** IGNORING *** Config update from different site. " +
-                        $"Current: {siteManager.CurrentSiteId} ({siteManager.CurrentSiteName}), " +
-                        $"Event: {e.SiteId} ({e.SiteName})");
+                        $"Current view: {currentSiteId} ({currentViewMode}), Event: {e.SiteId}");
                     return;
                 }
 
@@ -435,6 +558,9 @@ namespace DeviceBox
             {
                 UpdateAllFactories();
                 ExecuteScheduleControl();
+
+                // 背景監控所有設備狀態（不受當前視圖限制）
+                MonitorAllDevicesInBackground();
             }
             catch (Exception ex)
             {
@@ -489,11 +615,14 @@ namespace DeviceBox
                 for (int colIndex = 0; colIndex < Math.Min(compressors.Count, 5); colIndex++)
                 {
                     var compressor = compressors[colIndex];
-                    
+
                     // Get individual compressor status
                     bool isRunning = GetDIValue(modbus, compressor.IO.RunDI);
                     bool isAlarm = GetDIValue(modbus, compressor.IO.AlarmDI);
                     bool isFault = GetDIValue(modbus, compressor.IO.FaultDI);
+
+                    // 檢查並發送設備狀態通知
+                    CheckAndNotifyDeviceStatus(compressor.Name, isAlarm, isFault);
 
                     DeviceStatus status;
                     if (isFault)
@@ -521,8 +650,8 @@ namespace DeviceBox
                     UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
                     UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
                     UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
-                    UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, castingFactory.AlarmLimits);
-                    UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, castingFactory.AlarmLimits);
+                    UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, castingFactory.AlarmLimits, compressor.Name);
+                    UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, castingFactory.AlarmLimits, compressor.Name);
 
                     // Power value from DB
                     string powerValue = GetPowerValueFromDB(compressor.Name);
@@ -585,8 +714,14 @@ namespace DeviceBox
                         UpdateLabel(precoolerLabels[colIndex], precoolerStatus.Text, precoolerStatus.Color);
                         UpdateLabel(dryerLabels[colIndex], dryerStatus.Text, dryerStatus.Color);
                         UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
-                        UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, factory.AlarmLimits);
-                        UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, factory.AlarmLimits);
+
+                        // 建立設備名稱字串，用於推播通知
+                        string deviceNames = compressors.Count > 0 
+                            ? string.Join(", ", compressors.Select(c => c.Name)) 
+                            : factory.Name;
+
+                        UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, factory.AlarmLimits, deviceNames);
+                        UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, factory.AlarmLimits, deviceNames);
 
                         // Power value from DB - build combined power text for all compressors
                         if (compressors.Count == 1)
@@ -627,6 +762,9 @@ namespace DeviceBox
                 bool isFault = GetDIValue(modbus, compressor.IO.FaultDI);
 
                 System.Diagnostics.Debug.WriteLine($"  [{compressor.Name}] MachineNo={compressor.MachineNo}, RunDI={compressor.IO.RunDI}, isRunning={isRunning}");
+
+                // 檢查並發送設備狀態通知
+                CheckAndNotifyDeviceStatus(compressor.Name, isAlarm, isFault);
 
                 DeviceStatus status;
                 if (isFault)
@@ -1103,12 +1241,14 @@ namespace DeviceBox
 
         private void Factory_Click(object sender, EventArgs e)
         {
+            ViewMode previousViewMode = currentViewMode;
+
             if (currentViewMode == ViewMode.OtherFactories)
             {
                 // Switch to Casting Factory view
                 currentViewMode = ViewMode.CastingFactory;
                 Factory.Text = "鑄造廠域_空壓系統即時狀態";
-                
+
                 // Find casting factory index
                 var castingFactory = config.Factories.FirstOrDefault(f => f.Id == CASTING_FACTORY_ID);
                 if (castingFactory != null)
@@ -1123,7 +1263,7 @@ namespace DeviceBox
                 // Switch to Other Factories view
                 currentViewMode = ViewMode.OtherFactories;
                 Factory.Text = "其它廠域_空壓系統即時狀態";
-                
+
                 // Display first 5 factories (excluding casting factory)
                 var otherFactories = config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).Take(5).ToList();
                 currentDisplayIndices = new int[5];
@@ -1135,7 +1275,13 @@ namespace DeviceBox
                         currentDisplayIndices[i] = -1;
                 }
             }
-            
+
+            // 視圖改變時切換同步場域
+            if (previousViewMode != currentViewMode)
+            {
+                SwitchSyncSite();
+            }
+
             // Refresh display
             RefreshFactoryDisplay();
         }
@@ -1325,20 +1471,20 @@ namespace DeviceBox
         {
             try
             {
-                var siteManager = SiteManager.Instance;
+                string currentSiteId = GetCurrentSiteId();
                 var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
 
                 System.Diagnostics.Debug.WriteLine(
-                    $"[MainForm] *** SAVING MODE *** Site: {siteManager.CurrentSiteId} ({siteManager.CurrentSiteName}), " +
+                    $"[MainForm] *** SAVING MODE *** Site: {currentSiteId} ({currentViewMode}), " +
                     $"Mode: {mode.Name} (ID:{mode.Id})");
 
                 database.UpdateSiteMode(
-                    siteManager.CurrentSiteId,
+                    currentSiteId,
                     mode.Id,
-                    SiteManager.GetComputerIdentifier());
+                    Environment.MachineName);
 
                 System.Diagnostics.Debug.WriteLine(
-                    $"[MainForm] Mode saved successfully to site '{siteManager.CurrentSiteId}'");
+                    $"[MainForm] Mode saved successfully to site '{currentSiteId}'");
             }
             catch (Exception ex)
             {
@@ -1389,7 +1535,8 @@ namespace DeviceBox
         private void PressureCol_Click(object sender, EventArgs e)
         {
             var factories = GetCurrentViewFactories();
-            using (var form = new AlarmLimitSettingForm(factories, "Pressure"))
+            var database = config.GetDeviceDatabase();
+            using (var form = new AlarmLimitSettingForm(factories, "Pressure", database))
             {
                 if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
@@ -1397,6 +1544,10 @@ namespace DeviceBox
                     {
                         config.SaveAlarmLimits(kvp.Key, kvp.Value);
                     }
+
+                    // 重新載入推播設定（因為可能被修改）
+                    config.LoadTeamsNotificationSettingsFromDatabase();
+                    InitializeTeamsNotification();
                 }
             }
         }
@@ -1407,7 +1558,8 @@ namespace DeviceBox
         private void TempCol_Click(object sender, EventArgs e)
         {
             var factories = GetCurrentViewFactories();
-            using (var form = new AlarmLimitSettingForm(factories, "Temp"))
+            var database = config.GetDeviceDatabase();
+            using (var form = new AlarmLimitSettingForm(factories, "Temp", database))
             {
                 if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
@@ -1415,6 +1567,10 @@ namespace DeviceBox
                     {
                         config.SaveAlarmLimits(kvp.Key, kvp.Value);
                     }
+
+                    // 重新載入推播設定（因為可能被修改）
+                    config.LoadTeamsNotificationSettingsFromDatabase();
+                    InitializeTeamsNotification();
                 }
             }
         }
@@ -1455,7 +1611,7 @@ namespace DeviceBox
         /// <summary>
         /// 更新空壓 Label 並檢查是否超過上下限，超過則變色並呼叫推播函式
         /// </summary>
-        private void UpdatePressureLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits)
+        private void UpdatePressureLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits, string deviceName = "")
         {
             double value;
             if (double.TryParse(valueText, out value))
@@ -1465,8 +1621,9 @@ namespace DeviceBox
                 if (overLimit)
                 {
                     UpdateLabel(label, valueText, StatusOverLimit);
-                    // 呼叫推播通知
-                    OnPressureOverLimit(label.FindForm()?.Text, valueText, limits);
+                    // 呼叫推播通知，傳入設備名稱
+                    string source = string.IsNullOrEmpty(deviceName) ? label.FindForm()?.Text : deviceName;
+                    OnPressureOverLimit(source, valueText, limits);
                 }
                 else
                 {
@@ -1482,7 +1639,7 @@ namespace DeviceBox
         /// <summary>
         /// 更新溫度 Label 並檢查是否超過上下限，超過則變色並呼叫推播函式
         /// </summary>
-        private void UpdateTempLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits)
+        private void UpdateTempLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits, string deviceName = "")
         {
             double value;
             if (double.TryParse(valueText, out value))
@@ -1492,8 +1649,9 @@ namespace DeviceBox
                 if (overLimit)
                 {
                     UpdateLabel(label, valueText, StatusOverLimit);
-                    // 呼叫推播通知
-                    OnTempOverLimit(label.FindForm()?.Text, valueText, limits);
+                    // 呼叫推播通知，傳入設備名稱
+                    string source = string.IsNullOrEmpty(deviceName) ? label.FindForm()?.Text : deviceName;
+                    OnTempOverLimit(source, valueText, limits);
                 }
                 else
                 {
@@ -1573,6 +1731,365 @@ namespace DeviceBox
                 {
                     System.Diagnostics.Debug.WriteLine($"[推播] 發送 Teams 通知失敗: {ex.Message}");
                 }
+            }
+        }
+
+        /// <summary>
+        /// 取得工廠中當前有排程運行的空壓機 ID 集合
+        /// </summary>
+        private HashSet<int> GetScheduledCompressorIds(FactoryConfig factory)
+        {
+            var scheduledIds = new HashSet<int>();
+
+            if (currentMode == null || currentMode.Schedules == null)
+                return scheduledIds;
+
+            // 找出該工廠當前時間內有排程的所有空壓機
+            var activeSchedules = currentMode.Schedules.Where(s =>
+                s.FactoryId == factory.Id &&
+                s.Enabled &&
+                IsInSchedule(s)).ToList();
+
+            foreach (var schedule in activeSchedules)
+            {
+                scheduledIds.Add(schedule.MachineNo);
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[排程推播] {factory.Name} 當前有 {scheduledIds.Count} 台空壓機在排程時間內");
+
+            return scheduledIds;
+        }
+
+        /// <summary>
+        /// 背景監控所有設備狀態（不受當前視圖限制）
+        /// 檢查所有工廠的空壓、溫度、警報和故障狀態
+        /// 只推播有排程運行的設備
+        /// </summary>
+        private void MonitorAllDevicesInBackground()
+        {
+            if (config == null || config.Factories == null || modbusList == null)
+                return;
+
+            try
+            {
+                // 收集所有異常
+                var pressureAbnormalDevices = new List<string>();
+                var tempAbnormalDevices = new List<string>();
+                var alarmDevices = new List<string>();
+                var faultDevices = new List<string>();
+
+                // 遍歷所有工廠
+                for (int factoryIndex = 0; factoryIndex < config.Factories.Count; factoryIndex++)
+                {
+                    var factory = config.Factories[factoryIndex];
+
+                    // 檢查 modbus 連線是否存在
+                    if (factoryIndex >= modbusList.Count)
+                        continue;
+
+                    var modbus = modbusList[factoryIndex];
+
+                    // 檢查連線狀態
+                    if (modbus == null || modbus.address_val == null || !modbus.ConnectState)
+                        continue;
+
+                    // 取得該工廠當前有排程的空壓機 ID 集合
+                    var scheduledCompressorIds = GetScheduledCompressorIds(factory);
+
+                    // 如果沒有任何空壓機有排程，跳過此工廠
+                    if (scheduledCompressorIds.Count == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[排程推播] {factory.Name} 沒有空壓機在排程時間內，跳過監控");
+                        continue;
+                    }
+
+                    // 取得該工廠的空壓和溫度值
+                    string pressure = GetPressureValue(modbus);
+                    string temp = GetTempValue(modbus);
+
+                    // 取得該工廠的所有空壓機
+                    var compressors = factory.GetDevicesByType(DeviceType.Compressor);
+
+                    // 只保留有排程的空壓機
+                    var scheduledCompressors = compressors.Where(c => scheduledCompressorIds.Contains(c.MachineNo)).ToList();
+
+                    // 檢查空壓和溫度是否超限（只針對有排程的空壓機）
+                    if (scheduledCompressors.Count > 0)
+                    {
+                        // 建立有排程的設備名稱列表
+                        var deviceNames = scheduledCompressors.Select(c => c.Name).ToList();
+
+                        // 檢查空壓超限
+                        double pressureValue;
+                        if (double.TryParse(pressure, out pressureValue))
+                        {
+                            bool pressureOverLimit = (factory.AlarmLimits.PressureUpperLimit != double.MaxValue && pressureValue > factory.AlarmLimits.PressureUpperLimit)
+                                                  || (factory.AlarmLimits.PressureLowerLimit != double.MinValue && pressureValue < factory.AlarmLimits.PressureLowerLimit);
+
+                            if (pressureOverLimit)
+                            {
+                                pressureAbnormalDevices.AddRange(deviceNames);
+                            }
+                        }
+
+                        // 檢查溫度超限
+                        double tempValue;
+                        if (double.TryParse(temp, out tempValue))
+                        {
+                            bool tempOverLimit = (factory.AlarmLimits.TempUpperLimit != double.MaxValue && tempValue > factory.AlarmLimits.TempUpperLimit)
+                                              || (factory.AlarmLimits.TempLowerLimit != double.MinValue && tempValue < factory.AlarmLimits.TempLowerLimit);
+
+                            if (tempOverLimit)
+                            {
+                                tempAbnormalDevices.AddRange(deviceNames);
+                            }
+                        }
+                    }
+
+                    // 檢查每台有排程的空壓機的警報和故障狀態
+                    foreach (var compressor in scheduledCompressors)
+                    {
+                        bool isAlarm = GetDIValue(modbus, compressor.IO.AlarmDI);
+                        bool isFault = GetDIValue(modbus, compressor.IO.FaultDI);
+
+                        // 收集警報設備
+                        if (isAlarm && !isFault)
+                        {
+                            if (!alarmDevices.Contains(compressor.Name))
+                                alarmDevices.Add(compressor.Name);
+                        }
+
+                        // 收集故障設備
+                        if (isFault)
+                        {
+                            if (!faultDevices.Contains(compressor.Name))
+                                faultDevices.Add(compressor.Name);
+                        }
+
+                        // 更新設備狀態記錄（用於追蹤狀態變更）
+                        string currentStatus = isFault ? "故障" : (isAlarm ? "警報" : "正常");
+                        if (!lastDeviceAlertStates.ContainsKey(compressor.Name))
+                        {
+                            lastDeviceAlertStates[compressor.Name] = "正常";
+                        }
+                    }
+                }
+
+                // 統一發送推播通知
+                SendCombinedAbnormalNotification(pressureAbnormalDevices, tempAbnormalDevices, alarmDevices, faultDevices);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[背景監控] 監控失敗: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 發送合併的異常通知
+        /// </summary>
+        private void SendCombinedAbnormalNotification(List<string> pressureAbnormal, List<string> tempAbnormal, List<string> alarmDevices, List<string> faultDevices)
+        {
+            // 移除重複設備名稱
+            pressureAbnormal = pressureAbnormal.Distinct().ToList();
+            tempAbnormal = tempAbnormal.Distinct().ToList();
+            alarmDevices = alarmDevices.Distinct().ToList();
+            faultDevices = faultDevices.Distinct().ToList();
+
+            // 檢查是否有任何異常
+            bool hasAnyAbnormal = pressureAbnormal.Count > 0 || tempAbnormal.Count > 0 || 
+                                  alarmDevices.Count > 0 || faultDevices.Count > 0;
+
+            if (!hasAnyAbnormal)
+            {
+                // 沒有異常時清空所有異常開始時間記錄
+                abnormalStartTimes.Clear();
+                return;
+            }
+
+            // 建立異常訊息與追蹤 key
+            var abnormalMessages = new List<string>();
+            var currentAbnormalKeys = new List<string>();
+
+            if (tempAbnormal.Count > 0)
+            {
+                string key = "temp:" + string.Join(",", tempAbnormal.OrderBy(x => x));
+                currentAbnormalKeys.Add(key);
+
+                if (!abnormalStartTimes.ContainsKey(key))
+                {
+                    abnormalStartTimes[key] = DateTime.Now;
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常開始追蹤: {string.Join(", ", tempAbnormal)}");
+                }
+
+                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
+                if (duration.TotalMinutes >= config.AlarmDelayMinutes)
+                {
+                    abnormalMessages.Add($"溫度異常: {string.Join(", ", tempAbnormal)}");
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
+                }
+            }
+
+            if (pressureAbnormal.Count > 0)
+            {
+                string key = "pressure:" + string.Join(",", pressureAbnormal.OrderBy(x => x));
+                currentAbnormalKeys.Add(key);
+
+                if (!abnormalStartTimes.ContainsKey(key))
+                {
+                    abnormalStartTimes[key] = DateTime.Now;
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常開始追蹤: {string.Join(", ", pressureAbnormal)}");
+                }
+
+                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
+                if (duration.TotalMinutes >= config.AlarmDelayMinutes)
+                {
+                    abnormalMessages.Add($"空壓異常: {string.Join(", ", pressureAbnormal)}");
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
+                }
+            }
+
+            if (alarmDevices.Count > 0)
+            {
+                string key = "alarm:" + string.Join(",", alarmDevices.OrderBy(x => x));
+                currentAbnormalKeys.Add(key);
+
+                if (!abnormalStartTimes.ContainsKey(key))
+                {
+                    abnormalStartTimes[key] = DateTime.Now;
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備警報開始追蹤: {string.Join(", ", alarmDevices)}");
+                }
+
+                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
+                if (duration.TotalMinutes >= config.AlarmDelayMinutes)
+                {
+                    abnormalMessages.Add($"設備警報: {string.Join(", ", alarmDevices)}");
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備警報已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備警報已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
+                }
+            }
+
+            if (faultDevices.Count > 0)
+            {
+                string key = "fault:" + string.Join(",", faultDevices.OrderBy(x => x));
+                currentAbnormalKeys.Add(key);
+
+                if (!abnormalStartTimes.ContainsKey(key))
+                {
+                    abnormalStartTimes[key] = DateTime.Now;
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備故障開始追蹤: {string.Join(", ", faultDevices)}");
+                }
+
+                TimeSpan duration = DateTime.Now - abnormalStartTimes[key];
+                if (duration.TotalMinutes >= config.AlarmDelayMinutes)
+                {
+                    abnormalMessages.Add($"設備故障: {string.Join(", ", faultDevices)}");
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備故障已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 設備故障已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
+                }
+            }
+
+            // 清除不再異常的項目
+            var keysToRemove = abnormalStartTimes.Keys.Where(k => !currentAbnormalKeys.Contains(k)).ToList();
+            foreach (var key in keysToRemove)
+            {
+                abnormalStartTimes.Remove(key);
+                System.Diagnostics.Debug.WriteLine($"[推播延遲] 清除已恢復正常的異常記錄: {key}");
+            }
+
+            // 沒有需要推播的訊息
+            if (abnormalMessages.Count == 0)
+                return;
+
+            // 記錄到 Debug
+            System.Diagnostics.Debug.WriteLine($"[推播] 偵測到符合推播條件的異常:");
+            foreach (var msg in abnormalMessages)
+            {
+                System.Diagnostics.Debug.WriteLine($"  {msg}");
+            }
+
+            // 發送 Teams 通知
+            if (teamsNotificationService != null && config.TeamsNotificationEnabled)
+            {
+                try
+                {
+                    Task.Run(async () =>
+                    {
+                        await teamsNotificationService.SendCombinedAbnormalAlertAsync(abnormalMessages);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[推播] 發送合併通知失敗: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 檢查並處理設備狀態變更（警報/故障）
+        /// </summary>
+        private void CheckAndNotifyDeviceStatus(string deviceName, bool isAlarm, bool isFault)
+        {
+            string currentStatus = isFault ? "故障" : (isAlarm ? "警報" : "正常");
+
+            // 檢查是否有狀態變更
+            if (!lastDeviceAlertStates.ContainsKey(deviceName))
+            {
+                lastDeviceAlertStates[deviceName] = "正常"; // 初始化為正常
+            }
+
+            string lastStatus = lastDeviceAlertStates[deviceName];
+
+            // 只在狀態變更且變成警報或故障時發送通知
+            if (currentStatus != lastStatus && (isAlarm || isFault))
+            {
+                System.Diagnostics.Debug.WriteLine($"[推播] 設備狀態變更! 設備={deviceName}, 上次狀態={lastStatus}, 當前狀態={currentStatus}");
+
+                // 更新記錄的狀態
+                lastDeviceAlertStates[deviceName] = currentStatus;
+
+                // 如果 Teams 通知服務已啟用，發送通知
+                if (teamsNotificationService != null && config.TeamsNotificationEnabled)
+                {
+                    try
+                    {
+                        // 使用 Task.Run 避免阻塞 UI 執行緒
+                        Task.Run(async () =>
+                        {
+                            if (isFault)
+                            {
+                                await teamsNotificationService.SendDeviceFaultAsync(deviceName, currentStatus);
+                            }
+                            else if (isAlarm)
+                            {
+                                await teamsNotificationService.SendDeviceAlarmAsync(deviceName, currentStatus);
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[推播] 發送設備狀態通知失敗: {ex.Message}");
+                    }
+                }
+            }
+            else if (currentStatus == "正常" && lastStatus != "正常")
+            {
+                // 狀態恢復正常時，也更新記錄
+                System.Diagnostics.Debug.WriteLine($"[推播] 設備狀態恢復正常! 設備={deviceName}, 上次狀態={lastStatus}");
+                lastDeviceAlertStates[deviceName] = currentStatus;
             }
         }
 

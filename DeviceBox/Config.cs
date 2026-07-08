@@ -327,10 +327,24 @@ namespace DeviceBox
         private DeviceDatabase _deviceDatabase;
         public List<ScheduleMode> Modes = new List<ScheduleMode>();
 
+        /// <summary>
+        /// 取得 DeviceDatabase 實例（供 UI 表單使用）
+        /// </summary>
+        public DeviceDatabase GetDeviceDatabase()
+        {
+            if (_deviceDatabase == null && !string.IsNullOrEmpty(IP))
+            {
+                _deviceDatabase = new DeviceDatabase(IP, DB, USER, Password);
+            }
+            return _deviceDatabase;
+        }
+
         // Teams Notification Settings
         public string TeamsWebhookUrl { get; set; } = "";
         public bool TeamsNotificationEnabled { get; set; } = false;
-        public string TeamsNotificationEmail { get; set; } = ""; // 通知聯絡人 Email
+        public string TeamsNotificationEmail { get; set; } = ""; // 通知聯絡人 Email (逗號分隔多組)
+        public int NotificationCooldownMinutes { get; set; } = 5; // 推播間隔時間（分鐘）
+        public int AlarmDelayMinutes { get; set; } = 0; // 超限延遲推播時間（分鐘），0 表示立即推播
 
         private static readonly string ConfigFileName = "config.xml";
 
@@ -443,7 +457,7 @@ namespace DeviceBox
         /// <summary>
         /// Load Teams Notification Settings from Database
         /// </summary>
-        private void LoadTeamsNotificationSettingsFromDatabase()
+        public void LoadTeamsNotificationSettingsFromDatabase()
         {
             try
             {
@@ -474,6 +488,24 @@ namespace DeviceBox
                         ? settings["teams_email"] 
                         : string.Empty;
 
+                    // Load notification cooldown minutes
+                    if (settings.ContainsKey("notification_cooldown_minutes"))
+                    {
+                        if (int.TryParse(settings["notification_cooldown_minutes"], out int cooldown))
+                        {
+                            NotificationCooldownMinutes = cooldown;
+                        }
+                    }
+
+                    // Load alarm delay minutes
+                    if (settings.ContainsKey("alarm_delay_minutes"))
+                    {
+                        if (int.TryParse(settings["alarm_delay_minutes"], out int delay))
+                        {
+                            AlarmDelayMinutes = delay;
+                        }
+                    }
+
                     System.Diagnostics.Debug.WriteLine($"[Config] Teams Notification Enabled: {TeamsNotificationEnabled}");
                     if (!string.IsNullOrEmpty(TeamsWebhookUrl))
                     {
@@ -483,6 +515,8 @@ namespace DeviceBox
                     {
                         System.Diagnostics.Debug.WriteLine($"[Config] Teams Notification Email: {TeamsNotificationEmail}");
                     }
+                    System.Diagnostics.Debug.WriteLine($"[Config] Notification Cooldown: {NotificationCooldownMinutes} minutes");
+                    System.Diagnostics.Debug.WriteLine($"[Config] Alarm Delay: {AlarmDelayMinutes} minutes");
                 }
                 else
                 {
@@ -490,6 +524,8 @@ namespace DeviceBox
                     TeamsNotificationEnabled = false;
                     TeamsWebhookUrl = string.Empty;
                     TeamsNotificationEmail = string.Empty;
+                    NotificationCooldownMinutes = 5;
+                    AlarmDelayMinutes = 0;
                 }
             }
             catch (Exception ex)
@@ -498,6 +534,8 @@ namespace DeviceBox
                 TeamsNotificationEnabled = false;
                 TeamsWebhookUrl = string.Empty;
                 TeamsNotificationEmail = string.Empty;
+                NotificationCooldownMinutes = 5;
+                AlarmDelayMinutes = 0;
             }
         }
 

@@ -155,6 +155,7 @@
     <Compile Include="ScheduleSettingForm.Designer.cs">
       <DependentUpon>ScheduleSettingForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="SimpleInputDialog.cs" />
     <Compile Include="SiteManager.cs" />
     <Compile Include="SiteSelectionForm.cs">
       <SubType>Form</SubType>
@@ -216,8 +217,8 @@
     <None Include="4_診斷工具.ps1" />
     <None Include="config_email_快速參考.md" />
     <None Include="For迴圈發送模式說明.md" />
-    <None Include="Log\debug_23140_20260703_142808.log" />
-    <None Include="Log\debug_2708_20260703_142813.log" />
+    <None Include="Log檔案管理說明.md" />
+    <None Include="Log設定快速指南.md" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -234,9 +235,12 @@
     <None Include="Teams通知Email功能說明.md" />
     <None Include="Teams通知設定指南.md" />
     <None Include="修正說明_多時間區間排程.md" />
+    <None Include="全場域背景監控快速參考.md" />
+    <None Include="全場域背景監控說明.md" />
     <None Include="分析日誌.ps1" />
     <None Include="匯入排程說明.md" />
     <None Include="匯入診斷指南.md" />
+    <None Include="合併異常推播說明.md" />
     <None Include="問題排查指南.md" />
     <None Include="場域區分與同步_實作指南.md" />
     <None Include="場域同步問題診斷手冊.md" />
@@ -246,11 +250,22 @@
     <None Include="快速診斷.ps1" />
     <None Include="排程儲存修正說明.md" />
     <None Include="排程更新修正說明.md" />
+    <None Include="推播僅針對排程設備說明.md" />
+    <None Include="推播設定資料庫化說明.md" />
+    <None Include="推播通知快速參考.md" />
+    <None Include="推播通知設備名稱改善說明.md" />
     <None Include="檢查資料庫狀態.ps1" />
     <None Include="測試場域同步.ps1" />
     <None Include="測試步驟.md" />
+    <None Include="測試自動載入配置.ps1" />
+    <None Include="測試視圖同步.md" />
+    <None Include="測試視圖同步.ps1" />
     <None Include="直接測試.ps1" />
+    <None Include="自動載入場域配置總結.md" />
+    <None Include="自動載入場域配置說明.md" />
     <None Include="自動載入預設模式測試.md" />
+    <None Include="設備警報故障推播快速參考.md" />
+    <None Include="設備警報故障推播說明.md" />
     <None Include="診斷工具.ps1" />
     <None Include="診斷步驟.md" />
     <None Include="通知設定遷移指南.md" />
@@ -275,11 +290,13 @@
     <Content Include="config.xml" />
     <Content Include="config_teams_example.xml" />
     <Content Include="Database\1_執行資料庫建表.sql" />
+    <Content Include="Database\2_新增推播設定.sql" />
     <Content Include="Database\cleanup_orphaned_schedules.sql" />
     <Content Include="Database\create_device_tables.sql" />
     <Content Include="Database\create_schedule_tables.sql" />
     <Content Include="Database\完整建表並匯入範例資料.sql" />
     <Content Include="Database\測試_場域配置.sql" />
+    <Content Include="Database\測試自動載入配置.sql" />
     <Content Include="Database\診斷_場域同步問題.sql" />
     <Content Include="Database\診斷_檢查資料庫.sql" />
     <Content Include="Database\診斷_檢查通知設定.sql" />

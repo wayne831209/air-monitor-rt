@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -17,12 +18,13 @@ namespace DeviceBox
         private readonly HttpClient _httpClient;
         private static readonly object _lockObj = new object();
         private static DateTime _lastNotificationTime = DateTime.MinValue;
-        private static readonly TimeSpan _notificationCooldown = TimeSpan.FromMinutes(5); // 防止短時間內重複通知
+        private readonly TimeSpan _notificationCooldown; // 推播間隔時間（可動態設定）
         private readonly bool _usePowerAutomate; // true: Power Automate, false: Teams Incoming Webhook
 
-        public TeamsNotificationService(string webhookUrl, string notificationEmail = "")
+        public TeamsNotificationService(string webhookUrl, string notificationEmail = "", int cooldownMinutes = 5)
         {
             _webhookUrl = webhookUrl;
+            _notificationCooldown = TimeSpan.FromMinutes(cooldownMinutes);
 
             // 解析 Email 字串（支援逗號、分號分隔）
             _notificationEmails = ParseEmailAddresses(notificationEmail);
@@ -36,6 +38,7 @@ namespace DeviceBox
             _usePowerAutomate = webhookUrl?.Contains("powerplatform.com") ?? false;
 
             System.Diagnostics.Debug.WriteLine($"[Teams通知] 使用 {(_usePowerAutomate ? "Power Automate" : "Teams Incoming Webhook")} 模式");
+            System.Diagnostics.Debug.WriteLine($"[Teams通知] 推播間隔時間: {cooldownMinutes} 分鐘");
             if (_notificationEmails.Length > 0)
             {
                 System.Diagnostics.Debug.WriteLine($"[Teams通知] 通知聯絡人數量: {_notificationEmails.Length}");
@@ -92,7 +95,7 @@ namespace DeviceBox
                 string color = "FF0000"; // 紅色
                 var facts = new[]
                 {
-                    ("來源", source),
+                    ("設備", source),
                     ("當前數值", currentValue),
                     ("上限", upperLimit == double.MaxValue ? "未設定" : upperLimit.ToString("F2")),
                     ("下限", lowerLimit == double.MinValue ? "未設定" : lowerLimit.ToString("F2")),
@@ -154,7 +157,7 @@ namespace DeviceBox
                 string color = "FFA500"; // 橘色
                 var facts = new[]
                 {
-                    ("來源", source),
+                    ("設備", source),
                     ("當前數值", currentValue),
                     ("上限", upperLimit == double.MaxValue ? "未設定" : upperLimit.ToString("F2")),
                     ("下限", lowerLimit == double.MinValue ? "未設定" : lowerLimit.ToString("F2")),
@@ -185,6 +188,192 @@ namespace DeviceBox
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送溫度超限通知失敗: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 發送設備警報通知到 Teams
+        /// </summary>
+        public async Task SendDeviceAlarmAsync(string deviceName, string status)
+        {
+            if (string.IsNullOrEmpty(_webhookUrl))
+            {
+                System.Diagnostics.Debug.WriteLine("[Teams通知] Webhook URL 未設定");
+                return;
+            }
+
+            // 檢查冷卻時間，避免頻繁通知
+            lock (_lockObj)
+            {
+                if (DateTime.Now - _lastNotificationTime < _notificationCooldown)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Teams通知] 冷卻時間內，跳過通知");
+                    return;
+                }
+                _lastNotificationTime = DateTime.Now;
+            }
+
+            try
+            {
+                string title = "⚠️ 設備警報";
+                string color = "FFA500"; // 橘色
+                var facts = new[]
+                {
+                    ("設備名稱", deviceName),
+                    ("狀態", status),
+                    ("時間", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                };
+
+                if (_notificationEmails.Length > 0)
+                {
+                    for (int i = 0; i < _notificationEmails.Length; i++)
+                    {
+                        string email = _notificationEmails[i];
+                        System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送給: {email} ({i + 1}/{_notificationEmails.Length})");
+
+                        string message = await SendTeamsNotificationAsync(title, color, facts, email);
+                        System.Diagnostics.Debug.WriteLine($"[Teams通知] 設備警報通知已發送給 {email}");
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[Teams通知] 已完成發送，共 {_notificationEmails.Length} 位收件者");
+                }
+                else
+                {
+                    string message = await SendTeamsNotificationAsync(title, color, facts, "");
+                    System.Diagnostics.Debug.WriteLine("[Teams通知] 設備警報通知已發送（無 Email）");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送設備警報通知失敗: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 發送設備故障通知到 Teams
+        /// </summary>
+        public async Task SendDeviceFaultAsync(string deviceName, string status)
+        {
+            if (string.IsNullOrEmpty(_webhookUrl))
+            {
+                System.Diagnostics.Debug.WriteLine("[Teams通知] Webhook URL 未設定");
+                return;
+            }
+
+            // 檢查冷卻時間，避免頻繁通知
+            lock (_lockObj)
+            {
+                if (DateTime.Now - _lastNotificationTime < _notificationCooldown)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Teams通知] 冷卻時間內，跳過通知");
+                    return;
+                }
+                _lastNotificationTime = DateTime.Now;
+            }
+
+            try
+            {
+                string title = "🚨 設備故障";
+                string color = "DC143C"; // 深紅色
+                var facts = new[]
+                {
+                    ("設備名稱", deviceName),
+                    ("狀態", status),
+                    ("時間", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                };
+
+                if (_notificationEmails.Length > 0)
+                {
+                    for (int i = 0; i < _notificationEmails.Length; i++)
+                    {
+                        string email = _notificationEmails[i];
+                        System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送給: {email} ({i + 1}/{_notificationEmails.Length})");
+
+                        string message = await SendTeamsNotificationAsync(title, color, facts, email);
+                        System.Diagnostics.Debug.WriteLine($"[Teams通知] 設備故障通知已發送給 {email}");
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[Teams通知] 已完成發送，共 {_notificationEmails.Length} 位收件者");
+                }
+                else
+                {
+                    string message = await SendTeamsNotificationAsync(title, color, facts, "");
+                    System.Diagnostics.Debug.WriteLine("[Teams通知] 設備故障通知已發送（無 Email）");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送設備故障通知失敗: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 發送合併的異常警報到 Teams
+        /// </summary>
+        public async Task SendCombinedAbnormalAlertAsync(List<string> abnormalMessages)
+        {
+            if (string.IsNullOrEmpty(_webhookUrl))
+            {
+                System.Diagnostics.Debug.WriteLine("[Teams通知] Webhook URL 未設定");
+                return;
+            }
+
+            if (abnormalMessages == null || abnormalMessages.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("[Teams通知] 沒有異常訊息需要發送");
+                return;
+            }
+
+            // 檢查冷卻時間，避免頻繁通知
+            lock (_lockObj)
+            {
+                if (DateTime.Now - _lastNotificationTime < _notificationCooldown)
+                {
+                    System.Diagnostics.Debug.WriteLine("[Teams通知] 冷卻時間內，跳過通知");
+                    return;
+                }
+                _lastNotificationTime = DateTime.Now;
+            }
+
+            try
+            {
+                string title = "🚨 設備異常警報";
+                string color = "DC143C"; // 深紅色
+
+                // 將異常訊息轉換為 facts 格式
+                var facts = new List<(string Name, string Value)>
+                {
+                    ("異常時間", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                };
+
+                // 加入每個異常類型
+                for (int i = 0; i < abnormalMessages.Count; i++)
+                {
+                    facts.Add(($"異常 {i + 1}", abnormalMessages[i]));
+                }
+
+                if (_notificationEmails.Length > 0)
+                {
+                    for (int i = 0; i < _notificationEmails.Length; i++)
+                    {
+                        string email = _notificationEmails[i];
+                        System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送給: {email} ({i + 1}/{_notificationEmails.Length})");
+
+                        string message = await SendTeamsNotificationAsync(title, color, facts.ToArray(), email);
+                        System.Diagnostics.Debug.WriteLine($"[Teams通知] 合併異常通知已發送給 {email}");
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[Teams通知] 已完成發送，共 {_notificationEmails.Length} 位收件者");
+                }
+                else
+                {
+                    string message = await SendTeamsNotificationAsync(title, color, facts.ToArray(), "");
+                    System.Diagnostics.Debug.WriteLine("[Teams通知] 合併異常通知已發送（無 Email）");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送合併異常通知失敗: {ex.Message}");
             }
         }
 
@@ -263,7 +452,7 @@ namespace DeviceBox
                     }},
                     {{
                         ""type"": ""TextBlock"",
-                        ""text"": ""維護課 DeviceBox 系統"",
+                        ""text"": ""空壓設備系統"",
                         ""isSubtle"": true,
                         ""spacing"": ""None""
                     }},
@@ -301,7 +490,7 @@ namespace DeviceBox
                 ""sections"": [
                     {{
                         ""activityTitle"": ""{EscapeJson(title)}"",
-                        ""activitySubtitle"": ""維護課 DeviceBox 系統"",
+                        ""activitySubtitle"": ""空壓設備系統"",
                         ""facts"": [{factsJson}],
                         ""markdown"": true
                     }}
@@ -390,7 +579,7 @@ namespace DeviceBox
                             },
                             {
                                 ""type"": ""TextBlock"",
-                                ""text"": ""維護課 DeviceBox 系統"",
+                                ""text"": ""空壓設備系統"",
                                 ""isSubtle"": true,
                                 ""spacing"": ""None""
                             },
@@ -422,7 +611,7 @@ namespace DeviceBox
                         ""sections"": [
                             {
                                 ""activityTitle"": ""✅ Teams 通知測試"",
-                                ""activitySubtitle"": ""維護課 DeviceBox 系統"",
+                                ""activitySubtitle"": ""空壓設備系統"",
                                 ""facts"": [
                                     {
                                         ""name"": ""狀態"",

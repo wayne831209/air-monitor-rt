@@ -247,6 +247,7 @@ namespace DeviceBox
                 System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO: DO_{doNumber} (register {registerAddress}) = {value}");
                 return true;
             }
+
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO failed: {ex.Message}");
