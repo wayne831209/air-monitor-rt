@@ -1200,42 +1200,86 @@ namespace DeviceBox
             var currentTime = now.TimeOfDay;
             var currentDay = now.DayOfWeek;
 
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] ========== 開始檢查 ==========");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 當前時間: {now:yyyy-MM-dd HH:mm:ss} ({currentDay})");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] IsSpanMode: {schedule.IsSpanMode}");
+
             // 重複模式：檢查當天是否在 RepeatDays 中，且時間在 StartTime~EndTime 之間
             if (!schedule.IsSpanMode)
             {
+                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] === 重複模式 ===");
+                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] StartTime: {schedule.StartTime:hh\\:mm}, EndTime: {schedule.EndTime:hh\\:mm}");
+                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] RepeatDays: {string.Join(",", schedule.RepeatDays ?? new List<DayOfWeek>())}");
+
                 if (schedule.RepeatDays != null && schedule.RepeatDays.Count > 0 && !schedule.RepeatDays.Contains(currentDay))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[IsInSchedule] ✗ 當天 ({currentDay}) 不在 RepeatDays 中");
                     return false;
+                }
 
                 TimeSpan effectiveEnd = schedule.EndTime;
                 if (schedule.EndTime.Minutes == 59)
                     effectiveEnd = schedule.EndTime.Add(TimeSpan.FromSeconds(59));
 
+                bool resultRepeat;
                 if (schedule.StartTime <= schedule.EndTime)
-                    return currentTime >= schedule.StartTime && currentTime <= effectiveEnd;
+                {
+                    resultRepeat = currentTime >= schedule.StartTime && currentTime <= effectiveEnd;
+                    System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 時間檢查: {currentTime:hh\\:mm} >= {schedule.StartTime:hh\\:mm} && <= {effectiveEnd:hh\\:mm} = {resultRepeat}");
+                }
                 else
-                    return currentTime >= schedule.StartTime || currentTime <= effectiveEnd;
+                {
+                    resultRepeat = currentTime >= schedule.StartTime || currentTime <= effectiveEnd;
+                    System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 時間檢查(跨日): {currentTime:hh\\:mm} >= {schedule.StartTime:hh\\:mm} || <= {effectiveEnd:hh\\:mm} = {resultRepeat}");
+                }
+
+                return resultRepeat;
             }
 
             // 跨日模式：使用週分鐘連續區間
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] === 跨日模式 ===");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] StartDay: {schedule.StartDay}, StartTime: {schedule.StartTime:hh\\:mm}");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] EndDay: {schedule.EndDay}, EndTime: {schedule.EndTime:hh\\:mm}");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] RepeatDays: {string.Join(",", schedule.RepeatDays ?? new List<DayOfWeek>())}");
+
+            // 將 DayOfWeek 轉換為週分鐘
+            // 注意：Sunday = 0，但在一週中應該是最後一天，所以轉換為 7
             int ToWeeklyMinutes(DayOfWeek day, TimeSpan time)
             {
-                return (int)day * 1440 + (int)time.TotalMinutes;
+                int dayValue = (int)day;
+                if (dayValue == 0) // Sunday
+                    dayValue = 7;
+                return dayValue * 1440 + (int)time.TotalMinutes;
             }
 
             int current = ToWeeklyMinutes(currentDay, currentTime);
             int start = ToWeeklyMinutes(schedule.StartDay, schedule.StartTime);
-            int end = ToWeeklyMinutes(schedule.EndDay, schedule.EndTime) + 1;
+            int end = ToWeeklyMinutes(schedule.EndDay, schedule.EndTime);
 
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 週分鐘計算:");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   current = {currentDay}({(currentDay == DayOfWeek.Sunday ? 7 : (int)currentDay)}) * 1440 + {(int)currentTime.TotalMinutes} = {current}");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   start   = {schedule.StartDay}({(schedule.StartDay == DayOfWeek.Sunday ? 7 : (int)schedule.StartDay)}) * 1440 + {(int)schedule.StartTime.TotalMinutes} = {start}");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   end     = {schedule.EndDay}({(schedule.EndDay == DayOfWeek.Sunday ? 7 : (int)schedule.EndDay)}) * 1440 + {(int)schedule.EndTime.TotalMinutes} = {end}");
+
+            bool resultSpan;
             if (start <= end)
             {
-                // 不跨週：例如 週一 08:00 ~ 週五 17:00
-                return current >= start && current <= end;
+                // 不跨週：例如 週一 08:00 ~ 週五 17:00，或 週一 00:00 ~ 週日 23:59
+                resultSpan = current >= start && current <= end;
+                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 不跨週檢查: {current} >= {start} && {current} <= {end} = {resultSpan}");
             }
             else
             {
-                // 跨週：例如 週五 20:00 ~ 週一 08:00
-                return current >= start || current <= end;
+                // 跨週：例如 週六 20:00 ~ 週一 08:00
+                // 需要處理週末跨到下週一的情況
+                resultSpan = current >= start || current <= end;
+                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 跨週檢查: {current} >= {start} || {current} <= {end} = {resultSpan}");
             }
+
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 最終結果: {resultSpan}");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] ========== 檢查結束 ==========");
+
+            return resultSpan;
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

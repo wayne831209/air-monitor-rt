@@ -273,6 +273,7 @@
     <None Include="診斷工具.ps1" />
     <None Include="診斷步驟.md" />
     <None Include="通知設定遷移指南.md" />
+    <None Include="週一到週日排程Bug修正說明.md" />
     <None Include="遷移指南_XML轉MySQL.md" />
   </ItemGroup>
   <ItemGroup>
