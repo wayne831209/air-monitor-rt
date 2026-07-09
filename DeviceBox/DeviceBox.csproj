@@ -251,6 +251,7 @@
     <None Include="快速診斷.ps1" />
     <None Include="排程儲存修正說明.md" />
     <None Include="排程更新修正說明.md" />
+    <None Include="排程設定後設備停止問題診斷.md" />
     <None Include="推播僅針對排程設備說明.md" />
     <None Include="推播延遲機制說明.md" />
     <None Include="推播設定資料庫化說明.md" />

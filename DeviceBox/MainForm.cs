@@ -756,7 +756,7 @@ namespace DeviceBox
             var statuses = new List<CompressorStatus>();
             var compressors = factory.GetDevicesByType(DeviceType.Compressor);
 
-            System.Diagnostics.Debug.WriteLine($"[{factory.Name}] Found {compressors.Count} compressors");
+            //System.Diagnostics.Debug.WriteLine($"[{factory.Name}] Found {compressors.Count} compressors");
 
             foreach (var compressor in compressors.OrderBy(c => c.MachineNo))
             {
@@ -764,7 +764,7 @@ namespace DeviceBox
                 bool isAlarm = GetDIValue(modbus, compressor.IO.AlarmDI);
                 bool isFault = GetDIValue(modbus, compressor.IO.FaultDI);
 
-                System.Diagnostics.Debug.WriteLine($"  [{compressor.Name}] MachineNo={compressor.MachineNo}, RunDI={compressor.IO.RunDI}, isRunning={isRunning}");
+                //System.Diagnostics.Debug.WriteLine($"  [{compressor.Name}] MachineNo={compressor.MachineNo}, RunDI={compressor.IO.RunDI}, isRunning={isRunning}");
 
                 // 檢查並發送設備狀態通知
                 CheckAndNotifyDeviceStatus(compressor.Name, isAlarm, isFault);
@@ -1057,6 +1057,8 @@ namespace DeviceBox
             // 手動模式下不執行自動排程控制
             if (isManualMode) return;
 
+            System.Diagnostics.Debug.WriteLine($"[排程控制] ========== 執行排程控制 ========== 當前時間: {DateTime.Now:yyyy-MM-dd HH:mm:ss} ({DateTime.Now.DayOfWeek})");
+
             for (int i = 0; i < config.Factories.Count; i++)
             {
                 var factory = config.Factories[i];
@@ -1075,7 +1077,12 @@ namespace DeviceBox
                     // 從 currentMode 中獲取該設備的所有排程
                     var schedules = GetDeviceSchedules(compressor);
                     if (schedules == null || schedules.Count == 0)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 沒有排程設定");
                         continue;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 找到 {schedules.Count} 個排程");
 
                     // 檢查是否有任一個啟用的排程在當前時間範圍內
                     bool isInSchedule = false;
@@ -1085,19 +1092,37 @@ namespace DeviceBox
                         if (schedule.Enabled)
                         {
                             hasEnabledSchedule = true;
-                            if (IsInSchedule(schedule))
+                            bool inRange = IsInSchedule(schedule);
+
+                            System.Diagnostics.Debug.WriteLine($"[排程控制]   - 排程: {schedule.DeviceName} " +
+                                $"IsSpanMode={schedule.IsSpanMode}, " +
+                                $"StartDay={schedule.StartDay}, StartTime={schedule.StartTime:hh\\:mm}, " +
+                                $"EndDay={schedule.EndDay}, EndTime={schedule.EndTime:hh\\:mm}, " +
+                                $"RepeatDays={string.Join(",", schedule.RepeatDays ?? new List<DayOfWeek>())}, " +
+                                $"InRange={inRange}");
+
+                            if (inRange)
                             {
                                 isInSchedule = true;
                                 break; // 只要有一個在範圍內就可以了
                             }
                         }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[排程控制]   - 排程: {schedule.DeviceName} (未啟用)");
+                        }
                     }
 
                     // 如果沒有啟用的排程，跳過
                     if (!hasEnabledSchedule)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 沒有啟用的排程，跳過");
                         continue;
+                    }
 
                     ushort targetValue = isInSchedule ? (ushort)1 : (ushort)0;
+
+                    System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 判斷結果: isInSchedule={isInSchedule}, targetValue={targetValue}");
 
                     // 用 FactoryId_MachineNo 作為 key 來追蹤狀態
                     string key = factory.Id + "_" + compressor.MachineNo;
@@ -1111,8 +1136,13 @@ namespace DeviceBox
                         {
                             lastDOStates[key] = targetValue;
                             System.Diagnostics.Debug.WriteLine(
-                                $"[排程控制] {factory.Name} {compressor.Name} (MachineNo={compressor.MachineNo}) " +
+                                $"[排程控制] ✓ {factory.Name} {compressor.Name} (MachineNo={compressor.MachineNo}) " +
                                 $"DO_{compressor.IO.ControlDO} = {targetValue} ({(isInSchedule ? "啟動" : "停止")})");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[排程控制] ✗ {factory.Name} {compressor.Name} 寫入失敗");
                         }
                     }
                 }
@@ -1665,31 +1695,6 @@ namespace DeviceBox
             }
         }
 
-        // ========================================
-        // 以下方法已廢棄，推播統一由 MonitorAllDevicesInBackground() 處理
-        // ========================================
-
-        /// <summary>
-        /// [已廢棄] 空壓數值超過上下限時的推播通知函式
-        /// 推播已改由 MonitorAllDevicesInBackground() 統一處理，包含排程篩選和延遲機制
-        /// </summary>
-        [Obsolete("推播已改由 MonitorAllDevicesInBackground() 統一處理")]
-        private void OnPressureOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
-        {
-            // 此方法已不再使用，推播統一由背景監控處理
-            System.Diagnostics.Debug.WriteLine($"[警告] OnPressureOverLimit 已廢棄，推播應由 MonitorAllDevicesInBackground() 處理");
-        }
-
-        /// <summary>
-        /// [已廢棄] 溫度數值超過上下限時的推播通知函式
-        /// 推播已改由 MonitorAllDevicesInBackground() 統一處理，包含排程篩選和延遲機制
-        /// </summary>
-        [Obsolete("推播已改由 MonitorAllDevicesInBackground() 統一處理")]
-        private void OnTempOverLimit(string source, string currentValue, AlarmLimitsConfig limits)
-        {
-            // 此方法已不再使用，推播統一由背景監控處理
-            System.Diagnostics.Debug.WriteLine($"[警告] OnTempOverLimit 已廢棄，推播應由 MonitorAllDevicesInBackground() 處理");
-        }
 
         // ========================================
         // 背景監控與推播（新版）
@@ -1730,7 +1735,7 @@ namespace DeviceBox
         {
             if (config == null || config.Factories == null || modbusList == null)
             {
-                System.Diagnostics.Debug.WriteLine($"[背景監控] 監控未啟動: config={config != null}, Factories={config?.Factories != null}, modbusList={modbusList != null}");
+                //System.Diagnostics.Debug.WriteLine($"[背景監控] 監控未啟動: config={config != null}, Factories={config?.Factories != null}, modbusList={modbusList != null}");
                 return;
             }
 
@@ -1742,7 +1747,7 @@ namespace DeviceBox
                 var alarmDevices = new List<string>();
                 var faultDevices = new List<string>();
 
-                System.Diagnostics.Debug.WriteLine($"[背景監控] 開始監控，共 {config.Factories.Count} 個工廠");
+                //System.Diagnostics.Debug.WriteLine($"[背景監控] 開始監控，共 {config.Factories.Count} 個工廠");
 
                 // 遍歷所有工廠
                 for (int factoryIndex = 0; factoryIndex < config.Factories.Count; factoryIndex++)
@@ -1752,7 +1757,7 @@ namespace DeviceBox
                     // 檢查 modbus 連線是否存在
                     if (factoryIndex >= modbusList.Count)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - modbus 索引超出範圍");
+                        //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - modbus 索引超出範圍");
                         continue;
                     }
 
@@ -1761,7 +1766,7 @@ namespace DeviceBox
                     // 檢查連線狀態
                     if (modbus == null || modbus.address_val == null || !modbus.ConnectState)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - modbus 未連線 (modbus={modbus != null}, address_val={modbus?.address_val != null}, ConnectState={modbus?.ConnectState})");
+                        //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - modbus 未連線 (modbus={modbus != null}, address_val={modbus?.address_val != null}, ConnectState={modbus?.ConnectState})");
                         continue;
                     }
 
@@ -1771,17 +1776,17 @@ namespace DeviceBox
                     // 如果沒有任何空壓機有排程，跳過此工廠
                     if (scheduledCompressorIds.Count == 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[排程推播] {factory.Name} 沒有空壓機在排程時間內，跳過監控");
+                        //System.Diagnostics.Debug.WriteLine($"[排程推播] {factory.Name} 沒有空壓機在排程時間內，跳過監控");
                         continue;
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 有 {scheduledCompressorIds.Count} 台空壓機在排程中");
+                    //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 有 {scheduledCompressorIds.Count} 台空壓機在排程中");
 
                     // 取得該工廠的空壓和溫度值
                     string pressure = GetPressureValue(modbus);
                     string temp = GetTempValue(modbus);
 
-                    System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓={pressure}, 溫度={temp}, 上限=[空壓:{factory.AlarmLimits.PressureUpperLimit}, 溫度:{factory.AlarmLimits.TempUpperLimit}], 下限=[空壓:{factory.AlarmLimits.PressureLowerLimit}, 溫度:{factory.AlarmLimits.TempLowerLimit}]");
+                    //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓={pressure}, 溫度={temp}, 上限=[空壓:{factory.AlarmLimits.PressureUpperLimit}, 溫度:{factory.AlarmLimits.TempUpperLimit}], 下限=[空壓:{factory.AlarmLimits.PressureLowerLimit}, 溫度:{factory.AlarmLimits.TempLowerLimit}]");
 
                     // 取得該工廠的所有空壓機
                     var compressors = factory.GetDevicesByType(DeviceType.Compressor);
@@ -1804,7 +1809,7 @@ namespace DeviceBox
 
                             if (pressureOverLimit)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓超限！數值={pressureValue}, 上限={factory.AlarmLimits.PressureUpperLimit}, 下限={factory.AlarmLimits.PressureLowerLimit}");
+                                //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓超限！數值={pressureValue}, 上限={factory.AlarmLimits.PressureUpperLimit}, 下限={factory.AlarmLimits.PressureLowerLimit}");
                                 pressureAbnormalDevices.AddRange(deviceNames);
                             }
                         }
@@ -1818,7 +1823,7 @@ namespace DeviceBox
 
                             if (tempOverLimit)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 溫度超限！數值={tempValue}, 上限={factory.AlarmLimits.TempUpperLimit}, 下限={factory.AlarmLimits.TempLowerLimit}");
+                                //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 溫度超限！數值={tempValue}, 上限={factory.AlarmLimits.TempUpperLimit}, 下限={factory.AlarmLimits.TempLowerLimit}");
                                 tempAbnormalDevices.AddRange(deviceNames);
                             }
                         }
@@ -1872,8 +1877,8 @@ namespace DeviceBox
         /// </summary>
         private void SendCombinedAbnormalNotification(List<string> pressureAbnormal, List<string> tempAbnormal, List<string> alarmDevices, List<string> faultDevices)
         {
-            System.Diagnostics.Debug.WriteLine($"[推播檢查] 進入推播檢查，空壓異常={pressureAbnormal.Count}, 溫度異常={tempAbnormal.Count}, 警報={alarmDevices.Count}, 故障={faultDevices.Count}");
-            System.Diagnostics.Debug.WriteLine($"[推播檢查] 推播設定: Enabled={config.TeamsNotificationEnabled}, AlarmDelayMinutes={config.AlarmDelayMinutes}, CooldownMinutes={config.NotificationCooldownMinutes}");
+            //System.Diagnostics.Debug.WriteLine($"[推播檢查] 進入推播檢查，空壓異常={pressureAbnormal.Count}, 溫度異常={tempAbnormal.Count}, 警報={alarmDevices.Count}, 故障={faultDevices.Count}");
+            //System.Diagnostics.Debug.WriteLine($"[推播檢查] 推播設定: Enabled={config.TeamsNotificationEnabled}, AlarmDelayMinutes={config.AlarmDelayMinutes}, CooldownMinutes={config.NotificationCooldownMinutes}");
 
             // 移除重複設備名稱
             pressureAbnormal = pressureAbnormal.Distinct().ToList();
@@ -1900,13 +1905,13 @@ namespace DeviceBox
                 if (!globalAbnormalStartTime.HasValue)
                 {
                     globalAbnormalStartTime = DateTime.Now;
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 全局計時器啟動，異常設備: {string.Join(", ", currentAbnormalDevices)}");
+                    //System.Diagnostics.Debug.WriteLine($"[推播延遲] 全局計時器啟動，異常設備: {string.Join(", ", currentAbnormalDevices)}");
                 }
                 else
                 {
                     // 計時器已在運行，顯示當前進度
                     TimeSpan duration = DateTime.Now - globalAbnormalStartTime.Value;
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 全局計時器運行中，已持續 {duration.TotalMinutes:F1} 分鐘，異常設備: {string.Join(", ", currentAbnormalDevices)}");
+                    //System.Diagnostics.Debug.WriteLine($"[推播延遲] 全局計時器運行中，已持續 {duration.TotalMinutes:F1} 分鐘，異常設備: {string.Join(", ", currentAbnormalDevices)}");
                 }
             }
             else
@@ -1914,7 +1919,7 @@ namespace DeviceBox
                 // 沒有異常：重置計時器
                 if (globalAbnormalStartTime.HasValue)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 所有設備恢復正常，計時器歸零");
+                    //System.Diagnostics.Debug.WriteLine($"[推播延遲] 所有設備恢復正常，計時器歸零");
                     globalAbnormalStartTime = null;
                 }
             }
@@ -1935,19 +1940,19 @@ namespace DeviceBox
                     if (tempAbnormal.Count > 0)
                     {
                         abnormalMessages.Add($"溫度異常: {string.Join(", ", tempAbnormal)}");
-                        System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                        //System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
                     }
 
                     if (pressureAbnormal.Count > 0)
                     {
                         abnormalMessages.Add($"空壓異常: {string.Join(", ", pressureAbnormal)}");
-                        System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
+                        //System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
                     }
                 }
                 else
                 {
                     // 尚未達到延遲時間
-                    System.Diagnostics.Debug.WriteLine($"[推播延遲] 異常已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
+                    //System.Diagnostics.Debug.WriteLine($"[推播延遲] 異常已持續 {duration.TotalMinutes:F1} 分鐘，尚未達到推播條件 ({config.AlarmDelayMinutes} 分鐘)");
                 }
             }
 
