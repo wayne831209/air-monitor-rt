@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
@@ -19,13 +19,13 @@ namespace DeviceBox
         private bool _isSyncingZoom = false;
         private const int CASTING_FACTORY_ID = 6;
 
-        // ¦Û­q¯x§Î®Ø¿ï©ñ¤j¥Îªº·Æ¹«°lÂÜÅÜ¼Æ
+        // è‡ªè¨‚çŸ©å½¢æ¡†é¸æ”¾å¤§ç”¨çš„æ»‘é¼ è¿½è¹¤è®Šæ•¸
         private bool _isSelecting = false;
         private Point _selectionStartPoint;
         private Point _selectionEndPoint;
         private ChartArea _selectionChartArea = null;
 
-        // ¹Ïªí°t¦â
+        // åœ–è¡¨é…è‰²
         private static readonly Color[] SeriesColors = new Color[]
         {
             Color.FromArgb(0, 180, 255),
@@ -57,12 +57,12 @@ namespace DeviceBox
             }
             catch (Exception ex)
             {
-                MessageBox.Show("ªì©l¤Æ¥¢±Ñ: " + ex.Message, "¿ù»~", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("åˆå§‹åŒ–å¤±æ•—: " + ex.Message, "éŒ¯èª¤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
         /// <summary>
-        /// ¸ü¤J³]©w
+        /// è¼‰å…¥è¨­å®š
         /// </summary>
         private void LoadConfiguration()
         {
@@ -77,14 +77,14 @@ namespace DeviceBox
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine("MySQL ³s½uªì©l¤Æ¥¢±Ñ: " + ex.Message);
+                    System.Diagnostics.Debug.WriteLine("MySQL é€£ç·šåˆå§‹åŒ–å¤±æ•—: " + ex.Message);
                     _mysql = null;
                 }
             }
         }
 
         /// <summary>
-        /// ªì©l¤Æ¤é´Á¿ï¾Ü¾¹ - ¹w³]¬°¤µ¤Ñ
+        /// åˆå§‹åŒ–æ—¥æœŸé¸æ“‡å™¨ - é è¨­ç‚ºä»Šå¤©
         /// </summary>
         private void InitializeDatePickers()
         {
@@ -93,7 +93,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ªì©l¤Æ³]³Æ²M³æ - «Ø¥ß¼t°ì¤U©Ô¨Ã®Ú¾Ú¹w¿ï¼t°ì³]©wªì©l¿ï¶µ
+        /// åˆå§‹åŒ–è¨­å‚™æ¸…å–® - å»ºç«‹å» åŸŸä¸‹æ‹‰ä¸¦æ ¹æ“šé é¸å» åŸŸè¨­å®šåˆå§‹é¸é …
         /// </summary>
         private void InitializeDeviceList()
         {
@@ -103,28 +103,28 @@ namespace DeviceBox
             if (_config == null || _config.Factories == null || _config.Factories.Count == 0)
                 return;
 
-            // «Ø¥ß¼t°ì¿ï¾Ü¤U©Ô
+            // å»ºç«‹å» åŸŸé¸æ“‡ä¸‹æ‹‰
             cmbFactory.Items.Clear();
-            cmbFactory.Items.Add("¨ä¥L¼t°ì");
-            cmbFactory.Items.Add("Å±³y¼t");
+            cmbFactory.Items.Add("å…¶ä»–å» åŸŸ");
+            cmbFactory.Items.Add("é‘„é€ å» ");
 
-            // ®Ú¾Ú¹w¿ï¼t°ì¨M©wªì©l¿ï¶µ
+            // æ ¹æ“šé é¸å» åŸŸæ±ºå®šåˆå§‹é¸é …
             if (!string.IsNullOrEmpty(_preSelectedFactoryName))
             {
                 var matchedFactory = _config.Factories.FirstOrDefault(f => f.Name == _preSelectedFactoryName);
                 if (matchedFactory != null && matchedFactory.Id == CASTING_FACTORY_ID)
-                    cmbFactory.SelectedIndex = 1; // Å±³y¼t
+                    cmbFactory.SelectedIndex = 1; // é‘„é€ å» 
                 else
-                    cmbFactory.SelectedIndex = 0; // ¨ä¥L¼t°ì
+                    cmbFactory.SelectedIndex = 0; // å…¶ä»–å» åŸŸ
             }
             else
             {
-                cmbFactory.SelectedIndex = 0; // ¹w³]¨ä¥L¼t°ì
+                cmbFactory.SelectedIndex = 0; // é è¨­å…¶ä»–å» åŸŸ
             }
         }
 
         /// <summary>
-        /// ¼t°ì¿ï¾ÜÅÜ§ó®É¡A­«·s¸ü¤J³]³Æ²M³æ
+        /// å» åŸŸé¸æ“‡è®Šæ›´æ™‚ï¼Œé‡æ–°è¼‰å…¥è¨­å‚™æ¸…å–®
         /// </summary>
         private void cmbFactory_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -132,7 +132,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ®Ú¾Ú¥Ø«e¿ï¾Üªº¼t°ì­«·s¸ü¤J³]³Æ²M³æ
+        /// æ ¹æ“šç›®å‰é¸æ“‡çš„å» åŸŸé‡æ–°è¼‰å…¥è¨­å‚™æ¸…å–®
         /// </summary>
         private void RefreshDeviceList()
         {
@@ -143,17 +143,17 @@ namespace DeviceBox
                 return;
 
             string selectedArea = cmbFactory.SelectedItem as string;
-            bool isCasting = (selectedArea == "Å±³y¼t");
+            bool isCasting = (selectedArea == "é‘„é€ å» ");
 
-            // ¿z¿ï¼t°ì¡GÅ±³y¼t = Id==CASTING_FACTORY_ID¡A¨ä¥L¼t°ì = Id!=CASTING_FACTORY_ID
+            // ç¯©é¸å» åŸŸï¼šé‘„é€ å»  = Id==CASTING_FACTORY_IDï¼Œå…¶ä»–å» åŸŸ = Id!=CASTING_FACTORY_ID
             var filteredFactories = isCasting
                 ? _config.Factories.Where(f => f.Id == CASTING_FACTORY_ID).ToList()
                 : _config.Factories.Where(f => f.Id != CASTING_FACTORY_ID).ToList();
 
-            // ¨ä¥L¼t°ì®É¥[¤J©T©w¶µ¥Ø CO-29
+            // å…¶ä»–å» åŸŸæ™‚åŠ å…¥å›ºå®šé …ç›® CO-29
             if (!isCasting)
             {
-                clbDevices.Items.Add("CO-29 - ¸Ë°t¤@¼t", true);
+                clbDevices.Items.Add("CO-29 - è£é…ä¸€å» ", true);
                 _allDeviceNames.Add("CO-29");
             }
 
@@ -168,7 +168,7 @@ namespace DeviceBox
                     string displayName = (compressor.Name ?? "") + " - " + (factory.Name ?? "");
                     _allDeviceNames.Add(compressor.Name ?? "");
 
-                    // ­Y¦³«ü©w¹w¿ï¼t°ì¡A¶È¤Ä¿ï¸Ó¼t°ìªº³]³Æ¡F§_«h¥ş¿ï
+                    // è‹¥æœ‰æŒ‡å®šé é¸å» åŸŸï¼Œåƒ…å‹¾é¸è©²å» åŸŸçš„è¨­å‚™ï¼›å¦å‰‡å…¨é¸
                     bool isChecked = string.IsNullOrEmpty(_preSelectedFactoryName)
                         || factory.Name == _preSelectedFactoryName;
                     clbDevices.Items.Add(displayName, isChecked);
@@ -177,28 +177,35 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ªì©l¤Æ¹Ïªí¼Ë¦¡ - ¤T­Ó¹Ïªí°Ï°ì¾ã¦X¦b¦P¤@­Ó Chart
+        /// åˆå§‹åŒ–åœ–è¡¨æ¨£å¼ - å››å€‹åœ–è¡¨å€åŸŸæ•´åˆåœ¨åŒä¸€å€‹ Chart
         /// </summary>
         private void InitializeChartStyle()
         {
             var chart = chartCombined;
             chart.BackColor = Color.FromArgb(35, 35, 38);
 
-            // ³]©w¤T­Ó ChartArea ªº¦@¥Î¼Ë¦¡
-            SetupChartArea(chart, "ChartAreaPressure", "ªÅÀ£À£¤O (kgf/cm?)");
-            SetupChartArea(chart, "ChartAreaTemp", "¾÷©Ğ·Å«× (¢XC)");
-            SetupChartArea(chart, "ChartAreaDemand", "»İ¶q (kW)");
+            // è¨­å®šå››å€‹ ChartArea çš„å…±ç”¨æ¨£å¼
+            SetupChartArea(chart, "ChartAreaPressure", "ç©ºå£“å£“åŠ› (kgf/cm?)");
+            SetupChartArea(chart, "ChartAreaCompressedTemp", "ç©ºå£“æº«åº¦ (Â°C)");
+            SetupChartArea(chart, "ChartAreaTemp", "æ©Ÿæˆ¿æº«åº¦ (Â°C)");
+            SetupChartArea(chart, "ChartAreaDemand", "éœ€é‡ (kW)");
 
-            // Åı¤T­Ó ChartArea ««ª½±Æ¦C¡A¦@¥Î X ¶b¹ï»ô
+            // è®“å››å€‹ ChartArea å‚ç›´æ’åˆ—ï¼Œå…±ç”¨ X è»¸å°é½Š
             var areaPressure = chart.ChartAreas["ChartAreaPressure"];
+            var areaCompressedTemp = chart.ChartAreas["ChartAreaCompressedTemp"];
             var areaTemp = chart.ChartAreas["ChartAreaTemp"];
             var areaDemand = chart.ChartAreas["ChartAreaDemand"];
 
-            areaPressure.Position = new ElementPosition(0, 3, 100, 30);
-            areaTemp.Position = new ElementPosition(0, 33, 100, 30);
-            areaDemand.Position = new ElementPosition(0, 63, 100, 37);
+            areaPressure.Position = new ElementPosition(0, 3, 100, 22);
+            areaCompressedTemp.Position = new ElementPosition(0, 25, 100, 22);
+            areaTemp.Position = new ElementPosition(0, 47, 100, 22);
+            areaDemand.Position = new ElementPosition(0, 69, 100, 31);
 
-            // X ¶b¹ï»ô
+            // X è»¸å°é½Š
+            areaCompressedTemp.AlignWithChartArea = "ChartAreaPressure";
+            areaCompressedTemp.AlignmentOrientation = AreaAlignmentOrientations.Vertical;
+            areaCompressedTemp.AlignmentStyle = AreaAlignmentStyles.PlotPosition;
+
             areaTemp.AlignWithChartArea = "ChartAreaPressure";
             areaTemp.AlignmentOrientation = AreaAlignmentOrientations.Vertical;
             areaTemp.AlignmentStyle = AreaAlignmentStyles.PlotPosition;
@@ -207,42 +214,43 @@ namespace DeviceBox
             areaDemand.AlignmentOrientation = AreaAlignmentOrientations.Vertical;
             areaDemand.AlignmentStyle = AreaAlignmentStyles.PlotPosition;
 
-            // ¥u¦b³Ì¤U¤èªº ChartArea Åã¥Ü X ¶b¼ĞÅÒ
+            // åªåœ¨æœ€ä¸‹æ–¹çš„ ChartArea é¡¯ç¤º X è»¸æ¨™ç±¤
             areaPressure.AxisX.LabelStyle.Enabled = false;
+            areaCompressedTemp.AxisX.LabelStyle.Enabled = false;
             areaTemp.AxisX.LabelStyle.Enabled = false;
             areaDemand.AxisX.LabelStyle.Enabled = true;
 
-            // ¹Ï¨Ò - ´O¤J²Ä¤@­Ó ChartArea ¥k¤W¨¤¡A¤£¦û¥ÎÃB¥~ªÅ¶¡
+            // åœ–ä¾‹ - åµŒå…¥ç¬¬ä¸€å€‹ ChartArea å³ä¸Šè§’ï¼Œä¸ä½”ç”¨é¡å¤–ç©ºé–“
             var legend = chart.Legends["LegendMain"];
             legend.BackColor = Color.FromArgb(180, 40, 40, 45);
             legend.ForeColor = Color.White;
-            legend.Font = new Font("·L³n¥¿¶ÂÅé", 9F);
+            legend.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 9F);
             legend.IsDockedInsideChartArea = true;
             legend.DockedToChartArea = "ChartAreaPressure";
             legend.Docking = Docking.Top;
             legend.Alignment = StringAlignment.Far;
 
-            // ¼ĞÃD
+            // æ¨™é¡Œ
             chart.Titles.Clear();
-            var chartTitle = new Title("³]³ÆÀ£¤O / ·Å«× / »İ¶q¦±½u¹Ï");
-            chartTitle.Font = new Font("·L³n¥¿¶ÂÅé", 14F, FontStyle.Bold);
+            var chartTitle = new Title("è¨­å‚™å£“åŠ› / æº«åº¦ / éœ€é‡æ›²ç·šåœ–");
+            chartTitle.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 14F, FontStyle.Bold);
             chartTitle.ForeColor = Color.White;
             chart.Titles.Add(chartTitle);
 
-            // ·Æ¹«²¾°Ê®ÉÅã¥Ü¼Æ­È (Tooltip) »P®Ø¿ï¯x§ÎÃ¸»s
+            // æ»‘é¼ ç§»å‹•æ™‚é¡¯ç¤ºæ•¸å€¼ (Tooltip) èˆ‡æ¡†é¸çŸ©å½¢ç¹ªè£½
             chart.MouseMove += ChartCombined_MouseMove;
 
-            // ¦Û­q¯x§Î®Ø¿ï©ñ¤j¡G·Æ¹««ö¤U/©ñ¶}
+            // è‡ªè¨‚çŸ©å½¢æ¡†é¸æ”¾å¤§ï¼šæ»‘é¼ æŒ‰ä¸‹/æ”¾é–‹
             chart.MouseDown += ChartCombined_MouseDown;
             chart.MouseUp += ChartCombined_MouseUp;
             chart.Paint += ChartCombined_Paint;
 
-            // ·í¥ô¤@ ChartArea ªº¶bµø¹ÏÅÜ§ó¡]ScrollBar ±²°Ê¡^®É¦P¨B X ¶b
+            // ç•¶ä»»ä¸€ ChartArea çš„è»¸è¦–åœ–è®Šæ›´ï¼ˆScrollBar æ²å‹•ï¼‰æ™‚åŒæ­¥ X è»¸
             chart.AxisViewChanged += ChartCombined_AxisViewChanged;
         }
 
         /// <summary>
-        /// ³]©w³æ¤@ ChartArea ªº²`¦â¥DÃD¼Ë¦¡
+        /// è¨­å®šå–®ä¸€ ChartArea çš„æ·±è‰²ä¸»é¡Œæ¨£å¼
         /// </summary>
         private void SetupChartArea(Chart chart, string chartAreaName, string yAxisTitle)
         {
@@ -252,7 +260,7 @@ namespace DeviceBox
             area.AxisX.LabelStyle.Format = "MM/dd HH:00";
             area.AxisX.MajorGrid.LineColor = Color.FromArgb(60, 60, 65);
             area.AxisX.LineColor = Color.FromArgb(100, 100, 105);
-            area.AxisX.LabelStyle.Font = new Font("·L³n¥¿¶ÂÅé", 8F);
+            area.AxisX.LabelStyle.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 8F);
             area.AxisX.IsMarginVisible = false;
             area.AxisX.IntervalType = DateTimeIntervalType.Hours;
             area.AxisX.Interval = 1;
@@ -262,14 +270,14 @@ namespace DeviceBox
             area.AxisY.LabelStyle.ForeColor = Color.White;
             area.AxisY.MajorGrid.LineColor = Color.FromArgb(60, 60, 65);
             area.AxisY.LineColor = Color.FromArgb(100, 100, 105);
-            area.AxisY.LabelStyle.Font = new Font("·L³n¥¿¶ÂÅé", 9F);
+            area.AxisY.LabelStyle.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 9F);
             area.AxisY.Title = yAxisTitle;
-            area.AxisY.TitleFont = new Font("·L³n¥¿¶ÂÅé", 9F, FontStyle.Bold);
+            area.AxisY.TitleFont = new Font("å¾®è»Ÿæ­£é»‘é«”", 9F, FontStyle.Bold);
 
             area.AxisX.TitleForeColor = Color.White;
             area.AxisY.TitleForeColor = Color.White;
 
-            // ´å¼Ğ³]©w¡]°±¥Î¤º«Ø®Ø¿ï¡A§ï¥Î¦Û­q¯x§Î®Ø¿ï©ñ¤j¡^
+            // æ¸¸æ¨™è¨­å®šï¼ˆåœç”¨å…§å»ºæ¡†é¸ï¼Œæ”¹ç”¨è‡ªè¨‚çŸ©å½¢æ¡†é¸æ”¾å¤§ï¼‰
             area.CursorX.IsUserEnabled = false;
             area.CursorX.IsUserSelectionEnabled = false;
             area.CursorX.LineColor = Color.FromArgb(150, 255, 255, 255);
@@ -280,7 +288,7 @@ namespace DeviceBox
             area.CursorY.LineColor = Color.FromArgb(150, 255, 255, 255);
             area.CursorY.LineDashStyle = ChartDashStyle.Dash;
 
-            // ±Ò¥Î X ¶b»P Y ¶bªºÁY©ñ»P±²°Ê¡]¥Ñµ{¦¡½X±±¨î Zoom¡^
+            // å•Ÿç”¨ X è»¸èˆ‡ Y è»¸çš„ç¸®æ”¾èˆ‡æ²å‹•ï¼ˆç”±ç¨‹å¼ç¢¼æ§åˆ¶ Zoomï¼‰
             area.AxisX.ScaleView.Zoomable = true;
             area.AxisY.ScaleView.Zoomable = true;
             area.AxisX.ScrollBar.Enabled = true;
@@ -294,7 +302,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// §ä¥X·Æ¹«®y¼Ğ©Ò¦bªº ChartArea
+        /// æ‰¾å‡ºæ»‘é¼ åº§æ¨™æ‰€åœ¨çš„ ChartArea
         /// </summary>
         private ChartArea GetChartAreaFromPoint(Point pt)
         {
@@ -304,7 +312,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ·Æ¹««ö¤U - ¶}©l®Ø¿ï
+        /// æ»‘é¼ æŒ‰ä¸‹ - é–‹å§‹æ¡†é¸
         /// </summary>
         private void ChartCombined_MouseDown(object sender, MouseEventArgs e)
         {
@@ -320,7 +328,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ·Æ¹«©ñ¶} - §¹¦¨®Ø¿ï¨Ã®M¥Î©ñ¤j¡]X ¶b¦P¨B©Ò¦³ ChartArea¡AY ¶b¶È®M¥Î³Q®Ø¿ïªº ChartArea¡^
+        /// æ»‘é¼ æ”¾é–‹ - å®Œæˆæ¡†é¸ä¸¦å¥—ç”¨æ”¾å¤§ï¼ˆX è»¸åŒæ­¥æ‰€æœ‰ ChartAreaï¼ŒY è»¸åƒ…å¥—ç”¨è¢«æ¡†é¸çš„ ChartAreaï¼‰
         /// </summary>
         private void ChartCombined_MouseUp(object sender, MouseEventArgs e)
         {
@@ -339,7 +347,7 @@ namespace DeviceBox
             int y1 = Math.Min(_selectionStartPoint.Y, _selectionEndPoint.Y);
             int y2 = Math.Max(_selectionStartPoint.Y, _selectionEndPoint.Y);
 
-            // ®Ø¿ï½d³ò¤Ó¤p«h©¿²¤¡]Á×§K»~Ä²¡^
+            // æ¡†é¸ç¯„åœå¤ªå°å‰‡å¿½ç•¥ï¼ˆé¿å…èª¤è§¸ï¼‰
             if (Math.Abs(x2 - x1) < 5 && Math.Abs(y2 - y1) < 5)
             {
                 _selectionChartArea = null;
@@ -352,10 +360,10 @@ namespace DeviceBox
                 var area = _selectionChartArea;
                 if (area == null) return;
 
-                // ±N¹³¯À®y¼ĞÂà´«¬°¶b¼Æ­È
+                // å°‡åƒç´ åº§æ¨™è½‰æ›ç‚ºè»¸æ•¸å€¼
                 double xValStart = Math.Round(area.AxisX.PixelPositionToValue(x1),2);
                 double xValEnd = Math.Round(area.AxisX.PixelPositionToValue(x2),2);
-                double yValStart = Math.Round(area.AxisY.PixelPositionToValue(y2),2); // Y ¹³¯À¤W¤U¬Û¤Ï
+                double yValStart = Math.Round(area.AxisY.PixelPositionToValue(y2),2); // Y åƒç´ ä¸Šä¸‹ç›¸å
                 double yValEnd = Math.Round(area.AxisY.PixelPositionToValue(y1),2);
 
                 if (xValStart > xValEnd) { double tmp = xValStart; xValStart = xValEnd; xValEnd = tmp; }
@@ -364,7 +372,7 @@ namespace DeviceBox
                 double xSize = xValEnd - xValStart;
                 double ySize = yValEnd - yValStart;
 
-                // X ¶b©ñ¤j¡]¦P¨B©Ò¦³ ChartArea¡^
+                // X è»¸æ”¾å¤§ï¼ˆåŒæ­¥æ‰€æœ‰ ChartAreaï¼‰
                 if (xSize > 0)
                 {
                     _isSyncingZoom = true;
@@ -375,7 +383,7 @@ namespace DeviceBox
                     _isSyncingZoom = false;
                 }
 
-                // Y ¶b©ñ¤j¡]¶È®M¥Î¦b³Q®Ø¿ïªº ChartArea¡^
+                // Y è»¸æ”¾å¤§ï¼ˆåƒ…å¥—ç”¨åœ¨è¢«æ¡†é¸çš„ ChartAreaï¼‰
                 if (ySize > 0)
                 {
                     area.AxisY.ScaleView.Zoom(yValStart, yValEnd);
@@ -383,7 +391,7 @@ namespace DeviceBox
             }
             catch
             {
-                // ®y¼ĞÂà´«¥i¯à¦bµL¸ê®Æ®É¥¢±Ñ¡A©¿²¤
+                // åº§æ¨™è½‰æ›å¯èƒ½åœ¨ç„¡è³‡æ–™æ™‚å¤±æ•—ï¼Œå¿½ç•¥
             }
             finally
             {
@@ -393,7 +401,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ¦b¹Ïªí¤WÃ¸»s¥b³z©úÂÅ¦â®Ø¿ï¯x§Î
+        /// åœ¨åœ–è¡¨ä¸Šç¹ªè£½åŠé€æ˜è—è‰²æ¡†é¸çŸ©å½¢
         /// </summary>
         private void ChartCombined_Paint(object sender, PaintEventArgs e)
         {
@@ -415,13 +423,13 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ·í¥ô¤@ ChartArea ªº¶bµø¹ÏÅÜ§ó¡]ScrollBar ±²°Ê¡^®É¡A¦P¨B©Ò¦³ ChartArea ªº X ¶b
+        /// ç•¶ä»»ä¸€ ChartArea çš„è»¸è¦–åœ–è®Šæ›´ï¼ˆScrollBar æ²å‹•ï¼‰æ™‚ï¼ŒåŒæ­¥æ‰€æœ‰ ChartArea çš„ X è»¸
         /// </summary>
         private void ChartCombined_AxisViewChanged(object sender, ViewEventArgs e)
         {
             if (_isSyncingZoom) return;
 
-            // ¥u¦P¨B X ¶b
+            // åªåŒæ­¥ X è»¸
             if (e.Axis.AxisName != AxisName.X) return;
 
             _isSyncingZoom = true;
@@ -449,7 +457,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ­«¸m©Ò¦³ ChartArea ªºÁY©ñ
+        /// é‡ç½®æ‰€æœ‰ ChartArea çš„ç¸®æ”¾
         /// </summary>
         private void btnResetZoom_Click(object sender, EventArgs e)
         {
@@ -469,13 +477,13 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ·Æ¹«²¾°Ê®É¦b ToolTip Åã¥Ü¼Æ­È¡A¨Ã§Y®ÉÃ¸»s®Ø¿ï¯x§Î
+        /// æ»‘é¼ ç§»å‹•æ™‚åœ¨ ToolTip é¡¯ç¤ºæ•¸å€¼ï¼Œä¸¦å³æ™‚ç¹ªè£½æ¡†é¸çŸ©å½¢
         /// </summary>
         private void ChartCombined_MouseMove(object sender, MouseEventArgs e)
         {
             var chart = chartCombined;
 
-            // ®Ø¿ï¤¤®É§Y®É§ó·s¯x§Î
+            // æ¡†é¸ä¸­æ™‚å³æ™‚æ›´æ–°çŸ©å½¢
             if (_isSelecting)
             {
                 _selectionEndPoint = e.Location;
@@ -489,7 +497,7 @@ namespace DeviceBox
             {
                 var dp = hitResult.Series.Points[hitResult.PointIndex];
                 DateTime xVal = DateTime.FromOADate(dp.XValue);
-                string tipText = hitResult.Series.Name + "\n®É¶¡: " + xVal.ToString("yyyy-MM-dd HH:mm") + "\n¼Æ­È: " + dp.YValues[0].ToString("F2");
+                string tipText = hitResult.Series.Name + "\næ™‚é–“: " + xVal.ToString("yyyy-MM-dd HH:mm") + "\næ•¸å€¼: " + dp.YValues[0].ToString("F2");
                 toolTip1.SetToolTip(chart, tipText);
             }
             else
@@ -499,21 +507,21 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ¬d¸ß«ö¶s
+        /// æŸ¥è©¢æŒ‰éˆ•
         /// </summary>
         private void btnQuery_Click(object sender, EventArgs e)
         {
             if (_mysql == null)
             {
-                MessageBox.Show("¸ê®Æ®w¥¼³]©w¡A½ĞÀË¬d config.xml", "¿ù»~", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("è³‡æ–™åº«æœªè¨­å®šï¼Œè«‹æª¢æŸ¥ config.xml", "éŒ¯èª¤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            // ¨ú±o¿ï¨úªº³]³Æ¦WºÙ
+            // å–å¾—é¸å–çš„è¨­å‚™åç¨±
             var selectedDevices = GetSelectedDeviceNames();
             if (selectedDevices.Count == 0)
             {
-                MessageBox.Show("½Ğ¦Ü¤Ö¿ï¾Ü¤@­Ó³]³Æ", "´£¥Ü", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("è«‹è‡³å°‘é¸æ“‡ä¸€å€‹è¨­å‚™", "æç¤º", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -522,7 +530,7 @@ namespace DeviceBox
 
             if (startDate >= endDate)
             {
-                MessageBox.Show("¶}©l®É¶¡¥²¶·¦­©óµ²§ô®É¶¡", "´£¥Ü", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("é–‹å§‹æ™‚é–“å¿…é ˆæ—©æ–¼çµæŸæ™‚é–“", "æç¤º", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -533,7 +541,7 @@ namespace DeviceBox
             }
             catch (Exception ex)
             {
-                MessageBox.Show("¬d¸ß¥¢±Ñ: " + ex.Message, "¿ù»~", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("æŸ¥è©¢å¤±æ•—: " + ex.Message, "éŒ¯èª¤", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
@@ -542,7 +550,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ¨ú±o¿ï¨úªº³]³Æ¦WºÙ²M³æ
+        /// å–å¾—é¸å–çš„è¨­å‚™åç¨±æ¸…å–®
         /// </summary>
         private List<string> GetSelectedDeviceNames()
         {
@@ -558,7 +566,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ¬d¸ß¸ê®Æ®w¨ÃÅã¥Ü¹Ïªí
+        /// æŸ¥è©¢è³‡æ–™åº«ä¸¦é¡¯ç¤ºåœ–è¡¨
         /// </summary>
         private void QueryAndDisplayData(List<string> deviceNames, DateTime startDate, DateTime endDate)
         {
@@ -567,14 +575,14 @@ namespace DeviceBox
 
             if (string.IsNullOrEmpty(deviceBoxTable))
             {
-                MessageBox.Show("¸ê®Æªí¦WºÙ¥¼³]©w", "¿ù»~", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("è³‡æ–™è¡¨åç¨±æœªè¨­å®š", "éŒ¯èª¤", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            // «Ø¥ß IN ±ø¥ó
+            // å»ºç«‹ IN æ¢ä»¶
             string nameCondition = string.Join(",", deviceNames.Select(n => "'" + n.Replace("'", "''") + "'"));
 
-            // ¬d¸ß»İ¶q¸ê®Æ
+            // æŸ¥è©¢éœ€é‡è³‡æ–™
             DataTable dtDemand = null;
             if (!string.IsNullOrEmpty(demandTable))
             {
@@ -589,7 +597,7 @@ namespace DeviceBox
                 }
                 catch
                 {
-                    // »İ¶qªí¬d¸ß¥¢±Ñ¤£¼vÅT¨ä¥L¸ê®ÆÅã¥Ü
+                    // éœ€é‡è¡¨æŸ¥è©¢å¤±æ•—ä¸å½±éŸ¿å…¶ä»–è³‡æ–™é¡¯ç¤º
                 }
             }
 
@@ -597,7 +605,7 @@ namespace DeviceBox
             {
                 nameCondition = "'CO-28'";
             }
-            // ¬d¸ßÀ£¤O»P·Å«×¸ê®Æ
+            // æŸ¥è©¢å£“åŠ›èˆ‡æº«åº¦è³‡æ–™
             string sqlDeviceBox = "SELECT `Name`, `Time`, `CompressedAir`, `AmbientTempPV`, `CompressedTemp` FROM " + deviceBoxTable +
                          " WHERE `Name` IN (" + nameCondition + ")" +
                          " AND `Time` >= '" + startDate.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
@@ -612,12 +620,12 @@ namespace DeviceBox
 
             if (!hasDeviceBoxData && !hasDemandData)
             {
-                MessageBox.Show("¬dµL¸ê®Æ", "´£¥Ü", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("æŸ¥ç„¡è³‡æ–™", "æç¤º", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 chartCombined.Series.Clear();
                 return;
             }
 
-            // ¨Ì³]³Æ¦WºÙ¤À²Õ - À£¤O»P·Å«×
+            // ä¾è¨­å‚™åç¨±åˆ†çµ„ - å£“åŠ›èˆ‡æº«åº¦
             var groupedDeviceBox = new Dictionary<string, List<DeviceDataPoint>>();
             if (hasDeviceBoxData)
             {
@@ -643,7 +651,7 @@ namespace DeviceBox
                 }
             }
 
-            // ¨Ì³]³Æ¦WºÙ¤À²Õ - »İ¶q
+            // ä¾è¨­å‚™åç¨±åˆ†çµ„ - éœ€é‡
             var groupedDemand = new Dictionary<string, List<DemandDataPoint>>();
             if (hasDemandData)
             {
@@ -667,31 +675,31 @@ namespace DeviceBox
                 }
             }
 
-            // Ã¸»s¹Ïªí
+            // ç¹ªè£½åœ–è¡¨
             DrawCharts(groupedDeviceBox, groupedDemand);
 
-            // §ó·s¤W¤U­­Åã¥Ü²M³æ
+            // æ›´æ–°ä¸Šä¸‹é™é¡¯ç¤ºæ¸…å–®
             PopulateAlarmLimitsChecklist(GetSelectedDeviceNames());
         }
 
         /// <summary>
-        /// Ã¸»sÀ£¤O¡B·Å«×¡B»İ¶q¹Ïªí¡]¾ã¦X¦b¦P¤@­Ó Chart ªº¤T­Ó ChartArea¡^
+        /// ç¹ªè£½å£“åŠ›ã€æº«åº¦ã€éœ€é‡åœ–è¡¨ï¼ˆæ•´åˆåœ¨åŒä¸€å€‹ Chart çš„ä¸‰å€‹ ChartAreaï¼‰
         /// </summary>
         private void DrawCharts(Dictionary<string, List<DeviceDataPoint>> groupedDeviceBox, Dictionary<string, List<DemandDataPoint>> groupedDemand)
         {
             chartCombined.Series.Clear();
 
-            // ²M°£ÂÂªº­­¨î½u
+            // æ¸…é™¤èˆŠçš„é™åˆ¶ç·š
             foreach (var area in chartCombined.ChartAreas)
             {
                 area.AxisY.StripLines.Clear();
             }
 
-            // «Ø¥ß³]³Æ¦WºÙ»PÃC¦âªº¹ïÀ³ªí¡A½T«O¦P¤@³]³Æ¦b©Ò¦³¹Ïªí¤¤ÃC¦â¤@­P
+            // å»ºç«‹è¨­å‚™åç¨±èˆ‡é¡è‰²çš„å°æ‡‰è¡¨ï¼Œç¢ºä¿åŒä¸€è¨­å‚™åœ¨æ‰€æœ‰åœ–è¡¨ä¸­é¡è‰²ä¸€è‡´
             var deviceColorMap = new Dictionary<string, Color>();
             int colorIndex = 0;
 
-            // ¥ı±qÀ£¤O/·Å«×¸ê®Æ¦¬¶°³]³Æ¦WºÙ
+            // å…ˆå¾å£“åŠ›/æº«åº¦è³‡æ–™æ”¶é›†è¨­å‚™åç¨±
             foreach (var deviceName in groupedDeviceBox.Keys)
             {
                 if (!deviceColorMap.ContainsKey(deviceName))
@@ -701,7 +709,7 @@ namespace DeviceBox
                 }
             }
 
-            // ¦A±q»İ¶q¸ê®Æ¦¬¶°³]³Æ¦WºÙ¡]­Y¦³·s³]³Æ¤~¤À°t·sÃC¦â¡^
+            // å†å¾éœ€é‡è³‡æ–™æ”¶é›†è¨­å‚™åç¨±ï¼ˆè‹¥æœ‰æ–°è¨­å‚™æ‰åˆ†é…æ–°é¡è‰²ï¼‰
             foreach (var deviceName in groupedDemand.Keys)
             {
                 if (!deviceColorMap.ContainsKey(deviceName))
@@ -711,7 +719,7 @@ namespace DeviceBox
                 }
             }
 
-            // ¹Ï¨Ò¥uÅã¥Ü³]³Æ¦WºÙ¡]¨C­Ó³]³Æ¤@µ§¡^¡A¥ÎÁôÂÃªº Series ¥Nªí
+            // åœ–ä¾‹åªé¡¯ç¤ºè¨­å‚™åç¨±ï¼ˆæ¯å€‹è¨­å‚™ä¸€ç­†ï¼‰ï¼Œç”¨éš±è—çš„ Series ä»£è¡¨
             foreach (var kvp in deviceColorMap)
             {
                 var legendSeries = new Series(kvp.Key);
@@ -724,15 +732,15 @@ namespace DeviceBox
                 chartCombined.Series.Add(legendSeries);
             }
 
-            // Ã¸»sÀ£¤O»P·Å«×¦±½u¡]¹ê½u¡A¤£Åã¥Ü¦b¹Ï¨Ò¤¤¡^
+            // ç¹ªè£½å£“åŠ›èˆ‡æº«åº¦æ›²ç·šï¼ˆå¯¦ç·šï¼Œä¸é¡¯ç¤ºåœ¨åœ–ä¾‹ä¸­ï¼‰
             foreach (var kvp in groupedDeviceBox)
             {
                 string deviceName = kvp.Key;
                 var dataPoints = kvp.Value;
                 Color color = deviceColorMap[deviceName];
 
-                // À£¤O¦±½u
-                var pressureSeries = new Series(deviceName + " À£¤O");
+                // å£“åŠ›æ›²ç·š
+                var pressureSeries = new Series(deviceName + " å£“åŠ›");
                 pressureSeries.ChartType = SeriesChartType.Line;
                 pressureSeries.Color = color;
                 pressureSeries.BorderWidth = 2;
@@ -747,8 +755,8 @@ namespace DeviceBox
 
                 chartCombined.Series.Add(pressureSeries);
 
-                // ·Å«×¦±½u¡]¹ê½u¡^
-                var tempSeries = new Series(deviceName + " ·Å«×");
+                // æº«åº¦æ›²ç·šï¼ˆå¯¦ç·šï¼‰
+                var tempSeries = new Series(deviceName + " æº«åº¦");
                 tempSeries.ChartType = SeriesChartType.Line;
                 tempSeries.Color = color;
                 tempSeries.BorderWidth = 2;
@@ -763,8 +771,8 @@ namespace DeviceBox
 
                 chartCombined.Series.Add(tempSeries);
 
-                // ªÅÀ£·Å«×¦±½u¨t¦C
-                var compressedTempSeries = new Series(deviceName + " ªÅÀ£·Å«×");
+                // ç©ºå£“æº«åº¦æ›²ç·šç³»åˆ—
+                var compressedTempSeries = new Series(deviceName + " ç©ºå£“æº«åº¦");
                 compressedTempSeries.ChartType = SeriesChartType.Line;
                 compressedTempSeries.Color = color;
                 compressedTempSeries.BorderWidth = 2;
@@ -780,14 +788,14 @@ namespace DeviceBox
                 chartCombined.Series.Add(compressedTempSeries);
             }
 
-            // Ã¸»s»İ¶q¦±½u¡]¹ê½u¡A¨Ï¥Î¬Û¦P³]³Æ¹ïÀ³ªºÃC¦â¡A¤£Åã¥Ü¦b¹Ï¨Ò¤¤¡^
+            // ç¹ªè£½éœ€é‡æ›²ç·šï¼ˆå¯¦ç·šï¼Œä½¿ç”¨ç›¸åŒè¨­å‚™å°æ‡‰çš„é¡è‰²ï¼Œä¸é¡¯ç¤ºåœ¨åœ–ä¾‹ä¸­ï¼‰
             foreach (var kvp in groupedDemand)
             {
                 string deviceName = kvp.Key;
                 var dataPoints = kvp.Value;
                 Color color = deviceColorMap[deviceName];
 
-                var demandSeries = new Series(deviceName + " »İ¶q");
+                var demandSeries = new Series(deviceName + " éœ€é‡");
                 demandSeries.ChartType = SeriesChartType.Line;
                 demandSeries.Color = color;
                 demandSeries.BorderWidth = 2;
@@ -803,7 +811,7 @@ namespace DeviceBox
                 chartCombined.Series.Add(demandSeries);
             }
 
-            // ³]©w X ¶b®æ¦¡ - ©T©w¥H¤p®É¬°³æ¦ì
+            // è¨­å®š X è»¸æ ¼å¼ - å›ºå®šä»¥å°æ™‚ç‚ºå–®ä½
             foreach (var area in chartCombined.ChartAreas)
             {
                 area.AxisX.LabelStyle.Format = "MM/dd HH:00";
@@ -811,8 +819,8 @@ namespace DeviceBox
                 area.AxisX.Interval = 1;
             }
 
-            // ®Ú¾Ú¹ê»Ú¸ê®Æ­«·s­pºâ¨C­Ó ChartArea ªº Y ¶b½d³ò
-            // ·Å«×¡BÀ£¤O¡B»İ¶q¡G³Ì¤j­È+3¡B³Ì¤p­È-3¡A¶¡¹j 0.5
+            // æ ¹æ“šå¯¦éš›è³‡æ–™é‡æ–°è¨ˆç®—æ¯å€‹ ChartArea çš„ Y è»¸ç¯„åœ
+            // æº«åº¦ã€å£“åŠ›ã€éœ€é‡ï¼šæœ€å¤§å€¼+3ã€æœ€å°å€¼-3ï¼Œé–“éš” 0.5
             foreach (var area in chartCombined.ChartAreas)
             {
                 var seriesInArea = chartCombined.Series.Cast<Series>()
@@ -830,7 +838,7 @@ namespace DeviceBox
                 double dataMin = seriesInArea.Min(s => s.Points.Min(p => p.YValues[0]));
                 double dataMax = seriesInArea.Max(s => s.Points.Max(p => p.YValues[0]));
 
-                // ªÅÀ£À£¤O¡G¡Ó1¡B5 ®æ¡F·Å«×»P»İ¶q¡G¡Ó3¡B10 ®æ
+                // ç©ºå£“å£“åŠ›ï¼šÂ±1ã€5 æ ¼ï¼›æº«åº¦èˆ‡éœ€é‡ï¼šÂ±3ã€10 æ ¼
                 bool isPressure = (area.Name == "ChartAreaPressure");
                 int targetTicks = 5;
                 double margin = 2;
@@ -840,7 +848,7 @@ namespace DeviceBox
                 double yMinCalc = Math.Floor((dataMin - margin) / yInterval) * yInterval;
                 double yMaxCalc = yMinCalc + yInterval * targetTicks;
 
-                // ½T«O¸ê®Æ³Ì¤j­È+margin ¦b½d³ò¤º
+                // ç¢ºä¿è³‡æ–™æœ€å¤§å€¼+margin åœ¨ç¯„åœå…§
                 if (yMaxCalc < dataMax + margin)
                 {
                     yMaxCalc += yInterval;
@@ -852,17 +860,17 @@ namespace DeviceBox
                 area.AxisY.Interval = yInterval;
             }
 
-            // Ã¸»sÄµ³ø¤W¤U­­½u
+            // ç¹ªè£½è­¦å ±ä¸Šä¸‹é™ç·š
             var selectedDevices = GetSelectedDeviceNames();
             DrawAlarmLimitLines(selectedDevices);
         }
 
         /// <summary>
-        /// §ó·s¤W¤U­­Åã¥Ü²M³æ - ¨Ì¿ï¨ú³]³Æ¹ïÀ³ªº¤u¼t¦C¥X
+        /// æ›´æ–°ä¸Šä¸‹é™é¡¯ç¤ºæ¸…å–® - ä¾é¸å–è¨­å‚™å°æ‡‰çš„å·¥å» åˆ—å‡º
         /// </summary>
         private void PopulateAlarmLimitsChecklist(List<string> selectedDeviceNames)
         {
-            // °O¦í¥Ø«e¤w¤Ä¿ïªº¤u¼t¦WºÙ
+            // è¨˜ä½ç›®å‰å·²å‹¾é¸çš„å·¥å» åç¨±
             var previouslyChecked = new HashSet<string>();
             for (int i = 0; i < clbAlarmLimits.Items.Count; i++)
             {
@@ -888,18 +896,18 @@ namespace DeviceBox
                 if (factory.AlarmLimits == null) continue;
 
                 _alarmLimitFactoryNames.Add(factory.Name);
-                // ­Y¤§«e¤w¦s¦b¥B¦³¤Ä¿ï¡A«O«ù¤Ä¿ï¡F­º¦¸¥X²{¹w³]¤Ä¿ï
+                // è‹¥ä¹‹å‰å·²å­˜åœ¨ä¸”æœ‰å‹¾é¸ï¼Œä¿æŒå‹¾é¸ï¼›é¦–æ¬¡å‡ºç¾é è¨­å‹¾é¸
                 bool isChecked = previouslyChecked.Count == 0 || previouslyChecked.Contains(factory.Name);
-                clbAlarmLimits.Items.Add(factory.Name + " ¤W¤U­­", isChecked);
+                clbAlarmLimits.Items.Add(factory.Name + " ä¸Šä¸‹é™", isChecked);
             }
         }
 
         /// <summary>
-        /// ¤W¤U­­Åã¥Ü¤Ä¿ïÅÜ§ó®É¡A­«·sÃ¸»s­­¨î½u
+        /// ä¸Šä¸‹é™é¡¯ç¤ºå‹¾é¸è®Šæ›´æ™‚ï¼Œé‡æ–°ç¹ªè£½é™åˆ¶ç·š
         /// </summary>
         private void clbAlarmLimits_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            // ¨Ï¥Î BeginInvoke µ¥«İ CheckState §ó·s«á¦A­«Ã¸
+            // ä½¿ç”¨ BeginInvoke ç­‰å¾… CheckState æ›´æ–°å¾Œå†é‡ç¹ª
             this.BeginInvoke((Action)(() =>
             {
                 RefreshAlarmLimitLines();
@@ -907,11 +915,11 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ­«·sÃ¸»sÄµ³ø¤W¤U­­½u¡]®Ú¾Ú clbAlarmLimits ªº¤Ä¿ïª¬ºA¡^
+        /// é‡æ–°ç¹ªè£½è­¦å ±ä¸Šä¸‹é™ç·šï¼ˆæ ¹æ“š clbAlarmLimits çš„å‹¾é¸ç‹€æ…‹ï¼‰
         /// </summary>
         private void RefreshAlarmLimitLines()
         {
-            // ²M°£ÂÂªº­­¨î½u
+            // æ¸…é™¤èˆŠçš„é™åˆ¶ç·š
             foreach (var area in chartCombined.ChartAreas)
             {
                 area.AxisY.StripLines.Clear();
@@ -922,7 +930,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ¨ú±o¥Ø«e¤Ä¿ïªº¤W¤U­­¤u¼t¦WºÙ
+        /// å–å¾—ç›®å‰å‹¾é¸çš„ä¸Šä¸‹é™å·¥å» åç¨±
         /// </summary>
         private HashSet<string> GetCheckedAlarmLimitFactories()
         {
@@ -938,8 +946,8 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// Ã¸»sÄµ³ø¤W¤U­­½u¨ì¹Ïªí¤W
-        /// ±q¿ï¨ú³]³Æ¹ïÀ³ªº¤u¼t¨ú±o AlarmLimits¡A¦bÀ£¤O»P·Å«× ChartArea ¤WÃ¸»s¤ô¥­°Ñ¦Ò½u
+        /// ç¹ªè£½è­¦å ±ä¸Šä¸‹é™ç·šåˆ°åœ–è¡¨ä¸Š
+        /// å¾é¸å–è¨­å‚™å°æ‡‰çš„å·¥å» å–å¾— AlarmLimitsï¼Œåœ¨å£“åŠ›èˆ‡æº«åº¦ ChartArea ä¸Šç¹ªè£½æ°´å¹³åƒè€ƒç·š
         /// </summary>
         private void DrawAlarmLimitLines(List<string> selectedDeviceNames)
         {
@@ -947,10 +955,10 @@ namespace DeviceBox
             var areaPressure = chart.ChartAreas["ChartAreaPressure"];
             var areaTemp = chart.ChartAreas["ChartAreaTemp"];
 
-            // ¨ú±o¥Ø«e¤Ä¿ï­nÅã¥Ü¤W¤U­­ªº¤u¼t¦WºÙ
+            // å–å¾—ç›®å‰å‹¾é¸è¦é¡¯ç¤ºä¸Šä¸‹é™çš„å·¥å» åç¨±
             var checkedFactories = GetCheckedAlarmLimitFactories();
 
-            // ¦¬¶°©Ò¦³¿ï¨ú³]³Æ¹ïÀ³¤u¼tªº AlarmLimits¡]¥h­«½Æ¡A¥B¶È­­¤Ä¿ïªº¤u¼t¡^
+            // æ”¶é›†æ‰€æœ‰é¸å–è¨­å‚™å°æ‡‰å·¥å» çš„ AlarmLimitsï¼ˆå»é‡è¤‡ï¼Œä¸”åƒ…é™å‹¾é¸çš„å·¥å» ï¼‰
             var processedFactoryIds = new HashSet<int>();
             var allPressureLimits = new List<KeyValuePair<string, AlarmLimitsConfig>>();
 
@@ -963,16 +971,16 @@ namespace DeviceBox
                 if (processedFactoryIds.Contains(factory.Id)) continue;
                 processedFactoryIds.Add(factory.Id);
 
-                // ¥uÃ¸»s¦³¤Ä¿ïªº¤u¼t¤W¤U­­
+                // åªç¹ªè£½æœ‰å‹¾é¸çš„å·¥å» ä¸Šä¸‹é™
                 if (!checkedFactories.Contains(factory.Name)) continue;
 
                 allPressureLimits.Add(new KeyValuePair<string, AlarmLimitsConfig>(factory.Name, factory.AlarmLimits));
             }
 
-            // ÃC¦â³]©w - ¤W¤U­­¤@«ß¨Ï¥Î¬õ¦âµê½u
+            // é¡è‰²è¨­å®š - ä¸Šä¸‹é™ä¸€å¾‹ä½¿ç”¨ç´…è‰²è™›ç·š
             Color limitColor = Color.Red;
 
-            // °lÂÜ©Ò¦³­­¨î½uªº­È¡A¥Î©ó½Õ¾ã Y ¶b½d³ò
+            // è¿½è¹¤æ‰€æœ‰é™åˆ¶ç·šçš„å€¼ï¼Œç”¨æ–¼èª¿æ•´ Y è»¸ç¯„åœ
             var pressureLimitValues = new List<double>();
             var tempLimitValues = new List<double>();
 
@@ -982,7 +990,7 @@ namespace DeviceBox
                 var limits = kvp.Value;
                 if (limits == null) continue;
 
-                // À£¤O¤W­­½u¡]¬õ¦âµê½u¡^
+                // å£“åŠ›ä¸Šé™ç·šï¼ˆç´…è‰²è™›ç·šï¼‰
                 if (limits.PressureUpperLimit != double.MaxValue)
                 {
                     var strip = new StripLine();
@@ -991,15 +999,15 @@ namespace DeviceBox
                     strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
                     strip.BorderDashStyle = ChartDashStyle.Dash;
-                    strip.Text = factoryName + " ¤W­­: " + limits.PressureUpperLimit.ToString("F2");
+                    strip.Text = factoryName + " ä¸Šé™: " + limits.PressureUpperLimit.ToString("F2");
                     strip.ForeColor = limitColor;
-                    strip.Font = new Font("·L³n¥¿¶ÂÅé", 8F);
+                    strip.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaPressure.AxisY.StripLines.Add(strip);
                     pressureLimitValues.Add(limits.PressureUpperLimit);
                 }
 
-                // À£¤O¤U­­½u¡]¬õ¦âµê½u¡^
+                // å£“åŠ›ä¸‹é™ç·šï¼ˆç´…è‰²è™›ç·šï¼‰
                 if (limits.PressureLowerLimit != double.MinValue)
                 {
                     var strip = new StripLine();
@@ -1008,15 +1016,15 @@ namespace DeviceBox
                     strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
                     strip.BorderDashStyle = ChartDashStyle.Dash;
-                    strip.Text = factoryName + " ¤U­­: " + limits.PressureLowerLimit.ToString("F2");
+                    strip.Text = factoryName + " ä¸‹é™: " + limits.PressureLowerLimit.ToString("F2");
                     strip.ForeColor = limitColor;
-                    strip.Font = new Font("·L³n¥¿¶ÂÅé", 8F);
+                    strip.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaPressure.AxisY.StripLines.Add(strip);
                     pressureLimitValues.Add(limits.PressureLowerLimit);
                 }
 
-                // ·Å«×¤W­­½u¡]¬õ¦âµê½u¡^
+                // æº«åº¦ä¸Šé™ç·šï¼ˆç´…è‰²è™›ç·šï¼‰
                 if (limits.TempUpperLimit != double.MaxValue)
                 {
                     var strip = new StripLine();
@@ -1025,15 +1033,15 @@ namespace DeviceBox
                     strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
                     strip.BorderDashStyle = ChartDashStyle.Dash;
-                    strip.Text = factoryName + " ¤W­­: " + limits.TempUpperLimit.ToString("F1");
+                    strip.Text = factoryName + " ä¸Šé™: " + limits.TempUpperLimit.ToString("F1");
                     strip.ForeColor = limitColor;
-                    strip.Font = new Font("·L³n¥¿¶ÂÅé", 8F);
+                    strip.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaTemp.AxisY.StripLines.Add(strip);
                     tempLimitValues.Add(limits.TempUpperLimit);
                 }
 
-                // ·Å«×¤U­­½u¡]¬õ¦âµê½u¡^
+                // æº«åº¦ä¸‹é™ç·šï¼ˆç´…è‰²è™›ç·šï¼‰
                 if (limits.TempLowerLimit != double.MinValue)
                 {
                     var strip = new StripLine();
@@ -1042,22 +1050,22 @@ namespace DeviceBox
                     strip.BorderColor = limitColor;
                     strip.BorderWidth = 2;
                     strip.BorderDashStyle = ChartDashStyle.Dash;
-                    strip.Text = factoryName + " ¤U­­: " + limits.TempLowerLimit.ToString("F1");
+                    strip.Text = factoryName + " ä¸‹é™: " + limits.TempLowerLimit.ToString("F1");
                     strip.ForeColor = limitColor;
-                    strip.Font = new Font("·L³n¥¿¶ÂÅé", 8F);
+                    strip.Font = new Font("å¾®è»Ÿæ­£é»‘é«”", 8F);
                     strip.TextAlignment = StringAlignment.Near;
                     areaTemp.AxisY.StripLines.Add(strip);
                     tempLimitValues.Add(limits.TempLowerLimit);
                 }
             }
 
-            // ½Õ¾ã Y ¶b½d³ò¥H½T«O­­¨î½u¥i¨£
+            // èª¿æ•´ Y è»¸ç¯„åœä»¥ç¢ºä¿é™åˆ¶ç·šå¯è¦‹
             AdjustAxisRangeForLimits(areaPressure, pressureLimitValues);
             AdjustAxisRangeForLimits(areaTemp, tempLimitValues);
         }
 
         /// <summary>
-        /// ½Õ¾ã ChartArea ªº Y ¶b½d³ò¥H½T«O­­¨î½u¥i¨£
+        /// èª¿æ•´ ChartArea çš„ Y è»¸ç¯„åœä»¥ç¢ºä¿é™åˆ¶ç·šå¯è¦‹
         /// </summary>
         private void AdjustAxisRangeForLimits(ChartArea area, List<double> limitValues)
         {
@@ -1085,7 +1093,7 @@ namespace DeviceBox
             newMin = Math.Floor(newMin / newInterval) * newInterval;
             newMax = newMin + newInterval * targetTicks;
 
-            // ½T«O©Ò¦³­­¨î½u¦b½d³ò¤º
+            // ç¢ºä¿æ‰€æœ‰é™åˆ¶ç·šåœ¨ç¯„åœå…§
             double limitsMax = limitValues.Max();
             if (newMax < limitsMax + newInterval)
             {
@@ -1099,7 +1107,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ­pºâ¾A¦Xªº Y ¶b¶¡¹j¡]Nice Number¡^¡A¨Ï¨è«×¼Æ¶q±µªñ¥Ø¼Ğ®æ¼Æ
+        /// è¨ˆç®—é©åˆçš„ Y è»¸é–“éš”ï¼ˆNice Numberï¼‰ï¼Œä½¿åˆ»åº¦æ•¸é‡æ¥è¿‘ç›®æ¨™æ ¼æ•¸
         /// </summary>
         private static double CalculateNiceInterval(double range, int targetTicks)
         {
@@ -1122,7 +1130,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ¥ş¿ï«ö¶s
+        /// å…¨é¸æŒ‰éˆ•
         /// </summary>
         private void btnSelectAll_Click(object sender, EventArgs e)
         {
@@ -1133,7 +1141,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ¨ú®ø¥ş¿ï«ö¶s
+        /// å–æ¶ˆå…¨é¸æŒ‰éˆ•
         /// </summary>
         private void btnDeselectAll_Click(object sender, EventArgs e)
         {
@@ -1144,7 +1152,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// ³]³Æ¸ê®ÆÂIµ²ºc¡]À£¤O»P·Å«×¡^
+        /// è¨­å‚™è³‡æ–™é»çµæ§‹ï¼ˆå£“åŠ›èˆ‡æº«åº¦ï¼‰
         /// </summary>
         private class DeviceDataPoint
         {
@@ -1155,7 +1163,7 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// »İ¶q¸ê®ÆÂIµ²ºc
+        /// éœ€é‡è³‡æ–™é»çµæ§‹
         /// </summary>
         private class DemandDataPoint
         {
