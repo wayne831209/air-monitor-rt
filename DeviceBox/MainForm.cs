@@ -584,8 +584,9 @@ namespace DeviceBox
             Label[] dryerLabels = { dryer_col1, dryer_col2, dryer_col3, dryer_col4, dryer_col5 };
             Label[] fanLabels = { fan_col1, fan_col2, fan_col3, fan_col4, fan_col5 };
             Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
-        Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
+            Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
             Label[] powerLabels = { power_col1, power_col2, power_col3, power_col4, power_col5 };
+            Label[] compressedTempLabels = { CompressedTemp_col1, CompressedTemp_col2, CompressedTemp_col3, CompressedTemp_col4, CompressedTemp_col5 };
 
             if (currentViewMode == ViewMode.CastingFactory)
             {
@@ -613,6 +614,8 @@ namespace DeviceBox
                 var fanStatus = GetDeviceStatusByConfig(modbus, castingFactory, DeviceType.Fan);
                 var pressure = GetPressureValue(modbus);
                 var temp = GetTempValue(modbus);
+                var presuretemp = GetPresureTempValue(modbus);
+                var compressedTemp = GetCompressedTempValue(modbus);
 
                 // Update each compressor in separate column
                 for (int colIndex = 0; colIndex < Math.Min(compressors.Count, 5); colIndex++)
@@ -655,6 +658,7 @@ namespace DeviceBox
                     UpdateLabel(fanLabels[colIndex], fanStatus.Text, fanStatus.Color);
                     UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, castingFactory.AlarmLimits, compressor.Name);
                     UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, castingFactory.AlarmLimits, compressor.Name);
+                    UpdateCompressedTempLabelWithLimitCheck(compressedTempLabels[colIndex], compressedTemp, castingFactory.AlarmLimits, compressor.Name);
 
                     // Power value from DB
                     string powerValue = GetPowerValueFromDB(compressor.Name);
@@ -689,6 +693,8 @@ namespace DeviceBox
                         var fanStatus = GetDeviceStatusByConfig(modbus, factory, DeviceType.Fan);
                         var pressure = GetPressureValue(modbus);
                         var temp = GetTempValue(modbus);
+                        var presuretemp = GetPresureTempValue(modbus);
+                        var compressedTemp = GetCompressedTempValue(modbus);
 
                         // Update compressor status
                         if (compressorStatuses.Count > 0)
@@ -725,6 +731,7 @@ namespace DeviceBox
 
                         UpdatePressureLabelWithLimitCheck(pressureLabels[colIndex], pressure, factory.AlarmLimits, deviceNames);
                         UpdateTempLabelWithLimitCheck(tempLabels[colIndex], temp, factory.AlarmLimits, deviceNames);
+                        UpdateCompressedTempLabelWithLimitCheck(compressedTempLabels[colIndex], compressedTemp, factory.AlarmLimits, deviceNames);
 
                         // Power value from DB - build combined power text for all compressors
                         if (compressors.Count == 1)
@@ -874,6 +881,44 @@ namespace DeviceBox
             try
             {
                 double tempValue = Convert.ToDouble(modbus.address_val.Address_E5CC_1_PV);
+                double temperature = tempValue;
+                if (temperature == 0)
+                    return "--";
+                return temperature.ToString();
+            }
+            catch
+            {
+                return "--";
+            }
+        }
+
+        /// <summary>
+        /// Get PresureTemp Value
+        /// </summary>
+        private string GetPresureTempValue(ModBus_List modbus)
+        {
+            try
+            {
+                double tempValue = Convert.ToDouble(modbus.address_val.Address_E5CC_1_PV);
+                double temperature = tempValue;
+                if (temperature == 0)
+                    return "--";
+                return temperature.ToString();
+            }
+            catch
+            {
+                return "--";
+            }
+        }
+
+        /// <summary>
+        /// Get Compressed Temp Value (空壓溫度)
+        /// </summary>
+        private string GetCompressedTempValue(ModBus_List modbus)
+        {
+            try
+            {
+                double tempValue = Convert.ToDouble(modbus.address_val.Address_CompressedTemp);
                 double temperature = tempValue;
                 if (temperature == 0)
                     return "--";
@@ -1379,6 +1424,8 @@ namespace DeviceBox
             Label[] pressureLabels = { pressure_col1, pressure_col2, pressure_col3, pressure_col4, pressure_col5 };
             Label[] tempLabels = { temp_col1, temp_col2, temp_col3, temp_col4, temp_col5 };
             Label[] powerLabels = { power_col1, power_col2, power_col3, power_col4, power_col5 };
+            Label[] compressedTempLabels = { CompressedTemp_col1, CompressedTemp_col2, CompressedTemp_col3, CompressedTemp_col4, CompressedTemp_col5 };
+
 
             if (currentViewMode == ViewMode.CastingFactory)
             {
@@ -1419,6 +1466,7 @@ namespace DeviceBox
                             UpdateLabel(pressureLabels[i], "--", StatusDisabled);
                             UpdateLabel(tempLabels[i], "--", StatusDisabled);
                             UpdateLabel(powerLabels[i], "--", StatusDisabled);
+                            UpdateLabel(compressedTempLabels[i], "--", StatusDisabled);
                         }
                     }
                 }
@@ -1653,6 +1701,29 @@ namespace DeviceBox
         }
 
         /// <summary>
+        /// CompressedTemp_col1 ~ CompressedTemp_col5 點選事件 - 設定空壓溫度上下限(依目前廠域)
+        /// </summary>
+        private void CompressedTempCol_Click(object sender, EventArgs e)
+        {
+            var factories = GetCurrentViewFactories();
+            var database = config.GetDeviceDatabase();
+            using (var form = new AlarmLimitSettingForm(factories, "CompressedTemp", database))
+            {
+                if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    foreach (var kvp in form.ResultLimitsMap)
+                    {
+                        config.SaveAlarmLimits(kvp.Key, kvp.Value);
+                    }
+
+                    // 重新載入推播設定(因為可能被修改)
+                    config.LoadTeamsNotificationSettingsFromDatabase();
+                    InitializeTeamsNotification();
+                }
+            }
+        }
+
+        /// <summary>
         /// 根據目前的 ViewMode 取得對應的工廠清單
         /// </summary>
         private List<FactoryConfig> GetCurrentViewFactories()
@@ -1739,6 +1810,51 @@ namespace DeviceBox
             }
         }
 
+        /// <summary>
+        /// 更新溫度 Label 並檢查是否超過上下限，超過則變色
+        /// 推播通知由背景監控統一處理
+        /// </summary>
+        private void UpdatePresureTempLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits, string deviceName = "")
+        {
+            double value;
+            if (double.TryParse(valueText, out value))
+            {
+                // 這個方法目前沒有上下限，保留原功能
+                UpdateLabel(label, valueText, StatusRunning);
+            }
+            else
+            {
+                UpdateLabel(label, valueText, StatusRunning);
+            }
+        }
+
+        /// <summary>
+        /// 更新空壓溫度 Label 並檢查是否超過上下限，超過則變色
+        /// 推播通知由背景監控統一處理
+        /// </summary>
+        private void UpdateCompressedTempLabelWithLimitCheck(Label label, string valueText, AlarmLimitsConfig limits, string deviceName = "")
+        {
+            double value;
+            if (double.TryParse(valueText, out value))
+            {
+                bool overLimit = (limits.CompressedTempUpperLimit != double.MaxValue && value > limits.CompressedTempUpperLimit)
+                              || (limits.CompressedTempLowerLimit != double.MinValue && value < limits.CompressedTempLowerLimit);
+                if (overLimit)
+                {
+                    UpdateLabel(label, valueText, StatusOverLimit);
+                    // 推播通知由 MonitorAllDevicesInBackground() 統一處理
+                }
+                else
+                {
+                    UpdateLabel(label, valueText, StatusRunning);
+                }
+            }
+            else
+            {
+                UpdateLabel(label, valueText, StatusRunning);
+            }
+        }
+
 
         // ========================================
         // 背景監控與推播（新版）
@@ -1785,9 +1901,10 @@ namespace DeviceBox
 
             try
             {
-                // 收集所有異常
-                var pressureAbnormalDevices = new List<string>();
-                var tempAbnormalDevices = new List<string>();
+                // 收集所有異常（設備名稱 + 數值）
+                var pressureAbnormalDevices = new Dictionary<string, string>(); // 設備名稱 → 壓力值
+                var tempAbnormalDevices = new Dictionary<string, string>();     // 設備名稱 → 溫度值
+                var compressedTempAbnormalDevices = new Dictionary<string, string>(); // 設備名稱 → 空壓溫度值
                 var alarmDevices = new List<string>();
                 var faultDevices = new List<string>();
 
@@ -1829,8 +1946,9 @@ namespace DeviceBox
                     // 取得該工廠的空壓和溫度值
                     string pressure = GetPressureValue(modbus);
                     string temp = GetTempValue(modbus);
+                    string compressedTemp = GetCompressedTempValue(modbus);
 
-                    //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓={pressure}, 溫度={temp}, 上限=[空壓:{factory.AlarmLimits.PressureUpperLimit}, 溫度:{factory.AlarmLimits.TempUpperLimit}], 下限=[空壓:{factory.AlarmLimits.PressureLowerLimit}, 溫度:{factory.AlarmLimits.TempLowerLimit}]");
+                    //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓={pressure}, 溫度={temp}, 空壓溫度={compressedTemp}, 上限=[空壓:{factory.AlarmLimits.PressureUpperLimit}, 溫度:{factory.AlarmLimits.TempUpperLimit}, 空壓溫度:{factory.AlarmLimits.CompressedTempUpperLimit}], 下限=[空壓:{factory.AlarmLimits.PressureLowerLimit}, 溫度:{factory.AlarmLimits.TempLowerLimit}, 空壓溫度:{factory.AlarmLimits.CompressedTempLowerLimit}]");
 
                     // 取得該工廠的所有空壓機
                     var compressors = factory.GetDevicesByType(DeviceType.Compressor);
@@ -1841,9 +1959,6 @@ namespace DeviceBox
                     // 檢查空壓和溫度是否超限（只針對有排程的空壓機）
                     if (scheduledCompressors.Count > 0)
                     {
-                        // 建立有排程的設備名稱列表
-                        var deviceNames = scheduledCompressors.Select(c => c.Name).ToList();
-
                         // 檢查空壓超限
                         double pressureValue;
                         if (double.TryParse(pressure, out pressureValue))
@@ -1854,7 +1969,10 @@ namespace DeviceBox
                             if (pressureOverLimit)
                             {
                                 //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓超限！數值={pressureValue}, 上限={factory.AlarmLimits.PressureUpperLimit}, 下限={factory.AlarmLimits.PressureLowerLimit}");
-                                pressureAbnormalDevices.AddRange(deviceNames);
+                                foreach (var compressor in scheduledCompressors)
+                                {
+                                    pressureAbnormalDevices[compressor.Name] = pressure; // 儲存設備名稱和壓力值
+                                }
                             }
                         }
 
@@ -1868,7 +1986,27 @@ namespace DeviceBox
                             if (tempOverLimit)
                             {
                                 //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 溫度超限！數值={tempValue}, 上限={factory.AlarmLimits.TempUpperLimit}, 下限={factory.AlarmLimits.TempLowerLimit}");
-                                tempAbnormalDevices.AddRange(deviceNames);
+                                foreach (var compressor in scheduledCompressors)
+                                {
+                                    tempAbnormalDevices[compressor.Name] = temp; // 儲存設備名稱和溫度值
+                                }
+                            }
+                        }
+
+                        // 檢查空壓溫度超限
+                        double compressedTempValue;
+                        if (double.TryParse(compressedTemp, out compressedTempValue))
+                        {
+                            bool compressedTempOverLimit = (factory.AlarmLimits.CompressedTempUpperLimit != double.MaxValue && compressedTempValue > factory.AlarmLimits.CompressedTempUpperLimit)
+                                                         || (factory.AlarmLimits.CompressedTempLowerLimit != double.MinValue && compressedTempValue < factory.AlarmLimits.CompressedTempLowerLimit);
+
+                            if (compressedTempOverLimit)
+                            {
+                                //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓溫度超限！數值={compressedTempValue}, 上限={factory.AlarmLimits.CompressedTempUpperLimit}, 下限={factory.AlarmLimits.CompressedTempLowerLimit}");
+                                foreach (var compressor in scheduledCompressors)
+                                {
+                                    compressedTempAbnormalDevices[compressor.Name] = compressedTemp; // 儲存設備名稱和空壓溫度值
+                                }
                             }
                         }
                     }
@@ -1903,7 +2041,7 @@ namespace DeviceBox
                 }
 
                 // 統一發送推播通知
-                SendCombinedAbnormalNotification(pressureAbnormalDevices, tempAbnormalDevices, alarmDevices, faultDevices);
+                SendCombinedAbnormalNotification(pressureAbnormalDevices, tempAbnormalDevices, compressedTempAbnormalDevices, alarmDevices, faultDevices);
             }
             catch (Exception ex)
             {
@@ -1914,31 +2052,30 @@ namespace DeviceBox
         /// <summary>
         /// 發送合併的異常通知
         /// 全局計時器邏輯：
-        /// - 只要有任何設備異常（空壓/溫度超限）→ 開始計時
+        /// - 只要有任何設備異常（空壓/溫度/空壓溫度超限）→ 開始計時
         /// - 所有設備恢復正常 → 計時歸零
         /// - 達到延遲時間 → 推播所有當前異常
         /// - 警報/故障 → 立即推播（不延遲）
         /// </summary>
-        private void SendCombinedAbnormalNotification(List<string> pressureAbnormal, List<string> tempAbnormal, List<string> alarmDevices, List<string> faultDevices)
+        private void SendCombinedAbnormalNotification(Dictionary<string, string> pressureAbnormal, Dictionary<string, string> tempAbnormal, Dictionary<string, string> compressedTempAbnormal, List<string> alarmDevices, List<string> faultDevices)
         {
             //System.Diagnostics.Debug.WriteLine($"[推播檢查] 進入推播檢查，空壓異常={pressureAbnormal.Count}, 溫度異常={tempAbnormal.Count}, 警報={alarmDevices.Count}, 故障={faultDevices.Count}");
             //System.Diagnostics.Debug.WriteLine($"[推播檢查] 推播設定: Enabled={config.TeamsNotificationEnabled}, AlarmDelayMinutes={config.AlarmDelayMinutes}, CooldownMinutes={config.NotificationCooldownMinutes}");
 
             // 移除重複設備名稱
-            pressureAbnormal = pressureAbnormal.Distinct().ToList();
-            tempAbnormal = tempAbnormal.Distinct().ToList();
             alarmDevices = alarmDevices.Distinct().ToList();
             faultDevices = faultDevices.Distinct().ToList();
 
             // ========================================
-            // 步驟 1: 檢查是否有空壓/溫度異常
+            // 步驟 1: 檢查是否有空壓/溫度/空壓溫度異常
             // ========================================
-            bool hasPressureTempAbnormal = pressureAbnormal.Count > 0 || tempAbnormal.Count > 0;
+            bool hasPressureTempAbnormal = pressureAbnormal.Count > 0 || tempAbnormal.Count > 0 || compressedTempAbnormal.Count > 0;
 
             // 更新當前異常設備集合
             currentAbnormalDevices.Clear();
-            currentAbnormalDevices.UnionWith(pressureAbnormal);
-            currentAbnormalDevices.UnionWith(tempAbnormal);
+            currentAbnormalDevices.UnionWith(pressureAbnormal.Keys);
+            currentAbnormalDevices.UnionWith(tempAbnormal.Keys);
+            currentAbnormalDevices.UnionWith(compressedTempAbnormal.Keys);
 
             // ========================================
             // 步驟 2: 管理全局計時器
@@ -1969,9 +2106,12 @@ namespace DeviceBox
             }
 
             // ========================================
-            // 步驟 3: 建立推播訊息
+            // 步驟 3: 建立推播訊息（新格式）
             // ========================================
-            var abnormalMessages = new List<string>();
+            bool shouldSend = false;
+            var tempAbnormalList = new Dictionary<string, string>();
+            var pressureAbnormalList = new Dictionary<string, string>();
+            var compressedTempAbnormalList = new Dictionary<string, string>();
 
             // 3.1 檢查空壓/溫度是否達到推播條件
             if (hasPressureTempAbnormal && globalAbnormalStartTime.HasValue)
@@ -1980,18 +2120,12 @@ namespace DeviceBox
 
                 if (duration.TotalMinutes >= config.AlarmDelayMinutes)
                 {
-                    // 達到延遲時間，加入推播訊息
-                    if (tempAbnormal.Count > 0)
-                    {
-                        abnormalMessages.Add($"溫度異常: {string.Join(", ", tempAbnormal)}");
-                        //System.Diagnostics.Debug.WriteLine($"[推播延遲] 溫度異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
-                    }
-
-                    if (pressureAbnormal.Count > 0)
-                    {
-                        abnormalMessages.Add($"空壓異常: {string.Join(", ", pressureAbnormal)}");
-                        //System.Diagnostics.Debug.WriteLine($"[推播延遲] 空壓異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
-                    }
+                    // 達到延遲時間，準備推播
+                    shouldSend = true;
+                    tempAbnormalList = new Dictionary<string, string>(tempAbnormal);
+                    pressureAbnormalList = new Dictionary<string, string>(pressureAbnormal);
+                    compressedTempAbnormalList = new Dictionary<string, string>(compressedTempAbnormal);
+                    //System.Diagnostics.Debug.WriteLine($"[推播延遲] 異常已持續 {duration.TotalMinutes:F1} 分鐘，符合推播條件");
                 }
                 else
                 {
@@ -2003,31 +2137,24 @@ namespace DeviceBox
             // 3.2 設備警報：立即推播（不延遲）
             if (alarmDevices.Count > 0)
             {
-                abnormalMessages.Add($"設備警報: {string.Join(", ", alarmDevices)}");
+                shouldSend = true;
                 System.Diagnostics.Debug.WriteLine($"[推播] 設備警報偵測到，立即推播: {string.Join(", ", alarmDevices)}");
             }
 
             // 3.3 設備故障：立即推播（不延遲）
             if (faultDevices.Count > 0)
             {
-                abnormalMessages.Add($"設備故障: {string.Join(", ", faultDevices)}");
+                shouldSend = true;
                 System.Diagnostics.Debug.WriteLine($"[推播] 設備故障偵測到，立即推播: {string.Join(", ", faultDevices)}");
             }
 
             // ========================================
             // 步驟 4: 發送推播
             // ========================================
-            if (abnormalMessages.Count == 0)
+            if (!shouldSend)
             {
                 System.Diagnostics.Debug.WriteLine($"[推播] 沒有符合推播條件的異常");
                 return;
-            }
-
-            // 記錄到 Debug
-            System.Diagnostics.Debug.WriteLine($"[推播] 偵測到符合推播條件的異常:");
-            foreach (var msg in abnormalMessages)
-            {
-                System.Diagnostics.Debug.WriteLine($"  {msg}");
             }
 
             // 發送 Teams 通知
@@ -2037,7 +2164,7 @@ namespace DeviceBox
                 {
                     Task.Run(async () =>
                     {
-                        await teamsNotificationService.SendCombinedAbnormalAlertAsync(abnormalMessages);
+                        await teamsNotificationService.SendCombinedAbnormalAlertAsync(tempAbnormalList, pressureAbnormalList, compressedTempAbnormalList, alarmDevices, faultDevices);
                     });
                 }
                 catch (Exception ex)

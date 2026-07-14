@@ -50,5 +50,7 @@ namespace DeviceBox
 
         public string Address_E5CC_1_PV = "0";
         public string Address_E5CC_1_SV = "0";
+
+        public string Address_CompressedTemp = "0";
     }
 }

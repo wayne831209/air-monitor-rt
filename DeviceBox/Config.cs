@@ -260,6 +260,8 @@ namespace DeviceBox
         public double PressureLowerLimit { get; set; } = double.MinValue;
         public double TempUpperLimit { get; set; } = double.MaxValue;
         public double TempLowerLimit { get; set; } = double.MinValue;
+        public double CompressedTempUpperLimit { get; set; } = double.MaxValue;
+        public double CompressedTempLowerLimit { get; set; } = double.MinValue;
     }
 
     /// <summary>
@@ -894,6 +896,22 @@ namespace DeviceBox
                 double val;
                 if (double.TryParse(tempLowerStr, out val))
                     limits.TempLowerLimit = val;
+            }
+
+            string compressedTempUpperStr = element.Attribute("compressedTempUpper")?.Value;
+            if (!string.IsNullOrEmpty(compressedTempUpperStr))
+            {
+                double val;
+                if (double.TryParse(compressedTempUpperStr, out val))
+                    limits.CompressedTempUpperLimit = val;
+            }
+
+            string compressedTempLowerStr = element.Attribute("compressedTempLower")?.Value;
+            if (!string.IsNullOrEmpty(compressedTempLowerStr))
+            {
+                double val;
+                if (double.TryParse(compressedTempLowerStr, out val))
+                    limits.CompressedTempLowerLimit = val;
             }
 
             return limits;

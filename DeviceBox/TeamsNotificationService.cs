@@ -310,7 +310,15 @@ namespace DeviceBox
         /// <summary>
         /// 發送合併的異常警報到 Teams
         /// </summary>
-        public async Task SendCombinedAbnormalAlertAsync(List<string> abnormalMessages)
+        /// <summary>
+        /// 發送合併的異常警報（新格式）
+        /// </summary>
+        /// <param name="tempAbnormal">溫度異常設備（設備名稱 → 溫度值）</param>
+        /// <param name="pressureAbnormal">空壓異常設備（設備名稱 → 壓力值）</param>
+        /// <param name="compressedTempAbnormal">空壓溫度異常設備（設備名稱 → 溫度值）</param>
+        /// <param name="alarmDevices">警報設備列表</param>
+        /// <param name="faultDevices">故障設備列表</param>
+        public async Task SendCombinedAbnormalAlertAsync(Dictionary<string, string> tempAbnormal, Dictionary<string, string> pressureAbnormal, Dictionary<string, string> compressedTempAbnormal, List<string> alarmDevices, List<string> faultDevices)
         {
             if (string.IsNullOrEmpty(_webhookUrl))
             {
@@ -318,7 +326,14 @@ namespace DeviceBox
                 return;
             }
 
-            if (abnormalMessages == null || abnormalMessages.Count == 0)
+            // 檢查是否有任何異常
+            bool hasAnyAbnormal = (tempAbnormal != null && tempAbnormal.Count > 0) ||
+                                  (pressureAbnormal != null && pressureAbnormal.Count > 0) ||
+                                  (compressedTempAbnormal != null && compressedTempAbnormal.Count > 0) ||
+                                  (alarmDevices != null && alarmDevices.Count > 0) ||
+                                  (faultDevices != null && faultDevices.Count > 0);
+
+            if (!hasAnyAbnormal)
             {
                 System.Diagnostics.Debug.WriteLine("[Teams通知] 沒有異常訊息需要發送");
                 return;
@@ -337,20 +352,70 @@ namespace DeviceBox
 
             try
             {
-                string title = "🚨 設備異常警報";
-                string color = "DC143C"; // 深紅色
+                // 建立推播訊息
+                var messageLines = new List<string>();
+                messageLines.Add("🚨 **設備異常警報**");
+                messageLines.Add($"**異常時間** : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                messageLines.Add("");
 
-                // 將異常訊息轉換為 facts 格式
-                var facts = new List<(string Name, string Value)>
+                // 機房溫度異常
+                if (tempAbnormal != null && tempAbnormal.Count > 0)
                 {
-                    ("異常時間", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
-                };
-
-                // 加入每個異常類型
-                for (int i = 0; i < abnormalMessages.Count; i++)
-                {
-                    facts.Add(($"異常 {i + 1}", abnormalMessages[i]));
+                    messageLines.Add("**機房溫度異常**");
+                    int index = 1;
+                    foreach (var device in tempAbnormal.OrderBy(x => x.Key))
+                    {
+                        messageLines.Add($"{index}. {device.Key} 目前數值 : {device.Value}");
+                        index++;
+                    }
+                    messageLines.Add("");
                 }
+
+                // 空壓異常
+                if (pressureAbnormal != null && pressureAbnormal.Count > 0)
+                {
+                    messageLines.Add("**空壓異常**");
+                    foreach (var device in pressureAbnormal.OrderBy(x => x.Key))
+                    {
+                        messageLines.Add($"{device.Key} 目前數值 : {device.Value}");
+                    }
+                    messageLines.Add("");
+                }
+
+                // 空壓溫度異常
+                if (compressedTempAbnormal != null && compressedTempAbnormal.Count > 0)
+                {
+                    messageLines.Add("**空壓溫度異常**");
+                    foreach (var device in compressedTempAbnormal.OrderBy(x => x.Key))
+                    {
+                        messageLines.Add($"{device.Key} 目前數值 : {device.Value}");
+                    }
+                    messageLines.Add("");
+                }
+
+                // 設備警報
+                if (alarmDevices != null && alarmDevices.Count > 0)
+                {
+                    messageLines.Add("**設備警報**");
+                    foreach (var device in alarmDevices.OrderBy(x => x))
+                    {
+                        messageLines.Add($"{device}");
+                    }
+                    messageLines.Add("");
+                }
+
+                // 設備故障
+                if (faultDevices != null && faultDevices.Count > 0)
+                {
+                    messageLines.Add("**設備故障**");
+                    foreach (var device in faultDevices.OrderBy(x => x))
+                    {
+                        messageLines.Add($"{device}");
+                    }
+                    messageLines.Add("");
+                }
+
+                string message = string.Join("\n\n", messageLines);
 
                 if (_notificationEmails.Length > 0)
                 {
@@ -359,7 +424,7 @@ namespace DeviceBox
                         string email = _notificationEmails[i];
                         System.Diagnostics.Debug.WriteLine($"[Teams通知] 發送給: {email} ({i + 1}/{_notificationEmails.Length})");
 
-                        string message = await SendTeamsNotificationAsync(title, color, facts.ToArray(), email);
+                        await SendTeamsNotificationTextAsync("🚨 設備異常警報", message, "DC143C", email);
                         System.Diagnostics.Debug.WriteLine($"[Teams通知] 合併異常通知已發送給 {email}");
                     }
 
@@ -367,7 +432,7 @@ namespace DeviceBox
                 }
                 else
                 {
-                    string message = await SendTeamsNotificationAsync(title, color, facts.ToArray(), "");
+                    await SendTeamsNotificationTextAsync("🚨 設備異常警報", message, "DC143C", "");
                     System.Diagnostics.Debug.WriteLine("[Teams通知] 合併異常通知已發送（無 Email）");
                 }
             }
@@ -393,6 +458,46 @@ namespace DeviceBox
             {
                 // Teams Incoming Webhook: 使用 MessageCard 格式
                 json = BuildMessageCardJson(title, themeColor, facts);
+            }
+
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            System.Diagnostics.Debug.WriteLine($"[Teams通知] 準備發送 POST 請求");
+            if (!string.IsNullOrEmpty(email))
+            {
+                System.Diagnostics.Debug.WriteLine($"[Teams通知] 收件者: {email}");
+            }
+
+            var response = await _httpClient.PostAsync(_webhookUrl, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                string responseBody = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"[Teams通知] 回應錯誤: {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"[Teams通知] 錯誤內容: {responseBody}");
+                throw new Exception($"Teams API 回應錯誤: {response.StatusCode} - {responseBody}");
+            }
+
+            System.Diagnostics.Debug.WriteLine("[Teams通知] 發送成功");
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        /// <summary>
+        /// 發送純文字格式的 Teams 通知
+        /// </summary>
+        private async Task<string> SendTeamsNotificationTextAsync(string title, string message, string themeColor, string email)
+        {
+            string json;
+
+            if (_usePowerAutomate)
+            {
+                // Power Automate: 使用 Adaptive Card 格式
+                json = BuildAdaptiveCardTextJson(title, message, themeColor, email);
+            }
+            else
+            {
+                // Teams Incoming Webhook: 使用 MessageCard 格式
+                json = BuildMessageCardTextJson(title, message, themeColor);
             }
 
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -507,6 +612,7 @@ namespace DeviceBox
             {
                 case "FF0000":
                 case "DC3545":
+                case "DC143C":
                     return "Attention"; // 紅色
                 case "FFA500":
                 case "FD7E14":
@@ -519,6 +625,96 @@ namespace DeviceBox
                 default:
                     return "Default";
             }
+        }
+
+        /// <summary>
+        /// 建立純文字 Adaptive Card JSON (用於 Power Automate)
+        /// </summary>
+        private string BuildAdaptiveCardTextJson(string title, string message, string themeColor, string email)
+        {
+            string colorName = GetColorName(themeColor);
+
+            // 將訊息分行並轉換為 TextBlock
+            var lines = message.Split(new[] { "\n\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            var textBlocks = new StringBuilder();
+
+            foreach (var line in lines)
+            {
+                string escapedLine = EscapeJson(line);
+
+                // 判斷是否為標題行（包含 ** 或 🚨）
+                bool isTitle = line.Contains("**") || line.Contains("🚨");
+                bool isBold = line.Contains("**");
+
+                if (isBold)
+                {
+                    // 移除 Markdown 符號
+                    escapedLine = escapedLine.Replace("**", "");
+                    textBlocks.Append($@"
+                    {{
+                        ""type"": ""TextBlock"",
+                        ""text"": ""{escapedLine}"",
+                        ""weight"": ""Bolder"",
+                        ""spacing"": ""Small""
+                    }},");
+                }
+                else if (isTitle)
+                {
+                    textBlocks.Append($@"
+                    {{
+                        ""type"": ""TextBlock"",
+                        ""text"": ""{escapedLine}"",
+                        ""size"": ""Large"",
+                        ""weight"": ""Bolder"",
+                        ""color"": ""{colorName}""
+                    }},");
+                }
+                else
+                {
+                    textBlocks.Append($@"
+                    {{
+                        ""type"": ""TextBlock"",
+                        ""text"": ""{escapedLine}"",
+                        ""wrap"": true
+                    }},");
+                }
+            }
+
+            // 移除最後一個逗號
+            if (textBlocks.Length > 0 && textBlocks[textBlocks.Length - 1] == ',')
+            {
+                textBlocks.Length--;
+            }
+
+            return $@"
+            {{
+                ""mail"": ""{EscapeJson(email)}"",
+                ""type"": ""AdaptiveCard"",
+                ""version"": ""1.4"",
+                ""$schema"": ""http://adaptivecards.io/schemas/adaptive-card.json"",
+                ""body"": [{textBlocks}]
+            }}";
+        }
+
+        /// <summary>
+        /// 建立純文字 MessageCard JSON (用於 Teams Incoming Webhook)
+        /// </summary>
+        private string BuildMessageCardTextJson(string title, string message, string themeColor)
+        {
+            return $@"
+            {{
+                ""@type"": ""MessageCard"",
+                ""@context"": ""https://schema.org/extensions"",
+                ""themeColor"": ""{themeColor}"",
+                ""summary"": ""{EscapeJson(title)}"",
+                ""sections"": [
+                    {{
+                        ""activityTitle"": ""{EscapeJson(title)}"",
+                        ""activitySubtitle"": ""空壓設備系統"",
+                        ""text"": ""{EscapeJson(message)}""
+                    }}
+                ]
+            }}";
         }
 
         /// <summary>

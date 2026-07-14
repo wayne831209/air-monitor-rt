@@ -258,13 +258,14 @@
     <None Include="推播路徑重構說明.md" />
     <None Include="推播通知快速參考.md" />
     <None Include="推播通知設備名稱改善說明.md" />
-    <None Include="檢查資料庫狀態.ps1" />
     <None Include="測試場域同步.ps1" />
     <None Include="測試步驟.md" />
     <None Include="測試自動載入配置.ps1" />
     <None Include="測試視圖同步.md" />
     <None Include="測試視圖同步.ps1" />
     <None Include="直接測試.ps1" />
+    <None Include="空壓溫度曲線圖整合完成說明.md" />
+    <None Include="空壓溫度曲線圖整合手動修改指南.md" />
     <None Include="自動載入場域配置總結.md" />
     <None Include="自動載入場域配置說明.md" />
     <None Include="自動載入預設模式測試.md" />

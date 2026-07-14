@@ -9,7 +9,7 @@ namespace DeviceBox
     public partial class AlarmLimitSettingForm : Form
     {
         /// <summary>
-        /// 設定類型: "Pressure" 或 "Temp"
+        /// 設定類型: "Pressure" 或 "Temp" 或 "CompressedTemp"
         /// </summary>
         private readonly string settingType;
 
@@ -47,6 +47,11 @@ namespace DeviceBox
                 this.Text = "全部設備 - 空壓上下限設定";
                 lblTitle.Text = "空壓上下限設定 (kg/cm²)";
             }
+            else if (settingType == "CompressedTemp")
+            {
+                this.Text = "全部設備 - 空壓溫度上下限設定";
+                lblTitle.Text = "空壓溫度上下限設定 (°C)";
+            }
             else
             {
                 this.Text = "全部設備 - 溫度上下限設定";
@@ -62,6 +67,11 @@ namespace DeviceBox
                 {
                     upper = factory.AlarmLimits.PressureUpperLimit == double.MaxValue ? "" : factory.AlarmLimits.PressureUpperLimit.ToString();
                     lower = factory.AlarmLimits.PressureLowerLimit == double.MinValue ? "" : factory.AlarmLimits.PressureLowerLimit.ToString();
+                }
+                else if (settingType == "CompressedTemp")
+                {
+                    upper = factory.AlarmLimits.CompressedTempUpperLimit == double.MaxValue ? "" : factory.AlarmLimits.CompressedTempUpperLimit.ToString();
+                    lower = factory.AlarmLimits.CompressedTempLowerLimit == double.MinValue ? "" : factory.AlarmLimits.CompressedTempLowerLimit.ToString();
                 }
                 else
                 {
@@ -181,13 +191,20 @@ namespace DeviceBox
                     PressureUpperLimit = factory != null ? factory.AlarmLimits.PressureUpperLimit : double.MaxValue,
                     PressureLowerLimit = factory != null ? factory.AlarmLimits.PressureLowerLimit : double.MinValue,
                     TempUpperLimit = factory != null ? factory.AlarmLimits.TempUpperLimit : double.MaxValue,
-                    TempLowerLimit = factory != null ? factory.AlarmLimits.TempLowerLimit : double.MinValue
+                    TempLowerLimit = factory != null ? factory.AlarmLimits.TempLowerLimit : double.MinValue,
+                    CompressedTempUpperLimit = factory != null ? factory.AlarmLimits.CompressedTempUpperLimit : double.MaxValue,
+                    CompressedTempLowerLimit = factory != null ? factory.AlarmLimits.CompressedTempLowerLimit : double.MinValue
                 };
 
                 if (settingType == "Pressure")
                 {
                     limits.PressureUpperLimit = upperLimit;
                     limits.PressureLowerLimit = lowerLimit;
+                }
+                else if (settingType == "CompressedTemp")
+                {
+                    limits.CompressedTempUpperLimit = upperLimit;
+                    limits.CompressedTempLowerLimit = lowerLimit;
                 }
                 else
                 {

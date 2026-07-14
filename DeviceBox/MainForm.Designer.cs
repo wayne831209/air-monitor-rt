@@ -41,6 +41,12 @@
             this.temp_col3 = new System.Windows.Forms.Label();
             this.temp_col2 = new System.Windows.Forms.Label();
             this.temp_col1 = new System.Windows.Forms.Label();
+            this.panel17 = new System.Windows.Forms.Panel();
+            this.CompressedTemp_col5 = new System.Windows.Forms.Label();
+            this.CompressedTemp_col4 = new System.Windows.Forms.Label();
+            this.CompressedTemp_col3 = new System.Windows.Forms.Label();
+            this.CompressedTemp_col2 = new System.Windows.Forms.Label();
+            this.CompressedTemp_col1 = new System.Windows.Forms.Label();
             this.panel13 = new System.Windows.Forms.Panel();
             this.pressure_col5 = new System.Windows.Forms.Label();
             this.pressure_col4 = new System.Windows.Forms.Label();
@@ -98,6 +104,7 @@
             this.panel5 = new System.Windows.Forms.Panel();
             this.label1 = new System.Windows.Forms.Label();
             this.label16 = new System.Windows.Forms.Label();
+            this.label6 = new System.Windows.Forms.Label();
             this.label15 = new System.Windows.Forms.Label();
             this.label14 = new System.Windows.Forms.Label();
             this.label13 = new System.Windows.Forms.Label();
@@ -114,6 +121,7 @@
             this.panel1.SuspendLayout();
             this.panel15.SuspendLayout();
             this.panel14.SuspendLayout();
+            this.panel17.SuspendLayout();
             this.panel13.SuspendLayout();
             this.panel12.SuspendLayout();
             this.panel6.SuspendLayout();
@@ -134,6 +142,7 @@
             this.panel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.panel1.Controls.Add(this.panel15);
             this.panel1.Controls.Add(this.panel14);
+            this.panel1.Controls.Add(this.panel17);
             this.panel1.Controls.Add(this.panel13);
             this.panel1.Controls.Add(this.panel12);
             this.panel1.Controls.Add(this.panel6);
@@ -148,7 +157,7 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1008, 809);
+            this.panel1.Size = new System.Drawing.Size(1008, 868);
             this.panel1.TabIndex = 0;
             // 
             // panel15
@@ -160,7 +169,7 @@
             this.panel15.Controls.Add(this.power_col2);
             this.panel15.Controls.Add(this.power_col1);
             this.panel15.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel15.Location = new System.Drawing.Point(200, 738);
+            this.panel15.Location = new System.Drawing.Point(200, 802);
             this.panel15.Name = "panel15";
             this.panel15.Size = new System.Drawing.Size(808, 64);
             this.panel15.TabIndex = 13;
@@ -249,7 +258,7 @@
             this.panel14.Controls.Add(this.temp_col2);
             this.panel14.Controls.Add(this.temp_col1);
             this.panel14.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel14.Location = new System.Drawing.Point(200, 674);
+            this.panel14.Location = new System.Drawing.Point(200, 738);
             this.panel14.Name = "panel14";
             this.panel14.Size = new System.Drawing.Size(808, 64);
             this.panel14.TabIndex = 12;
@@ -333,6 +342,100 @@
             this.temp_col1.Text = "0";
             this.temp_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.temp_col1.Click += new System.EventHandler(this.TempCol_Click);
+            // 
+            // panel17
+            // 
+            this.panel17.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
+            this.panel17.Controls.Add(this.CompressedTemp_col5);
+            this.panel17.Controls.Add(this.CompressedTemp_col4);
+            this.panel17.Controls.Add(this.CompressedTemp_col3);
+            this.panel17.Controls.Add(this.CompressedTemp_col2);
+            this.panel17.Controls.Add(this.CompressedTemp_col1);
+            this.panel17.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel17.Location = new System.Drawing.Point(200, 674);
+            this.panel17.Name = "panel17";
+            this.panel17.Size = new System.Drawing.Size(808, 64);
+            this.panel17.TabIndex = 15;
+            // 
+            // CompressedTemp_col5
+            // 
+            this.CompressedTemp_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.CompressedTemp_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.CompressedTemp_col5.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.CompressedTemp_col5.Dock = System.Windows.Forms.DockStyle.Left;
+            this.CompressedTemp_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.CompressedTemp_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.CompressedTemp_col5.Location = new System.Drawing.Point(644, 0);
+            this.CompressedTemp_col5.Name = "CompressedTemp_col5";
+            this.CompressedTemp_col5.Size = new System.Drawing.Size(164, 64);
+            this.CompressedTemp_col5.TabIndex = 21;
+            this.CompressedTemp_col5.Text = "0";
+            this.CompressedTemp_col5.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.CompressedTemp_col5.Click += new System.EventHandler(this.CompressedTempCol_Click);
+            // 
+            // CompressedTemp_col4
+            // 
+            this.CompressedTemp_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.CompressedTemp_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.CompressedTemp_col4.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.CompressedTemp_col4.Dock = System.Windows.Forms.DockStyle.Left;
+            this.CompressedTemp_col4.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.CompressedTemp_col4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.CompressedTemp_col4.Location = new System.Drawing.Point(483, 0);
+            this.CompressedTemp_col4.Name = "CompressedTemp_col4";
+            this.CompressedTemp_col4.Size = new System.Drawing.Size(161, 64);
+            this.CompressedTemp_col4.TabIndex = 19;
+            this.CompressedTemp_col4.Text = "0";
+            this.CompressedTemp_col4.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.CompressedTemp_col4.Click += new System.EventHandler(this.CompressedTempCol_Click);
+            // 
+            // CompressedTemp_col3
+            // 
+            this.CompressedTemp_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.CompressedTemp_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.CompressedTemp_col3.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.CompressedTemp_col3.Dock = System.Windows.Forms.DockStyle.Left;
+            this.CompressedTemp_col3.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.CompressedTemp_col3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.CompressedTemp_col3.Location = new System.Drawing.Point(322, 0);
+            this.CompressedTemp_col3.Name = "CompressedTemp_col3";
+            this.CompressedTemp_col3.Size = new System.Drawing.Size(161, 64);
+            this.CompressedTemp_col3.TabIndex = 18;
+            this.CompressedTemp_col3.Text = "0";
+            this.CompressedTemp_col3.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.CompressedTemp_col3.Click += new System.EventHandler(this.CompressedTempCol_Click);
+            // 
+            // CompressedTemp_col2
+            // 
+            this.CompressedTemp_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.CompressedTemp_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.CompressedTemp_col2.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.CompressedTemp_col2.Dock = System.Windows.Forms.DockStyle.Left;
+            this.CompressedTemp_col2.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.CompressedTemp_col2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.CompressedTemp_col2.Location = new System.Drawing.Point(161, 0);
+            this.CompressedTemp_col2.Name = "CompressedTemp_col2";
+            this.CompressedTemp_col2.Size = new System.Drawing.Size(161, 64);
+            this.CompressedTemp_col2.TabIndex = 17;
+            this.CompressedTemp_col2.Text = "0";
+            this.CompressedTemp_col2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.CompressedTemp_col2.Click += new System.EventHandler(this.CompressedTempCol_Click);
+            // 
+            // CompressedTemp_col1
+            // 
+            this.CompressedTemp_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
+            this.CompressedTemp_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.CompressedTemp_col1.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.CompressedTemp_col1.Dock = System.Windows.Forms.DockStyle.Left;
+            this.CompressedTemp_col1.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.CompressedTemp_col1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
+            this.CompressedTemp_col1.Location = new System.Drawing.Point(0, 0);
+            this.CompressedTemp_col1.Name = "CompressedTemp_col1";
+            this.CompressedTemp_col1.Size = new System.Drawing.Size(161, 64);
+            this.CompressedTemp_col1.TabIndex = 16;
+            this.CompressedTemp_col1.Text = "0";
+            this.CompressedTemp_col1.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.CompressedTemp_col1.Click += new System.EventHandler(this.CompressedTempCol_Click);
             // 
             // panel13
             // 
@@ -1120,6 +1223,7 @@
             this.panel5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(50)))), ((int)(((byte)(50)))), ((int)(((byte)(55)))));
             this.panel5.Controls.Add(this.label1);
             this.panel5.Controls.Add(this.label16);
+            this.panel5.Controls.Add(this.label6);
             this.panel5.Controls.Add(this.label15);
             this.panel5.Controls.Add(this.label14);
             this.panel5.Controls.Add(this.label13);
@@ -1129,7 +1233,7 @@
             this.panel5.Dock = System.Windows.Forms.DockStyle.Left;
             this.panel5.Location = new System.Drawing.Point(0, 100);
             this.panel5.Name = "panel5";
-            this.panel5.Size = new System.Drawing.Size(200, 709);
+            this.panel5.Size = new System.Drawing.Size(200, 768);
             this.panel5.TabIndex = 1;
             // 
             // label1
@@ -1139,7 +1243,7 @@
             this.label1.Dock = System.Windows.Forms.DockStyle.Top;
             this.label1.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label1.Location = new System.Drawing.Point(0, 638);
+            this.label1.Location = new System.Drawing.Point(0, 702);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(200, 64);
             this.label1.TabIndex = 4;
@@ -1153,12 +1257,26 @@
             this.label16.Dock = System.Windows.Forms.DockStyle.Top;
             this.label16.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.label16.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
-            this.label16.Location = new System.Drawing.Point(0, 574);
+            this.label16.Location = new System.Drawing.Point(0, 638);
             this.label16.Name = "label16";
             this.label16.Size = new System.Drawing.Size(200, 64);
             this.label16.TabIndex = 3;
             this.label16.Text = "機房溫度(°C)";
             this.label16.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // label6
+            // 
+            this.label6.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(65)))));
+            this.label6.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.label6.Dock = System.Windows.Forms.DockStyle.Top;
+            this.label6.Font = new System.Drawing.Font("微軟正黑體", 20.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
+            this.label6.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
+            this.label6.Location = new System.Drawing.Point(0, 574);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(200, 64);
+            this.label6.TabIndex = 5;
+            this.label6.Text = "空壓溫度(°C)";
+            this.label6.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // label15
             // 
@@ -1342,7 +1460,7 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.ClientSize = new System.Drawing.Size(1008, 809);
+            this.ClientSize = new System.Drawing.Size(1008, 868);
             this.Controls.Add(this.panel1);
             this.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(240)))), ((int)(((byte)(240)))), ((int)(((byte)(240)))));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
@@ -1353,6 +1471,7 @@
             this.panel1.ResumeLayout(false);
             this.panel15.ResumeLayout(false);
             this.panel14.ResumeLayout(false);
+            this.panel17.ResumeLayout(false);
             this.panel13.ResumeLayout(false);
             this.panel12.ResumeLayout(false);
             this.panel6.ResumeLayout(false);
@@ -1455,5 +1574,12 @@
         private System.Windows.Forms.Label ready_remote_col3;
         private System.Windows.Forms.Label ready_remote_col4;
         private System.Windows.Forms.Label ready_remote_col5;
+        private System.Windows.Forms.Panel panel17;
+        private System.Windows.Forms.Label CompressedTemp_col5;
+        private System.Windows.Forms.Label CompressedTemp_col4;
+        private System.Windows.Forms.Label CompressedTemp_col3;
+        private System.Windows.Forms.Label CompressedTemp_col2;
+        private System.Windows.Forms.Label CompressedTemp_col1;
+        private System.Windows.Forms.Label label6;
     }
 }

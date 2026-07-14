@@ -281,7 +281,7 @@ namespace DeviceBox
                 {
                     connection.Open();
                     string sql = @"
-                        SELECT pressure_upper, pressure_lower, temp_upper, temp_lower
+                        SELECT pressure_upper, pressure_lower, temp_upper, temp_lower,compressedtemp_upper,compressedtemp_lower
                         FROM alarm_limits
                         WHERE factory_id = @factory_id";
 
@@ -297,6 +297,8 @@ namespace DeviceBox
                                 limits.PressureLowerLimit = reader.IsDBNull(1) ? double.MinValue : reader.GetDouble(1);
                                 limits.TempUpperLimit = reader.IsDBNull(2) ? double.MaxValue : reader.GetDouble(2);
                                 limits.TempLowerLimit = reader.IsDBNull(3) ? double.MinValue : reader.GetDouble(3);
+                                limits.CompressedTempUpperLimit = reader.IsDBNull(4) ? double.MaxValue : reader.GetDouble(4);
+                                limits.CompressedTempLowerLimit = reader.IsDBNull(5) ? double.MinValue : reader.GetDouble(5);
                             }
                         }
                     }
@@ -321,13 +323,15 @@ namespace DeviceBox
                 {
                     connection.Open();
                     string sql = @"
-                        INSERT INTO alarm_limits (factory_id, pressure_upper, pressure_lower, temp_upper, temp_lower)
-                        VALUES (@factory_id, @pressure_upper, @pressure_lower, @temp_upper, @temp_lower)
+                        INSERT INTO alarm_limits (factory_id, pressure_upper, pressure_lower, temp_upper, temp_lower, compressedtemp_upper, compressedtemp_lower)
+                        VALUES (@factory_id, @pressure_upper, @pressure_lower, @temp_upper, @temp_lower, @compressedtemp_upper, @compressedtemp_lower)
                         ON DUPLICATE KEY UPDATE
                             pressure_upper = VALUES(pressure_upper),
                             pressure_lower = VALUES(pressure_lower),
                             temp_upper = VALUES(temp_upper),
-                            temp_lower = VALUES(temp_lower)";
+                            temp_lower = VALUES(temp_lower),
+                            compressedtemp_upper = VALUES(compressedtemp_upper),
+                            compressedtemp_lower = VALUES(compressedtemp_lower)";
 
                     using (var command = new MySqlCommand(sql, connection))
                     {
@@ -340,6 +344,10 @@ namespace DeviceBox
                             limits.TempUpperLimit == double.MaxValue ? (object)DBNull.Value : limits.TempUpperLimit);
                         command.Parameters.AddWithValue("@temp_lower", 
                             limits.TempLowerLimit == double.MinValue ? (object)DBNull.Value : limits.TempLowerLimit);
+                        command.Parameters.AddWithValue("@compressedtemp_upper", 
+                            limits.CompressedTempUpperLimit == double.MaxValue ? (object)DBNull.Value : limits.CompressedTempUpperLimit);
+                        command.Parameters.AddWithValue("@compressedtemp_lower", 
+                            limits.CompressedTempLowerLimit == double.MinValue ? (object)DBNull.Value : limits.CompressedTempLowerLimit);
 
                         return command.ExecuteNonQuery() > 0;
                     }

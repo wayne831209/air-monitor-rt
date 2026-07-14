@@ -598,7 +598,7 @@ namespace DeviceBox
                 nameCondition = "'CO-28'";
             }
             // 查詢壓力與溫度資料
-            string sqlDeviceBox = "SELECT `Name`, `Time`, `CompressedAir`, `AmbientTempPV` FROM " + deviceBoxTable +
+            string sqlDeviceBox = "SELECT `Name`, `Time`, `CompressedAir`, `AmbientTempPV`, `CompressedTemp` FROM " + deviceBoxTable +
                          " WHERE `Name` IN (" + nameCondition + ")" +
                          " AND `Time` >= '" + startDate.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
                          " AND `Time` <= '" + endDate.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
@@ -625,20 +625,21 @@ namespace DeviceBox
                 {
                     string name = row["Name"].ToString();
                     DateTime time;
-                    double pressure, temp;
+                    double pressure, temp, compressedTemp;
 
                     if (!DateTime.TryParse(row["Time"].ToString(), out time))
                         continue;
 
                     double.TryParse(row["CompressedAir"].ToString(), out pressure);
                     double.TryParse(row["AmbientTempPV"].ToString(), out temp);
+                    double.TryParse(row["CompressedTemp"].ToString(), out compressedTemp);
 
                     if (!groupedDeviceBox.ContainsKey(name))
                     {
                         groupedDeviceBox[name] = new List<DeviceDataPoint>();
                     }
 
-                    groupedDeviceBox[name].Add(new DeviceDataPoint { Time = time, Pressure = pressure, Temperature = temp });
+                    groupedDeviceBox[name].Add(new DeviceDataPoint { Time = time, Pressure = pressure, Temperature = temp, CompressedTemp = compressedTemp });
                 }
             }
 
@@ -761,6 +762,22 @@ namespace DeviceBox
                 }
 
                 chartCombined.Series.Add(tempSeries);
+
+                // 空壓溫度曲線系列
+                var compressedTempSeries = new Series(deviceName + " 空壓溫度");
+                compressedTempSeries.ChartType = SeriesChartType.Line;
+                compressedTempSeries.Color = color;
+                compressedTempSeries.BorderWidth = 2;
+                compressedTempSeries.ChartArea = "ChartAreaCompressedTemp";
+                compressedTempSeries.Legend = "LegendMain";
+                compressedTempSeries.IsVisibleInLegend = false;
+
+                foreach (var dp in dataPoints)
+                {
+                    compressedTempSeries.Points.AddXY(dp.Time, dp.CompressedTemp);
+                }
+
+                chartCombined.Series.Add(compressedTempSeries);
             }
 
             // 繪製需量曲線（實線，使用相同設備對應的顏色，不顯示在圖例中）
@@ -1134,6 +1151,7 @@ namespace DeviceBox
             public DateTime Time { get; set; }
             public double Pressure { get; set; }
             public double Temperature { get; set; }
+            public double CompressedTemp { get; set; }
         }
 
         /// <summary>

@@ -27,8 +27,8 @@ namespace DeviceBox
 
         public bool ConnectState = false;
         public volatile bool DataReady = false;
-        public string[] Address_Val = new string[36];
-        public string[] Address_Str = new string[36];
+        public string[] Address_Val = new string[37];
+        public string[] Address_Str = new string[37];
         public string name,ip,port;
         public string timer_bill,timer_season;
         public bool trigger_demand = true;
@@ -86,6 +86,7 @@ namespace DeviceBox
             Address_Str[33] = this.name + "_" + address_val.Address_Air_Sensor_Decimal;
             Address_Str[34] = this.name + "_" + address_val.Address_E5CC_1_PV;
             Address_Str[35] = this.name + "_" + address_val.Address_E5CC_1_SV;
+            Address_Str[36] = this.name + "_" + address_val.Address_CompressedTemp;
 
 
             this.backgroundWorker_ECU = new System.ComponentModel.BackgroundWorker();
@@ -103,7 +104,7 @@ namespace DeviceBox
                     ushort[] holding_register = null;
                     if (ConnectState)
                     {
-                        holding_register = master_tcp.ReadHoldingRegisters(1, 1000, 50);
+                        holding_register = master_tcp.ReadHoldingRegisters(1, 1000, 51);
 
                         address_val.Address_4051_DI_0 = holding_register[3].ToString();
                         address_val.Address_4051_DI_1 = holding_register[4].ToString();
@@ -139,6 +140,7 @@ namespace DeviceBox
                         address_val.Address_4050_DO_7 = holding_register[37].ToString();
                         address_val.Address_E5CC_1_PV = holding_register[48].ToString();
                         address_val.Address_E5CC_1_SV = holding_register[49].ToString();
+                        address_val.Address_CompressedTemp = holding_register[50].ToString();
 
 
                         holding_register = master_tcp.ReadHoldingRegisters(1, 2000, 10);
@@ -181,6 +183,7 @@ namespace DeviceBox
                         Address_Val[33] = address_val.Address_Air_Sensor_Decimal;
                         Address_Val[34] = address_val.Address_E5CC_1_PV;
                         Address_Val[35] = address_val.Address_E5CC_1_SV;
+                        Address_Val[36] = address_val.Address_CompressedTemp;
 
                         DataReady = true;
                         ConnectState = true;

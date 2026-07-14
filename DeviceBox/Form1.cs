@@ -122,15 +122,16 @@ namespace DeviceBox
                         string airPressure = (pressureValue / Math.Pow(10, decimalValue)).ToString("F4");
                         string tempPV = modbusList[factoryIdx].address_val.Address_E5CC_1_PV.ToString();
                         string tempSV = modbusList[factoryIdx].address_val.Address_E5CC_1_SV.ToString();
+                        string CompressedTemp = modbusList[factoryIdx].address_val.Address_CompressedTemp.ToString();
 
-                        cmd += "('" + compressor.Name + "','" + Time + "','" + airPressure + "','" + tempPV + "','" + tempSV + "')";
+                        cmd += "('" + compressor.Name + "','" + Time + "','" + airPressure + "','" + tempPV + "','" + tempSV + "','" + CompressedTemp + "')";
                         itemIndex++;
                     }
                 }
                 if (!string.IsNullOrEmpty(cmd))
                 {
                     mysql.insertdata("INSERT INTO " + config.machinery_factory_devicebox_table1 +
-                                         "(`Name`,`Time`,`CompressedAir`,`AmbientTempPV`,`AmbientTempSV`)" +
+                                         "(`Name`,`Time`,`CompressedAir`,`AmbientTempPV`,`AmbientTempSV`,`CompressedTemp`)" +
                                          "VALUES" + cmd + "");
                 }
                 Trigger = false;

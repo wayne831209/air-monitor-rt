@@ -32,6 +32,7 @@ namespace DeviceBox
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea3 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea4 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
             this.panelMain = new System.Windows.Forms.Panel();
             this.panelCharts = new System.Windows.Forms.Panel();
@@ -90,11 +91,13 @@ namespace DeviceBox
             // chartCombined
             // 
             chartArea1.Name = "ChartAreaPressure";
-            chartArea2.Name = "ChartAreaTemp";
-            chartArea3.Name = "ChartAreaDemand";
+            chartArea2.Name = "ChartAreaCompressedTemp";
+            chartArea3.Name = "ChartAreaTemp";
+            chartArea4.Name = "ChartAreaDemand";
             this.chartCombined.ChartAreas.Add(chartArea1);
             this.chartCombined.ChartAreas.Add(chartArea2);
             this.chartCombined.ChartAreas.Add(chartArea3);
+            this.chartCombined.ChartAreas.Add(chartArea4);
             this.chartCombined.Dock = System.Windows.Forms.DockStyle.Fill;
             legend1.Alignment = System.Drawing.StringAlignment.Far;
             legend1.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Top;
