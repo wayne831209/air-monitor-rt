@@ -362,11 +362,9 @@ namespace DeviceBox
                 if (tempAbnormal != null && tempAbnormal.Count > 0)
                 {
                     messageLines.Add("**機房溫度異常**");
-                    int index = 1;
                     foreach (var device in tempAbnormal.OrderBy(x => x.Key))
                     {
-                        messageLines.Add($"{index}. {device.Key} 目前數值 : {device.Value}");
-                        index++;
+                        messageLines.Add($"{device.Key} 目前數值 : {device.Value}");
                     }
                     messageLines.Add("");
                 }

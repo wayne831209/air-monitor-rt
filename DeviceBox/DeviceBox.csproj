@@ -264,8 +264,6 @@
     <None Include="測試視圖同步.md" />
     <None Include="測試視圖同步.ps1" />
     <None Include="直接測試.ps1" />
-    <None Include="空壓溫度曲線圖整合完成說明.md" />
-    <None Include="空壓溫度曲線圖整合手動修改指南.md" />
     <None Include="自動載入場域配置總結.md" />
     <None Include="自動載入場域配置說明.md" />
     <None Include="自動載入預設模式測試.md" />
