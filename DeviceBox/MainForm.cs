@@ -1971,7 +1971,7 @@ namespace DeviceBox
                                 //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓超限！數值={pressureValue}, 上限={factory.AlarmLimits.PressureUpperLimit}, 下限={factory.AlarmLimits.PressureLowerLimit}");
                                 foreach (var compressor in scheduledCompressors)
                                 {
-                                    pressureAbnormalDevices[compressor.Name] = pressure; // 儲存設備名稱和壓力值
+                                    pressureAbnormalDevices[compressor.Name] = pressure + "|" + GetPowerValueFromDB(compressor.Name); // 儲存設備名稱和壓力值
                                 }
                             }
                         }
@@ -1988,7 +1988,7 @@ namespace DeviceBox
                                 //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 溫度超限！數值={tempValue}, 上限={factory.AlarmLimits.TempUpperLimit}, 下限={factory.AlarmLimits.TempLowerLimit}");
                                 foreach (var compressor in scheduledCompressors)
                                 {
-                                    tempAbnormalDevices[compressor.Name] = temp; // 儲存設備名稱和溫度值
+                                    tempAbnormalDevices[compressor.Name] = temp + "|" + GetPowerValueFromDB(compressor.Name); // 儲存設備名稱和溫度值
                                 }
                             }
                         }
@@ -2005,7 +2005,7 @@ namespace DeviceBox
                                 //System.Diagnostics.Debug.WriteLine($"[背景監控] {factory.Name} - 空壓溫度超限！數值={compressedTempValue}, 上限={factory.AlarmLimits.CompressedTempUpperLimit}, 下限={factory.AlarmLimits.CompressedTempLowerLimit}");
                                 foreach (var compressor in scheduledCompressors)
                                 {
-                                    compressedTempAbnormalDevices[compressor.Name] = compressedTemp; // 儲存設備名稱和空壓溫度值
+                                    compressedTempAbnormalDevices[compressor.Name] = compressedTemp + "|" + GetPowerValueFromDB(compressor.Name); // 儲存設備名稱和空壓溫度值
                                 }
                             }
                         }

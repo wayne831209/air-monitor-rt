@@ -364,7 +364,10 @@ namespace DeviceBox
                     messageLines.Add("**機房溫度異常**");
                     foreach (var device in tempAbnormal.OrderBy(x => x.Key))
                     {
-                        messageLines.Add($"{device.Key} 目前數值 : {device.Value}");
+                        var parts = device.Value.Split('|');
+                        string currentVal = parts[0];
+                        string powerVal = parts.Length > 1 ? parts[1] : "---";
+                        messageLines.Add($"{device.Key} 目前數值 : {currentVal} 功率(kW) : {powerVal}");
                     }
                     messageLines.Add("");
                 }
@@ -375,7 +378,10 @@ namespace DeviceBox
                     messageLines.Add("**空壓異常**");
                     foreach (var device in pressureAbnormal.OrderBy(x => x.Key))
                     {
-                        messageLines.Add($"{device.Key} 目前數值 : {device.Value}");
+                        var parts = device.Value.Split('|');
+                        string currentVal = parts[0];
+                        string powerVal = parts.Length > 1 ? parts[1] : "---";
+                        messageLines.Add($"{device.Key} 目前數值 : {currentVal} 功率(kW) : {powerVal}");
                     }
                     messageLines.Add("");
                 }
@@ -386,7 +392,10 @@ namespace DeviceBox
                     messageLines.Add("**空壓溫度異常**");
                     foreach (var device in compressedTempAbnormal.OrderBy(x => x.Key))
                     {
-                        messageLines.Add($"{device.Key} 目前數值 : {device.Value}");
+                        var parts = device.Value.Split('|');
+                        string currentVal = parts[0];
+                        string powerVal = parts.Length > 1 ? parts[1] : "---";
+                        messageLines.Add($"{device.Key} 目前數值 : {currentVal} 功率(kW) : {powerVal}");
                     }
                     messageLines.Add("");
                 }
