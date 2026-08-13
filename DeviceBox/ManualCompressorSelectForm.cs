@@ -14,15 +14,15 @@ namespace DeviceBox
     {
         private readonly FactoryConfig _factory;
         private readonly List<DeviceConfig> _compressors;
-        private readonly Dictionary<string, ushort> _manualDOStates;
+        private readonly ModBus_List _modbus;
 
         public DeviceConfig SelectedCompressor { get; private set; }
 
-        public ManualCompressorSelectForm(FactoryConfig factory, List<DeviceConfig> compressors, Dictionary<string, ushort> manualDOStates)
+        public ManualCompressorSelectForm(FactoryConfig factory, List<DeviceConfig> compressors, ModBus_List modbus)
         {
             _factory = factory;
             _compressors = compressors;
-            _manualDOStates = manualDOStates;
+            _modbus = modbus;
             InitializeComponent();
             SetupUI();
         }
@@ -56,10 +56,10 @@ namespace DeviceBox
             int yOffset = 50;
             foreach (var compressor in _compressors.OrderBy(c => c.MachineNo))
             {
-                string key = _factory.Id + "_" + compressor.MachineNo;
-                ushort currentState;
-                if (!_manualDOStates.TryGetValue(key, out currentState))
-                    currentState = 0;
+                // 以 PLC 實際 DO 回授為準，確保多人畫面顯示一致
+                ushort currentState = _modbus != null && compressor.IO.ControlDO >= 0
+                    ? _modbus.GetDOState(compressor.IO.ControlDO)
+                    : (ushort)0;
 
                 string stateText = currentState == 1 ? "運轉中" : "已停止";
                 Color stateColor = currentState == 1 ? Color.FromArgb(0, 200, 0) : Color.FromArgb(128, 128, 128);

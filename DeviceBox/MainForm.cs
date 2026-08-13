@@ -44,8 +44,13 @@ namespace DeviceBox
         private Timer updateTimer;
         private List<ModBus_List> modbusList;
         private Config config;
-        private ScheduleMode currentMode;  // 當前選擇的模式
-        private bool isManualMode = false;    // 是否為手動模式
+        private ScheduleMode currentMode;  // 當前視圖的模式投影，僅供 UI 顯示，控制邏輯請勿使用
+        private bool isManualMode = false;    // 當前視圖的手動旗標投影，僅供 UI 顯示，控制邏輯請勿使用
+
+        // 每個場域各自的排程模式與手動旗標
+        // Key: "foundry" (鑄造廠) / "other" (其它廠域)
+        private Dictionary<string, ScheduleMode> siteModes = new Dictionary<string, ScheduleMode>();
+        private Dictionary<string, bool> siteManualModes = new Dictionary<string, bool>();
 
         // 記錄每個設備上次寫入的 DO 狀態，避免重複寫入
         // Key: "FactoryId_MachineNo", Value: last written DO value (1=on, 0=off)
@@ -71,7 +76,7 @@ namespace DeviceBox
         private TeamsNotificationService teamsNotificationService;
 
         // 場域配置同步服務
-        private ConfigSyncService syncService;
+        private Dictionary<string, ConfigSyncService> syncServices = new Dictionary<string, ConfigSyncService>();
 
         public MainForm()
         {
@@ -296,17 +301,11 @@ namespace DeviceBox
                 var defaultMode = ModeSelectForm.GetDefaultModeFromDatabase();
                 if (defaultMode != null)
                 {
-                    currentMode = defaultMode;
-                    label3.Text = defaultMode.Name;
-                    if (!string.IsNullOrEmpty(defaultMode.Description))
-                    {
-                        label4.Text = defaultMode.Description;
-                    }
+                    // 預設模式套用到兩個場域，後續會被各場域的資料庫設定覆寫
+                    ApplyMode("foundry", defaultMode, "預設模式");
+                    ApplyMode("other", defaultMode, "預設模式");
 
                     System.Diagnostics.Debug.WriteLine($"[MainForm] Default mode loaded: {defaultMode.Name} with {defaultMode.Schedules.Count} schedules");
-
-                    // 自動套用預設模式的排程到設備
-                    ModeSelectForm.ApplyModeSchedulesToConfig(defaultMode);
 
                     // 重新載入設定以反映套用的排程
                     config.LoadConfig();
@@ -353,29 +352,32 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 初始化基於視圖的動態同步
+        /// 初始化雙場域配置同步
+        /// 兩個場域的模式互相獨立，均需持續同步與控制
         /// </summary>
         private void InitializeViewBasedSync()
         {
-            try
+            string[] siteIds = { "foundry", "other" };
+
+            foreach (var siteId in siteIds)
             {
-                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+                try
+                {
+                    // 載入該場域的最新配置
+                    LoadAndApplySiteConfig(siteId);
 
-                // 根據當前視圖決定場域
-                string currentSiteId = GetCurrentSiteId();
+                    var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
+                    var service = new ConfigSyncService(database, siteId);
+                    service.ConfigUpdated += SyncService_ConfigUpdated;
+                    service.Start();
+                    syncServices[siteId] = service;
 
-                // 載入場域的最新配置
-                LoadAndApplySiteConfig(currentSiteId);
-
-                syncService = new ConfigSyncService(database, currentSiteId);
-                syncService.ConfigUpdated += SyncService_ConfigUpdated;
-                syncService.Start();
-
-                System.Diagnostics.Debug.WriteLine($"[MainForm] View-based sync initialized for: {currentSiteId} ({currentViewMode})");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to init view-based sync: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[MainForm] Sync initialized for site: {siteId}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to init sync for site '{siteId}': {ex.Message}");
+                }
             }
         }
 
@@ -388,39 +390,109 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 切換同步場域（視圖改變時調用）
+        /// 根據廠區 ID 判斷所屬場域
         /// </summary>
-        private void SwitchSyncSite()
+        private string GetSiteIdByFactoryId(int factoryId)
         {
-            try
+            return factoryId == CASTING_FACTORY_ID ? "foundry" : "other";
+        }
+
+        /// <summary>
+        /// 取得指定場域的排程模式(不存在時回傳 null)
+        /// </summary>
+        private ScheduleMode GetModeForSite(string siteId)
+        {
+            ScheduleMode mode;
+            return siteModes.TryGetValue(siteId, out mode) ? mode : null;
+        }
+
+        /// <summary>
+        /// 取得指定場域是否為手動模式(不存在時回傳 false)
+        /// </summary>
+        private bool IsManualForSite(string siteId)
+        {
+            bool manual;
+            return siteManualModes.TryGetValue(siteId, out manual) && manual;
+        }
+
+        /// <summary>
+        /// 清除指定場域的手動接管標記
+        /// 一併清除該場域的 lastDOStates，強制 ExecuteScheduleControl 於下一 tick 重新寫入一次
+        /// </summary>
+        private void ClearManualStatesForSite(string siteId, string reason)
+        {
+            RemoveSiteKeys(manualDOStates, siteId);
+            RemoveSiteKeys(lastDOStates, siteId);
+
+            System.Diagnostics.Debug.WriteLine($"[MainForm] 清除場域 '{siteId}' 的手動接管標記，原因: {reason}");
+        }
+
+        /// <summary>
+        /// 從字典中移除屬於指定場域的條目 (key 格式: "FactoryId_MachineNo")
+        /// </summary>
+        private void RemoveSiteKeys(Dictionary<string, ushort> states, string siteId)
+        {
+            var keysToRemove = new List<string>();
+            foreach (var key in states.Keys)
             {
-                string newSiteId = GetCurrentSiteId();
+                int separatorIndex = key.IndexOf('_');
+                if (separatorIndex <= 0) continue;
 
-                System.Diagnostics.Debug.WriteLine(
-                    $"[MainForm] Switching sync site to: {newSiteId} ({currentViewMode})");
+                int factoryId;
+                if (!int.TryParse(key.Substring(0, separatorIndex), out factoryId)) continue;
 
-                // 停止舊的同步服務
-                if (syncService != null)
+                if (GetSiteIdByFactoryId(factoryId) == siteId)
+                    keysToRemove.Add(key);
+            }
+
+            foreach (var key in keysToRemove)
+                states.Remove(key);
+        }
+
+        /// <summary>
+        /// 套用指定場域的排程模式
+        /// 各場域模式互相獨立，切換視圖不會影響任何場域的控制邏輯
+        /// </summary>
+        private void ApplyMode(string siteId, ScheduleMode mode, string source)
+        {
+            if (mode == null || string.IsNullOrEmpty(siteId)) return;
+
+            bool wasManual = IsManualForSite(siteId);
+            bool newManual = mode.Name != null && mode.Name.Contains("手動");
+
+            siteModes[siteId] = mode;
+
+            if (!newManual)
+            {
+                // 切回排程模式：手動狀態交還給該場域的排程決定
+                ClearManualStatesForSite(siteId, "切回排程模式");
+            }
+            else if (!wasManual)
+            {
+                // 進入手動模式：從乾淨狀態開始
+                ClearManualStatesForSite(siteId, "進入手動模式");
+            }
+
+            siteManualModes[siteId] = newManual;
+
+            // 僅當該場域為當前視圖時才更新 UI
+            if (siteId == GetCurrentSiteId())
+            {
+                currentMode = mode;
+                isManualMode = newManual;
+                label3.Text = mode.Name;
+
+                if (!string.IsNullOrEmpty(mode.Description))
                 {
-                    syncService.ConfigUpdated -= SyncService_ConfigUpdated;
-                    syncService.Stop();
+                    label4.Text = mode.Description;
                 }
 
-                // 載入新場域的最新配置
-                LoadAndApplySiteConfig(newSiteId);
-
-                // 啟動新的同步服務
-                var database = new DeviceDatabase(config.IP, config.DB, config.USER, config.Password);
-                syncService = new ConfigSyncService(database, newSiteId);
-                syncService.ConfigUpdated += SyncService_ConfigUpdated;
-                syncService.Start();
-
-                System.Diagnostics.Debug.WriteLine($"[MainForm] Sync site switched successfully to: {newSiteId}");
+                config.LoadConfig();
+                RefreshFactoryDisplay();
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[MainForm] Failed to switch sync site: {ex.Message}");
-            }
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[MainForm] 套用模式: {mode.Name} (ID:{mode.Id}), 場域: {siteId}, 來源: {source}, 手動模式: {newManual}");
         }
 
         /// <summary>
@@ -453,21 +525,7 @@ namespace DeviceBox
                     {
                         System.Diagnostics.Debug.WriteLine($"[MainForm] Applying mode: {mode.Name} (ID: {mode.Id})");
 
-                        currentMode = mode;
-                        label3.Text = mode.Name;
-
-                        if (!string.IsNullOrEmpty(mode.Description))
-                        {
-                            label4.Text = mode.Description;
-                        }
-
-                        // 判斷是否為手動模式
-                        isManualMode = mode.Name.Contains("手動");
-
-                        // 套用模式的排程到配置
-                        ModeSelectForm.ApplyModeSchedulesToConfig(mode);
-                        config.LoadConfig();
-                        RefreshFactoryDisplay();
+                        ApplyMode(siteId, mode, "場域配置載入");
 
                         System.Diagnostics.Debug.WriteLine($"[MainForm] Site config applied successfully");
                     }
@@ -502,21 +560,9 @@ namespace DeviceBox
                     return;
                 }
 
-                // 驗證場域匹配 - 根據當前視圖判斷
-                string currentSiteId = GetCurrentSiteId();
-
                 System.Diagnostics.Debug.WriteLine(
                     $"[MainForm] *** SYNC EVENT RECEIVED *** " +
-                    $"Event SiteId: {e.SiteId}, Current View Site: {currentSiteId} ({currentViewMode}), " +
-                    $"Mode: {e.CurrentModeId}, Version: {e.ConfigVersion}");
-
-                if (e.SiteId != currentSiteId)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"[MainForm] *** IGNORING *** Config update from different site. " +
-                        $"Current view: {currentSiteId} ({currentViewMode}), Event: {e.SiteId}");
-                    return;
-                }
+                    $"Event SiteId: {e.SiteId}, Mode: {e.CurrentModeId}, Version: {e.ConfigVersion}");
 
                 System.Diagnostics.Debug.WriteLine(
                     $"[MainForm] *** APPLYING SYNC *** Site: {e.SiteId}, Version: {e.ConfigVersion}, " +
@@ -528,21 +574,9 @@ namespace DeviceBox
                     var updatedMode = ModeSelectForm.GetModeById(e.CurrentModeId.Value);
                     if (updatedMode != null)
                     {
-                        currentMode = updatedMode;
-                        label3.Text = updatedMode.Name;
-                        if (!string.IsNullOrEmpty(updatedMode.Description))
-                        {
-                            label4.Text = updatedMode.Description;
-                        }
+                        ApplyMode(e.SiteId, updatedMode, "遠端同步");
 
-                        // 判斷是否為手動模式
-                        isManualMode = updatedMode.Name.Contains("手動");
-
-                        ModeSelectForm.ApplyModeSchedulesToConfig(updatedMode);
-                        config.LoadConfig();
-                        RefreshFactoryDisplay();
-
-                        System.Diagnostics.Debug.WriteLine($"[MainForm] *** SYNC COMPLETE *** Mode: {updatedMode.Name}");
+                        System.Diagnostics.Debug.WriteLine($"[MainForm] *** SYNC COMPLETE *** Site: {e.SiteId}, Mode: {updatedMode.Name}");
                     }
                 }
             }
@@ -1095,13 +1129,10 @@ namespace DeviceBox
         /// 排程控制 - 根據排程時間自動控制 DO 輸出
         /// 當目前時間在排程內 → DO=1 (啟動)
         /// 當目前時間不在排程內 → DO=0 (停止)
-        /// 手動模式下不執行自動排程控制
+        /// 各場域使用各自的模式與手動旗標，切換視圖不影響控制邏輯
         /// </summary>
         private void ExecuteScheduleControl()
         {
-            // 手動模式下不執行自動排程控制
-            if (isManualMode) return;
-
             System.Diagnostics.Debug.WriteLine($"[排程控制] ========== 執行排程控制 ========== 當前時間: {DateTime.Now:yyyy-MM-dd HH:mm:ss} ({DateTime.Now.DayOfWeek})");
 
             for (int i = 0; i < config.Factories.Count; i++)
@@ -1112,6 +1143,22 @@ namespace DeviceBox
                 var modbus = modbusList[i];
                 if (!modbus.ConnectState || modbus.address_val == null) continue;
 
+                // 依廠區所屬場域取得該場域自己的模式與手動旗標
+                string siteId = GetSiteIdByFactoryId(factory.Id);
+
+                if (IsManualForSite(siteId))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[排程控制] {factory.Name} - 場域 '{siteId}' 為手動模式，跳過");
+                    continue;
+                }
+
+                var siteMode = GetModeForSite(siteId);
+                if (siteMode == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[排程控制] {factory.Name} - 場域 '{siteId}' 尚未設定模式，跳過");
+                    continue;
+                }
+
                 var compressors = factory.GetDevicesByType(DeviceType.Compressor);
                 foreach (var compressor in compressors)
                 {
@@ -1119,8 +1166,18 @@ namespace DeviceBox
                     if (compressor.IO.ControlDO < 0)
                         continue;
 
-                    // 從 currentMode 中獲取該設備的所有排程
-                    var schedules = GetDeviceSchedules(compressor);
+                    // 用 FactoryId_MachineNo 作為 key 來追蹤狀態
+                    string key = factory.Id + "_" + compressor.MachineNo;
+
+                    // 已被手動接管的設備不受排程覆寫，直到切回排程模式時清除標記
+                    if (manualDOStates.ContainsKey(key))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 手動接管中，跳過排程");
+                        continue;
+                    }
+
+                    // 從該場域的模式中獲取該設備的所有排程
+                    var schedules = GetDeviceSchedules(compressor, siteMode);
                     if (schedules == null || schedules.Count == 0)
                     {
                         System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 沒有排程設定");
@@ -1186,9 +1243,6 @@ namespace DeviceBox
 
                     System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 判斷結果: isInSchedule={isInSchedule}, targetValue={targetValue}");
 
-                    // 用 FactoryId_MachineNo 作為 key 來追蹤狀態
-                    string key = factory.Id + "_" + compressor.MachineNo;
-
                     // 只在狀態變化時才寫入，避免每秒重複寫入
                     ushort lastValue;
                     if (!lastDOStates.TryGetValue(key, out lastValue) || lastValue != targetValue)
@@ -1212,11 +1266,23 @@ namespace DeviceBox
         }
 
         /// <summary>
-        /// 從當前模式中獲取指定設備的排程（可能有多個時間區間）
+        /// 獲取指定設備的排程（依設備所屬場域的模式查詢）
         /// </summary>
         private List<ModeScheduleItem> GetDeviceSchedules(DeviceConfig device)
         {
-            if (currentMode == null || currentMode.Schedules == null)
+            var factory = config.Factories.FirstOrDefault(f => f.Devices.Contains(device));
+            if (factory == null)
+                return new List<ModeScheduleItem>();
+
+            return GetDeviceSchedules(device, GetModeForSite(GetSiteIdByFactoryId(factory.Id)));
+        }
+
+        /// <summary>
+        /// 從指定模式中獲取指定設備的排程（可能有多個時間區間）
+        /// </summary>
+        private List<ModeScheduleItem> GetDeviceSchedules(DeviceConfig device, ScheduleMode mode)
+        {
+            if (mode == null || mode.Schedules == null)
                 return new List<ModeScheduleItem>();
 
             // 找出該設備所屬的廠區
@@ -1224,8 +1290,8 @@ namespace DeviceBox
             if (factory == null)
                 return new List<ModeScheduleItem>();
 
-            // 在當前模式中查找該設備的所有排程（同一設備可能有多個時間區間）
-            return currentMode.Schedules.Where(s =>
+            // 在指定模式中查找該設備的所有排程（同一設備可能有多個時間區間）
+            return mode.Schedules.Where(s =>
                 s.FactoryId == factory.Id &&
                 s.MachineNo == device.MachineNo &&
                 s.DeviceName == device.Name).ToList();
@@ -1387,13 +1453,14 @@ namespace DeviceBox
             updateTimer?.Stop();
             updateTimer?.Dispose();
 
-            // 停止配置同步服務
-            if (syncService != null)
+            // 停止所有場域的配置同步服務
+            foreach (var service in syncServices.Values)
             {
-                syncService.ConfigUpdated -= SyncService_ConfigUpdated;
-                syncService.Stop();
-                syncService = null;
+                service.ConfigUpdated -= SyncService_ConfigUpdated;
+                service.Stop();
+                service.Dispose();
             }
+            syncServices.Clear();
 
             // 清理場域配置檔案
             try
@@ -1413,8 +1480,6 @@ namespace DeviceBox
 
         private void Factory_Click(object sender, EventArgs e)
         {
-            ViewMode previousViewMode = currentViewMode;
-
             if (currentViewMode == ViewMode.OtherFactories)
             {
                 // Switch to Casting Factory view
@@ -1448,14 +1513,20 @@ namespace DeviceBox
                 }
             }
 
-            // 視圖改變時切換同步場域
-            if (previousViewMode != currentViewMode)
-            {
-                SwitchSyncSite();
-            }
-
+            // 視圖切換僅影響顯示，不觸發任何模式重載或 DO 控制
             // Refresh display
             RefreshFactoryDisplay();
+
+            // 更新模式標籤為該視圖場域的模式
+            var viewMode = GetModeForSite(GetCurrentSiteId());
+            if (viewMode != null)
+            {
+                label3.Text = viewMode.Name;
+                if (!string.IsNullOrEmpty(viewMode.Description))
+                    label4.Text = viewMode.Description;
+            }
+
+            UpdateStatusLabelCursors();
         }
 
         /// <summary>
@@ -1463,6 +1534,11 @@ namespace DeviceBox
         /// </summary>
         private void RefreshFactoryDisplay()
         {
+            // 同步當前視圖場域的模式投影，供 UI 顯示使用
+            string viewSiteId = GetCurrentSiteId();
+            currentMode = GetModeForSite(viewSiteId);
+            isManualMode = IsManualForSite(viewSiteId);
+
             Label[] factoryHeaders = { factory_col1, factory_col2, factory_col3, factory_col4, factory_col5 };
             Label[] deviceNameLabels = { device_col1, device_col2, device_col3, device_col4, device_col5 };
             Label[] scheduleLabels = { schedule_col1, schedule_col2, schedule_col3, schedule_col4, schedule_col5 };
@@ -1580,19 +1656,21 @@ namespace DeviceBox
             // 重新載入設定
             if (scheduleForm.DialogResult == DialogResult.OK)
             {
-                // 重新從資料庫載入當前模式的排程資料
-                if (currentMode != null)
+                // 重新從資料庫載入當前場域模式的排程資料
+                string viewSiteId = GetCurrentSiteId();
+                var siteMode = GetModeForSite(viewSiteId);
+                if (siteMode != null)
                 {
-                    var updatedMode = ModeSelectForm.GetModeById(currentMode.Id);
+                    var updatedMode = ModeSelectForm.GetModeById(siteMode.Id);
                     if (updatedMode != null)
                     {
-                        currentMode = updatedMode;
-                        ModeSelectForm.ApplyModeSchedulesToConfig(updatedMode);
+                        siteModes[viewSiteId] = updatedMode;
                     }
                 }
 
                 config.LoadConfig();
-                lastDOStates.Clear();
+                // 只清除該場域的寫入紀錄，使新排程立即生效
+                RemoveSiteKeys(lastDOStates, viewSiteId);
                 RefreshFactoryDisplay();
             }
         }
@@ -1604,33 +1682,8 @@ namespace DeviceBox
                 if (modeSelectForm.ShowDialog() == DialogResult.OK && modeSelectForm.SelectedMode != null)
                 {
                     var selectedMode = modeSelectForm.SelectedMode;
-                    
-                    // 儲存當前選擇的模式
-                    currentMode = selectedMode;
-                    
-                    // 判斷是否為手動模式（模式名稱包含「手動」）
-                    bool wasManual = isManualMode;
-                    isManualMode = selectedMode.Name.Contains("手動");
-                    
-                    // 切換到手動模式時，清除手動 DO 狀態
-                    if (isManualMode && !wasManual)
-                    {
-                        manualDOStates.Clear();
-                        lastDOStates.Clear();
-                    }
-                    
-                    // 更新 label3 顯示模式名稱
-                    label3.Text = selectedMode.Name;
-                    
-                    // 更新 label4 顯示模式描述（如果有的話）
-                    if (!string.IsNullOrEmpty(selectedMode.Description))
-                    {
-                        label4.Text = selectedMode.Description;
-                    }
-                    
-                    // 重新載入設定（因為模式切換時已套用排程到設備）
-                    config.LoadConfig();
-                    RefreshFactoryDisplay();
+
+                    ApplyMode(GetCurrentSiteId(), selectedMode, "使用者選擇");
                     UpdateStatusLabelCursors();
 
                     // 儲存到場域配置
@@ -1917,11 +1970,13 @@ namespace DeviceBox
         {
             var scheduledIds = new HashSet<int>();
 
-            if (currentMode == null || currentMode.Schedules == null)
+            // 依該工廠所屬場域取得對應模式
+            var siteMode = GetModeForSite(GetSiteIdByFactoryId(factory.Id));
+            if (siteMode == null || siteMode.Schedules == null)
                 return scheduledIds;
 
             // 找出該工廠當前時間內有排程的所有空壓機
-            var activeSchedules = currentMode.Schedules.Where(s =>
+            var activeSchedules = siteMode.Schedules.Where(s =>
                 s.FactoryId == factory.Id &&
                 s.Enabled &&
                 IsInSchedule(s)).ToList();
@@ -2349,7 +2404,7 @@ namespace DeviceBox
                 else if (compressors.Count > 1)
                 {
                     // 多台壓縮機時，彈出選擇視窗
-                    using (var selectForm = new ManualCompressorSelectForm(factory, compressors, manualDOStates))
+                    using (var selectForm = new ManualCompressorSelectForm(factory, compressors, modbus))
                     {
                         if (selectForm.ShowDialog() == DialogResult.OK && selectForm.SelectedCompressor != null)
                         {
@@ -2379,10 +2434,8 @@ namespace DeviceBox
 
             string key = factory.Id + "_" + compressor.MachineNo;
 
-            // 取得目前手動狀態，預設為停止(0)
-            ushort currentState;
-            if (!manualDOStates.TryGetValue(key, out currentState))
-                currentState = 0;
+            // 以 PLC 實際 DO 回授為準，確保多人操作時狀態一致
+            ushort currentState = modbus.GetDOState(compressor.IO.ControlDO);
 
             // 切換狀態
             ushort newState = currentState == 1 ? (ushort)0 : (ushort)1;
@@ -2402,7 +2455,7 @@ namespace DeviceBox
                     manualDOStates[key] = newState;
                     lastDOStates[key] = newState;
                     System.Diagnostics.Debug.WriteLine(
-                        $"[手動控制] {factory.Name} {compressor.Name} DO_{compressor.IO.ControlDO} = {newState} ({actionText})");
+                        $"[手動控制] {factory.Name} {compressor.Name} DO_{compressor.IO.ControlDO} = {newState} ({actionText})，依 PLC 回授切換 (原狀態={currentState})");
                 }
                 else
                 {

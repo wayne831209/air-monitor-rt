@@ -246,7 +246,7 @@ namespace DeviceBox
             {
                 // DO_0 對應 holding register 1030, DO_1=1031, DO_2=10320
                 ushort registerAddress = (ushort)(1030 + doNumber);
-                //master_tcp.WriteSingleRegister(1, registerAddress, value);
+                master_tcp.WriteSingleRegister(1, registerAddress, value);
                 System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO: DO_{doNumber} (register {registerAddress}) = {value}");
                 return true;
             }
@@ -256,6 +256,24 @@ namespace DeviceBox
                 System.Diagnostics.Debug.WriteLine($"[{name}] WriteDO failed: {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// 讀取 DO 目前回授狀態 (以 PLC 實際值為準)
+        /// doNumber: DO 通道編號 (0~7 對應 Address_4050_DO_0 ~ DO_7)
+        /// 回傳 1=啟動, 0=停止 (未連線或解析失敗回傳 0)
+        /// </summary>
+        public ushort GetDOState(int doNumber)
+        {
+            if (!ConnectState) return 0;
+            if (doNumber < 0 || doNumber > 7) return 0;
+
+            // Address_Val[24] ~ Address_Val[31] 對應 Address_4050_DO_0 ~ DO_7
+            string raw = Address_Val[24 + doNumber];
+            ushort value;
+            if (!ushort.TryParse(raw, out value)) return 0;
+
+            return value != 0 ? (ushort)1 : (ushort)0;
         }
 
         public bool TCP_Connect(string IP)

@@ -801,6 +801,7 @@
             // 
             this.status_col5.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.status_col5.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.status_col5.Cursor = System.Windows.Forms.Cursors.Hand;
             this.status_col5.Dock = System.Windows.Forms.DockStyle.Left;
             this.status_col5.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.status_col5.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -816,6 +817,7 @@
             // 
             this.status_col4.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.status_col4.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.status_col4.Cursor = System.Windows.Forms.Cursors.Hand;
             this.status_col4.Dock = System.Windows.Forms.DockStyle.Left;
             this.status_col4.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.status_col4.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -831,6 +833,7 @@
             // 
             this.status_col3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.status_col3.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.status_col3.Cursor = System.Windows.Forms.Cursors.Hand;
             this.status_col3.Dock = System.Windows.Forms.DockStyle.Left;
             this.status_col3.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.status_col3.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -846,6 +849,7 @@
             // 
             this.status_col2.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.status_col2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.status_col2.Cursor = System.Windows.Forms.Cursors.Hand;
             this.status_col2.Dock = System.Windows.Forms.DockStyle.Left;
             this.status_col2.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.status_col2.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
@@ -861,6 +865,7 @@
             // 
             this.status_col1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(35)))), ((int)(((byte)(35)))), ((int)(((byte)(38)))));
             this.status_col1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.status_col1.Cursor = System.Windows.Forms.Cursors.Hand;
             this.status_col1.Dock = System.Windows.Forms.DockStyle.Left;
             this.status_col1.Font = new System.Drawing.Font("微軟正黑體", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.status_col1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(200)))), ((int)(((byte)(0)))));
