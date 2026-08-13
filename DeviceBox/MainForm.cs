@@ -1165,6 +1165,23 @@ namespace DeviceBox
                         continue;
                     }
 
+                    // 午夜銜接緩衝：若當下判定為不在排程內，再確認 1 分鐘後是否有排程即將啟動。
+                    // 可避免相鄰兩日的排程在 00:00 交界瞬間出現空窗而誤關設備。
+                    if (!isInSchedule)
+                    {
+                        DateTime lookahead = DateTime.Now.AddMinutes(1);
+                        foreach (var schedule in schedules)
+                        {
+                            if (schedule.Enabled && IsInScheduleAt(schedule, lookahead))
+                            {
+                                isInSchedule = true;
+                                System.Diagnostics.Debug.WriteLine(
+                                    $"[排程控制] {compressor.Name} - 1 分鐘後 ({lookahead:yyyy-MM-dd HH:mm:ss}) 有排程銜接，維持啟動避免誤關");
+                                break;
+                            }
+                        }
+                    }
+
                     ushort targetValue = isInSchedule ? (ushort)1 : (ushort)0;
 
                     System.Diagnostics.Debug.WriteLine($"[排程控制] {compressor.Name} - 判斷結果: isInSchedule={isInSchedule}, targetValue={targetValue}");
@@ -1234,14 +1251,42 @@ namespace DeviceBox
         }
 
         /// <summary>
+        /// 取得排程結束時間的「有效結束值」
+        /// 23:59 代表使用者在 UI 勾選「全天(24hr)」，語意上應等同於當日結束 24:00:00，
+        /// 如此相鄰兩日的 24hr 排程才能在午夜 00:00 無縫銜接，不會出現空窗導致設備被關閉。
+        /// 其餘以 :59 分結尾的時間沿用原本 +59 秒的補償行為。
+        /// </summary>
+        private TimeSpan GetEffectiveEndTime(TimeSpan endTime)
+        {
+            // 全天排程 (00:00 ~ 23:59)：視為到當日結束 24:00:00
+            if (endTime.Hours == 23 && endTime.Minutes == 59)
+                return TimeSpan.FromDays(1);
+
+            // 其他 :59 分結尾：補滿該分鐘的 59 秒
+            if (endTime.Minutes == 59)
+                return endTime.Add(TimeSpan.FromSeconds(59));
+
+            return endTime;
+        }
+
+        /// <summary>
         /// 檢查指定排程是否在當前時間範圍內
         /// </summary>
         private bool IsInSchedule(ModeScheduleItem schedule)
         {
+            return IsInScheduleAt(schedule, DateTime.Now);
+        }
+
+        /// <summary>
+        /// 檢查指定排程在指定時間點是否在範圍內
+        /// 抽出時間參數以便預測未來時間點的排程狀態（例如午夜銜接判斷）
+        /// </summary>
+        private bool IsInScheduleAt(ModeScheduleItem schedule, DateTime when)
+        {
             if (schedule == null || !schedule.Enabled)
                 return false;
 
-            var now = DateTime.Now;
+            var now = when;
             var currentTime = now.TimeOfDay;
             var currentDay = now.DayOfWeek;
 
@@ -1262,20 +1307,19 @@ namespace DeviceBox
                     return false;
                 }
 
-                TimeSpan effectiveEnd = schedule.EndTime;
-                if (schedule.EndTime.Minutes == 59)
-                    effectiveEnd = schedule.EndTime.Add(TimeSpan.FromSeconds(59));
+                TimeSpan effectiveEnd = GetEffectiveEndTime(schedule.EndTime);
 
                 bool resultRepeat;
                 if (schedule.StartTime <= schedule.EndTime)
                 {
-                    resultRepeat = currentTime >= schedule.StartTime && currentTime <= effectiveEnd;
-                    System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 時間檢查: {currentTime:hh\\:mm} >= {schedule.StartTime:hh\\:mm} && <= {effectiveEnd:hh\\:mm} = {resultRepeat}");
+                    // 半開區間 [start, end)，effectiveEnd 為 24:00 時整日皆成立
+                    resultRepeat = currentTime >= schedule.StartTime && currentTime < effectiveEnd;
+                    System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 時間檢查: {currentTime:hh\\:mm\\:ss} >= {schedule.StartTime:hh\\:mm} && < {effectiveEnd} = {resultRepeat}");
                 }
                 else
                 {
-                    resultRepeat = currentTime >= schedule.StartTime || currentTime <= effectiveEnd;
-                    System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 時間檢查(跨日): {currentTime:hh\\:mm} >= {schedule.StartTime:hh\\:mm} || <= {effectiveEnd:hh\\:mm} = {resultRepeat}");
+                    resultRepeat = currentTime >= schedule.StartTime || currentTime < effectiveEnd;
+                    System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 時間檢查(跨日): {currentTime:hh\\:mm\\:ss} >= {schedule.StartTime:hh\\:mm} || < {effectiveEnd} = {resultRepeat}");
                 }
 
                 return resultRepeat;
@@ -1287,38 +1331,44 @@ namespace DeviceBox
             System.Diagnostics.Debug.WriteLine($"[IsInSchedule] EndDay: {schedule.EndDay}, EndTime: {schedule.EndTime:hh\\:mm}");
             System.Diagnostics.Debug.WriteLine($"[IsInSchedule] RepeatDays: {string.Join(",", schedule.RepeatDays ?? new List<DayOfWeek>())}");
 
-            // 將 DayOfWeek 轉換為週分鐘
+            // 將 DayOfWeek 轉換為週秒數（以秒為單位避免分鐘截斷誤差）
             // 注意：Sunday = 0，但在一週中應該是最後一天，所以轉換為 7
-            int ToWeeklyMinutes(DayOfWeek day, TimeSpan time)
+            double ToWeeklySeconds(DayOfWeek day, TimeSpan time)
             {
                 int dayValue = (int)day;
                 if (dayValue == 0) // Sunday
                     dayValue = 7;
-                return dayValue * 1440 + (int)time.TotalMinutes;
+                return dayValue * 86400.0 + time.TotalSeconds;
             }
 
-            int current = ToWeeklyMinutes(currentDay, currentTime);
-            int start = ToWeeklyMinutes(schedule.StartDay, schedule.StartTime);
-            int end = ToWeeklyMinutes(schedule.EndDay, schedule.EndTime);
+            // 全天排程的 EndTime=23:59 會被視為 24:00:00，
+            // 使得 end 恰好等於隔日 00:00 的週秒數，相鄰兩日排程在午夜可無縫銜接
+            TimeSpan spanEffectiveEnd = GetEffectiveEndTime(schedule.EndTime);
 
-            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 週分鐘計算:");
-            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   current = {currentDay}({(currentDay == DayOfWeek.Sunday ? 7 : (int)currentDay)}) * 1440 + {(int)currentTime.TotalMinutes} = {current}");
-            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   start   = {schedule.StartDay}({(schedule.StartDay == DayOfWeek.Sunday ? 7 : (int)schedule.StartDay)}) * 1440 + {(int)schedule.StartTime.TotalMinutes} = {start}");
-            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   end     = {schedule.EndDay}({(schedule.EndDay == DayOfWeek.Sunday ? 7 : (int)schedule.EndDay)}) * 1440 + {(int)schedule.EndTime.TotalMinutes} = {end}");
+            double current = ToWeeklySeconds(currentDay, currentTime);
+            double start = ToWeeklySeconds(schedule.StartDay, schedule.StartTime);
+            double end = ToWeeklySeconds(schedule.EndDay, spanEffectiveEnd);
+
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 週秒數計算:");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   current = {currentDay} {currentTime:hh\\:mm\\:ss} = {current}");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   start   = {schedule.StartDay} {schedule.StartTime:hh\\:mm\\:ss} = {start}");
+            System.Diagnostics.Debug.WriteLine($"[IsInSchedule]   end     = {schedule.EndDay} {spanEffectiveEnd:hh\\:mm\\:ss} (原 {schedule.EndTime:hh\\:mm}) = {end}");
 
             bool resultSpan;
+            // 週日 23:59 經 GetEffectiveEndTime 後為 8*86400（等同下週一 00:00），
+            // 剛好是一週週秒數的上界，半開區間比較即可正確涵蓋整個週日
             if (start <= end)
             {
                 // 不跨週：例如 週一 08:00 ~ 週五 17:00，或 週一 00:00 ~ 週日 23:59
-                resultSpan = current >= start && current <= end;
-                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 不跨週檢查: {current} >= {start} && {current} <= {end} = {resultSpan}");
+                resultSpan = current >= start && current < end;
+                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 不跨週檢查: {current} >= {start} && {current} < {end} = {resultSpan}");
             }
             else
             {
                 // 跨週：例如 週六 20:00 ~ 週一 08:00
                 // 需要處理週末跨到下週一的情況
-                resultSpan = current >= start || current <= end;
-                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 跨週檢查: {current} >= {start} || {current} <= {end} = {resultSpan}");
+                resultSpan = current >= start || current < end;
+                System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 跨週檢查: {current} >= {start} || {current} < {end} = {resultSpan}");
             }
 
             System.Diagnostics.Debug.WriteLine($"[IsInSchedule] 最終結果: {resultSpan}");
